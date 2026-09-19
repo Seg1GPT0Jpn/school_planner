@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../features/timetable/subject_colors.dart';
 import 'router.dart';
 
 /// アプリ全体の設定
@@ -20,6 +21,11 @@ class App extends StatelessWidget {
       locale: const Locale('ja'),
       supportedLocales: const [Locale('ja')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+
+      // すべての画面の外側に「教科の色の係」を置く
+      builder: (context, child) {
+        return SubjectColorProvider(child: child!);
+      },
     );
   }
 }

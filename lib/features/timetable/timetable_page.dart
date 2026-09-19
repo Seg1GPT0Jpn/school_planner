@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'school_periods.dart';
+import 'subject_color_page.dart';
+import 'subject_colors.dart';
 import 'timetable_repository.dart';
 import 'week_cycle.dart';
 
@@ -41,6 +43,12 @@ class _TimetablePageState extends State<TimetablePage> {
     } finally {
       if (mounted) setState(() => _isSeeding = false);
     }
+  }
+
+  void _openSubjectColors() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SubjectColorPage()));
   }
 
   @override
@@ -90,6 +98,14 @@ class _TimetablePageState extends State<TimetablePage> {
           child: Scaffold(
             appBar: AppBar(
               title: const Text('時間割'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.palette_outlined),
+                  tooltip: '教科の色',
+                  onPressed: _openSubjectColors,
+                ),
+                const SizedBox(width: 8),
+              ],
               bottom: const TabBar(
                 tabs: [
                   Tab(text: 'Ⅰ週'),
@@ -258,8 +274,25 @@ class _WeekTable extends StatelessWidget {
     }
 
     final slot = data.slotAt(weekType, weekday, period);
+    if (slot == null) return cellBuilder(const SizedBox.shrink());
+
+    // 科目 → 教科 → 色（マスを淡く塗る）
+    String? category;
+    for (final s in data.subjects) {
+      if (s.name == slot.subject) category = s.category;
+    }
+    final color = subjectColorOf(context, category);
+
     return cellBuilder(
-      Text(slot?.subject ?? '', style: smallText, textAlign: TextAlign.center),
+      Text(
+        slot.subject,
+        style: smallText?.copyWith(
+          color: Color.lerp(color, Colors.black, 0.45),
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      color: color.withValues(alpha: 0.18),
     );
   }
 }
