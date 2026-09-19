@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../belongings/belongings_pages.dart';
 import '../goals/goal.dart';
 import '../goals/goal_repository.dart';
 import '../goals/goals_page.dart';
@@ -151,7 +152,14 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     );
-
+                    // 明日の持ち物
+                    cards.add(const SizedBox(height: 12));
+                    cards.add(
+                      TomorrowBelongingsCard(
+                        data: data,
+                        recurring: rs.data ?? const [],
+                      ),
+                    );
                     // これからのテスト・提出物
                     final upcoming = [
                       ...collectUpcoming(

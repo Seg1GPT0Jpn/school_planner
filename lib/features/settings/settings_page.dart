@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../belongings/belongings_pages.dart';
 import '../events/category_manage_page.dart';
 import '../events/event_category_repository.dart';
 import '../notifications/notification_planner.dart';
@@ -70,6 +71,11 @@ class SettingsPage extends StatelessWidget {
                 leading: const Icon(Icons.palette_outlined),
                 title: const Text('教科の色'),
                 onTap: () => _push(context, const SubjectColorPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.backpack_outlined),
+                title: const Text('持ち物'),
+                onTap: () => _push(context, const BelongingsSettingsPage()),
               ),
               header('予定'),
               ListTile(
