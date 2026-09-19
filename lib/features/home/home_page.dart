@@ -1,6 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../school_tests/school_test_edit_page.dart';
+import '../school_tests/school_test_repository.dart';
+import '../school_tests/upcoming_tests.dart';
+import '../school_tests/upcoming_tests_card.dart';
 import '../timetable/day_timetable_card.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/timetable_repository.dart';
@@ -15,13 +19,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final Stream<TimetableData> _timetableStream;
+  late final SchoolTestRepository _testRepository;
+
+  /// 「これからのテスト・提出物」を何日分表示するか
+  static const int _upcomingDays = 14;
 
   @override
   void initState() {
     super.initState();
-    _timetableStream = TimetableRepository(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-    ).watch();
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    _timetableStream = TimetableRepository(uid: uid).watch();
+    _testRepository = SchoolTestRepository(uid: uid);
   }
 
   /// 確認してからログアウトする
@@ -60,6 +68,22 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
+  /// 手で登録した小テスト・提出物などの編集画面を開く
+  void _openTestEditor(TimetableData data, UpcomingItem item) {
+    final test = item.source;
+    if (test == null) return;
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => SchoolTestEditPage(
+          repository: _testRepository,
+          subjects: data.subjects,
+          test: test,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = FirebaseAuth.instance.currentUser?.displayName ?? '';
@@ -94,7 +118,10 @@ class _HomePageState extends State<HomePage> {
           if (!data.isSeeded) {
             cards.add(const Text('時間割タブから、基本時間割を登録してください。'));
           } else {
+            // 今日の時間割
             cards.add(DayTimetableCard(title: '今日の時間割', day: today));
+
+            // 今日が授業のない日なら、次の授業日も
             if (today.status != DayStatus.school) {
               final next = _findNextSchoolDay(resolver, now);
               if (next != null) {
@@ -102,6 +129,24 @@ class _HomePageState extends State<HomePage> {
                 cards.add(DayTimetableCard(title: '次の授業日', day: next));
               }
             }
+
+            // これからのテスト・提出物
+            final upcoming = collectUpcoming(
+              from: now,
+              days: _upcomingDays,
+              resolver: data.baseResolver,
+              rules: data.activeRules,
+              schoolTests: data.schoolTests,
+            );
+            cards.add(const SizedBox(height: 12));
+            cards.add(
+              UpcomingTestsCard(
+                items: upcoming,
+                today: now,
+                days: _upcomingDays,
+                onTapItem: (item) => _openTestEditor(data, item),
+              ),
+            );
           }
 
           return Align(
