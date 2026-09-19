@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
+import '../events/event_edit_page.dart';
+import '../events/event_repository.dart';
 import 'month_view.dart';
 import 'time_grid.dart';
 
@@ -62,6 +64,30 @@ class _CalendarPageState extends State<CalendarPage> {
 
   void _goToday() => setState(() => _focused = _today());
 
+  /// 予定の追加画面を開く
+  ///   今日を見ているときは次の正時（例：16:40 → 17:00）、
+  ///   それ以外の日は 9:00 から始まる予定を用意する
+  void _createEvent() {
+    final today = _today();
+    final isToday = _focused == today;
+    final now = DateTime.now();
+    final start = isToday
+        ? DateTime(now.year, now.month, now.day, now.hour + 1)
+        : DateTime(_focused.year, _focused.month, _focused.day, 9);
+
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => EventEditPage(
+          repository: EventRepository(
+            uid: FirebaseAuth.instance.currentUser!.uid,
+          ),
+          initialStart: start,
+        ),
+      ),
+    );
+  }
+
   /// 月表示で日付をタップしたら、その日の日表示へ
   void _openDay(DateTime date) {
     setState(() {
@@ -108,6 +134,11 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        tooltip: '予定を追加',
+        onPressed: _createEvent,
+        child: const Icon(Icons.add),
+      ),
       appBar: AppBar(
         title: const Text('カレンダー'),
         actions: [

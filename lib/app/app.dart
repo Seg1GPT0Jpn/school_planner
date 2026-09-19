@@ -15,6 +15,11 @@ class App extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
       ),
       routerConfig: appRouter,
+
+      // 日付・時刻の選択画面などを日本語で表示する
+      locale: const Locale('ja'),
+      supportedLocales: const [Locale('ja')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
     );
   }
 }
