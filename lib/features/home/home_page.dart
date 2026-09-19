@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../goals/goal.dart';
 import '../goals/goal_repository.dart';
 import '../goals/goals_page.dart';
+import '../settings/settings_page.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
@@ -76,6 +77,13 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('ホーム'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '設定',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'ログアウト',
