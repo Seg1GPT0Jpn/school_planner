@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'school_periods.dart';
+import 'school_settings_page.dart';
 import 'subject_color_page.dart';
 import 'subject_colors.dart';
 import 'timetable_repository.dart';
@@ -99,6 +100,15 @@ class _TimetablePageState extends State<TimetablePage> {
             appBar: AppBar(
               title: const Text('時間割'),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: '学校の設定',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SchoolSettingsPage(),
+                    ),
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.palette_outlined),
                   tooltip: '教科の色',

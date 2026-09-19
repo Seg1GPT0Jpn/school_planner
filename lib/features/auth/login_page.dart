@@ -28,17 +28,18 @@ class _LoginPageState extends State<LoginPage> {
         // Web 版：Google のログイン用の小さなウィンドウを開く
         await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
       } else {
-        // Android 版は、Android で動かす段階で設定する
-        setState(() {
-          _errorMessage = 'Android 版のログインは、後の段階で設定します。';
-        });
+        // Android 版：Google のログイン画面をブラウザで開く
+        await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
       }
     } on FirebaseAuthException catch (e) {
-      // ログイン用のウィンドウを自分で閉じた場合は、エラー扱いしない
-      final closedByUser =
-          e.code == 'popup-closed-by-user' ||
-          e.code == 'cancelled-popup-request';
-      if (!closedByUser) {
+      // ログイン画面を自分で閉じた場合は、エラー扱いしない
+      const closedCodes = {
+        'popup-closed-by-user',
+        'cancelled-popup-request',
+        'web-context-canceled',
+        'canceled',
+      };
+      if (!closedCodes.contains(e.code)) {
         setState(() {
           _errorMessage = 'ログインに失敗しました（${e.code}）';
         });
