@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../features/notifications/notification_sync.dart';
 import '../features/timetable/subject_colors.dart';
 import 'router.dart';
 
@@ -24,7 +25,7 @@ class App extends StatelessWidget {
 
       // すべての画面の外側に「教科の色の係」を置く
       builder: (context, child) {
-        return SubjectColorProvider(child: child!);
+        return SubjectColorProvider(child: NotificationSync(child: child!));
       },
     );
   }
