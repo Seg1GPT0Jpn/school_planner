@@ -32,12 +32,13 @@ bool _isSameDay(DateTime a, DateTime b) =>
 
 String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 
-/// 小テストに関する操作（カレンダー画面から渡してもらう）
+/// 授業に関する操作（カレンダー画面から渡してもらう）
 class LessonTestActions {
   const LessonTestActions({
     required this.onAdd,
     required this.onEdit,
     required this.onSetWeekSkipped,
+    required this.onChangeLesson,
   });
 
   /// この授業に小テストを追加する
@@ -49,6 +50,10 @@ class LessonTestActions {
   /// 毎週のテストを、その週だけ「なし」にする／戻す
   final void Function(WeeklyLessonTestRule rule, DateTime date, bool skipped)
   onSetWeekSkipped;
+
+  /// この日だけ科目を変える・休講にする・元に戻す（試験日課の日は試験科目）
+  final void Function(DateTime date, ResolvedLesson lesson, bool isExamDay)
+  onChangeLesson;
 }
 
 /// Google カレンダー風の時間軸表示（週表示・日表示の共通部品）
@@ -84,7 +89,7 @@ class TimeGridView extends StatefulWidget {
   /// 予定がタップされたとき
   final ValueChanged<CalendarEvent> onEventTap;
 
-  /// 小テストに関する操作
+  /// 授業に関する操作
   final LessonTestActions testActions;
 
   @override
@@ -517,6 +522,7 @@ class _DayColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isSchool = day.status == DayStatus.school;
+    final isExamDay = isSchool && day.schedule == DaySchedule.exam;
 
     const lunchAfter = SchoolPeriods.lunchAfterPeriod;
     final showLunch =
@@ -612,6 +618,7 @@ class _DayColumn extends StatelessWidget {
                             date: date,
                             lesson: lesson,
                             category: categoryOf[lesson.subject],
+                            isExamDay: isExamDay,
                             lessonTests: [
                               for (final t in tests)
                                 if (t.period == lesson.period) t,
@@ -718,6 +725,7 @@ class _LessonBlock extends StatelessWidget {
     required this.date,
     required this.lesson,
     required this.category,
+    required this.isExamDay,
     required this.lessonTests,
     required this.rule,
     required this.isWeekSkipped,
@@ -727,6 +735,9 @@ class _LessonBlock extends StatelessWidget {
   final DateTime date;
   final ResolvedLesson lesson;
   final String? category;
+
+  /// 試験日課の日か
+  final bool isExamDay;
 
   /// この授業に登録された小テスト（手で登録したもの）
   final List<SchoolTest> lessonTests;
@@ -756,8 +767,9 @@ class _LessonBlock extends StatelessWidget {
         ? colorScheme.outline
         : Color.lerp(base, Colors.black, 0.45)!;
 
+    // 試験日課の日に試験科目を入れたものは「変更」扱いにしない
     final statusLabel = switch (lesson.status) {
-      LessonStatus.changed => '変更',
+      LessonStatus.changed => isExamDay ? null : '変更',
       LessonStatus.added => '追加',
       LessonStatus.cancelled => '休講',
       _ => null,
@@ -773,6 +785,7 @@ class _LessonBlock extends StatelessWidget {
           date: date,
           lesson: lesson,
           category: category,
+          isExamDay: isExamDay,
           lessonTests: lessonTests,
           rule: rule,
           isWeekSkipped: isWeekSkipped,
@@ -795,7 +808,7 @@ class _LessonBlock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  lesson.subject ?? '未設定',
+                  lesson.subject ?? (isExamDay ? '試験科目 未設定' : '未設定'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.labelMedium?.copyWith(
@@ -848,6 +861,7 @@ void _showLessonDetails(
   required DateTime date,
   required ResolvedLesson lesson,
   required String? category,
+  required bool isExamDay,
   required List<SchoolTest> lessonTests,
   required WeeklyLessonTestRule? rule,
   required bool isWeekSkipped,
@@ -855,10 +869,10 @@ void _showLessonDetails(
 }) {
   final statusText = switch (lesson.status) {
     LessonStatus.normal => null,
-    LessonStatus.changed => '時間割変更あり',
+    LessonStatus.changed => isExamDay ? null : '時間割変更あり',
     LessonStatus.added => '追加の授業',
     LessonStatus.cancelled => '休講',
-    LessonStatus.empty => '時間割が未設定',
+    LessonStatus.empty => isExamDay ? '試験科目が未設定' : '時間割が未設定',
   };
 
   // この授業に毎週のテスト（LEAP など）の印が付いているか
@@ -884,7 +898,7 @@ void _showLessonDetails(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                lesson.subject ?? '未設定',
+                lesson.subject ?? (isExamDay ? '試験科目 未設定' : '未設定'),
                 style: Theme.of(sheetContext).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
@@ -922,6 +936,16 @@ void _showLessonDetails(
               ],
 
               const Divider(),
+
+              // 科目の変更（試験日課の日は試験科目の設定）
+              TextButton.icon(
+                onPressed: () => closeThen(
+                  () => actions.onChangeLesson(date, lesson, isExamDay),
+                ),
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(isExamDay ? '試験科目を設定' : 'この日の科目を変更'),
+              ),
+
               TextButton.icon(
                 onPressed: () => closeThen(() => actions.onAdd(date, lesson)),
                 icon: const Icon(Icons.add),

@@ -252,6 +252,69 @@ class TimetableRepository {
   }
 
   // ------------------------------------------------------------
+  // 特定日の時限の変更（科目の変更・休講・試験科目）
+  // ------------------------------------------------------------
+
+  /// その日のその時限の変更を保存する（同じ時限の変更があれば置き換える）
+  Future<void> setPeriodChange(DateTime date, PeriodChange change) async {
+    final doc = _col('timetable_overrides').doc(dateKey(date));
+    final snapshot = await doc.get();
+    final data = snapshot.data() ?? <String, dynamic>{};
+
+    await doc.set({
+      ...data,
+      'date': dateKey(date),
+      'changes': updatedChanges(
+        data['changes'] as List<dynamic>?,
+        change.period,
+        change,
+      ),
+    });
+  }
+
+  /// その日のその時限の変更を消す（元に戻す）
+  ///
+  /// ほかに何も設定が残らなければ、その日の例外ごと削除する。
+  Future<void> clearPeriodChange(DateTime date, int period) async {
+    final doc = _col('timetable_overrides').doc(dateKey(date));
+    final snapshot = await doc.get();
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data()!;
+    final changes = updatedChanges(
+      data['changes'] as List<dynamic>?,
+      period,
+      null,
+    );
+
+    final hasOtherSettings =
+        data['schedule'] != null ||
+        data['weekType'] != null ||
+        data['note'] != null ||
+        changes.isNotEmpty;
+
+    if (hasOtherSettings) {
+      await doc.set({...data, 'changes': changes});
+    } else {
+      await doc.delete();
+    }
+  }
+
+  /// 変更の一覧のうち、その時限のものを change に置き換える（null なら消す）
+  static List<Map<String, dynamic>> updatedChanges(
+    List<dynamic>? existing,
+    int period,
+    PeriodChange? change,
+  ) {
+    final result = [
+      for (final c in existing ?? const []) Map<String, dynamic>.from(c as Map),
+    ]..removeWhere((c) => _toInt(c['period']) == period);
+
+    if (change != null) result.add(_changeToMap(change));
+    return result;
+  }
+
+  // ------------------------------------------------------------
   // 初期データの登録（版ごとに、まだ登録していない分だけ）
   // ------------------------------------------------------------
 
@@ -353,32 +416,33 @@ class TimetableRepository {
     return ClockTime(parts[0], parts[1]);
   }
 
+  static Map<String, dynamic> _changeToMap(PeriodChange c) => {
+    'type': c.type.name,
+    'period': c.period,
+    'otherPeriod': c.otherPeriod,
+    'subject': c.subject,
+    'room': c.room,
+    'teacher': c.teacher,
+    'memo': c.memo,
+    'start': c.start?.toString(),
+    'end': c.end?.toString(),
+  };
+
   static Map<String, dynamic> _dayOverrideToMap(DayOverride o) => {
     'date': dateKey(o.date),
     'schedule': o.schedule?.name,
     'weekType': o.weekType?.name,
     'note': o.note,
-    'changes': [
-      for (final c in o.changes)
-        {
-          'type': c.type.name,
-          'period': c.period,
-          'otherPeriod': c.otherPeriod,
-          'subject': c.subject,
-          'room': c.room,
-          'teacher': c.teacher,
-          'memo': c.memo,
-          'start': c.start?.toString(),
-          'end': c.end?.toString(),
-        },
-    ],
+    'changes': [for (final c in o.changes) _changeToMap(c)],
   };
 
   static DayOverride _dayOverrideFromMap(Map<String, dynamic> m) {
     final scheduleName = m['schedule'] as String?;
     final weekTypeName = m['weekType'] as String?;
-    final changeMaps = (m['changes'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>();
+    final changeMaps = [
+      for (final c in (m['changes'] as List<dynamic>? ?? const []))
+        Map<String, dynamic>.from(c as Map),
+    ];
 
     return DayOverride(
       date: _parseDate(m['date'] as String),

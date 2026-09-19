@@ -11,6 +11,9 @@ import '../events/event_repository.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_edit_page.dart';
 import '../school_tests/school_test_repository.dart';
+import '../timetable/day_timetable_resolver.dart';
+import '../timetable/lesson_change_dialog.dart';
+import '../timetable/timetable_models.dart';
 import '../timetable/timetable_repository.dart';
 import 'month_view.dart';
 import 'time_grid.dart';
@@ -42,6 +45,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
+  late final TimetableRepository _timetableRepository;
   late final EventRepository _eventRepository;
   late final EventCategoryRepository _categoryRepository;
   late final SchoolTestRepository _testRepository;
@@ -50,7 +54,7 @@ class _CalendarPageState extends State<CalendarPage> {
   late final Stream<List<CalendarEvent>> _eventStream;
   late final Stream<List<EventCategory>> _categoryStream;
 
-  /// 最後に読み込んだ時間割データ（小テストの登録画面で科目一覧に使う）
+  /// 最後に読み込んだ時間割データ（科目一覧に使う）
   TimetableData? _latestData;
 
   CalendarMode _mode = CalendarMode.month;
@@ -79,11 +83,12 @@ class _CalendarPageState extends State<CalendarPage> {
     super.initState();
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
+    _timetableRepository = TimetableRepository(uid: uid);
     _eventRepository = EventRepository(uid: uid);
     _categoryRepository = EventCategoryRepository(uid: uid);
     _testRepository = SchoolTestRepository(uid: uid);
 
-    _timetableStream = TimetableRepository(uid: uid).watch();
+    _timetableStream = _timetableRepository.watch();
     _eventStream = _eventRepository.watchAll();
     _categoryStream = _categoryRepository.watch();
 
@@ -148,7 +153,7 @@ class _CalendarPageState extends State<CalendarPage> {
   void _openDay(DateTime date) => _changeView(CalendarMode.day, date);
 
   // ------------------------------------------------------------
-  // 予定・小テストの追加・編集
+  // 予定・小テスト・時間割の変更
   // ------------------------------------------------------------
 
   /// 予定の入力画面を開く（event があれば編集、なければ追加）
@@ -188,7 +193,39 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  /// 週・日表示に渡す、小テストの操作
+  /// この日だけ科目を変える・休講にする・元に戻す（試験日課の日は試験科目）
+  Future<void> _changeLesson(
+    DateTime date,
+    ResolvedLesson lesson,
+    bool isExamDay,
+  ) async {
+    final result = await showDialog<LessonChangeResult>(
+      context: context,
+      builder: (_) => LessonChangeDialog(
+        subjects: _latestData?.subjects ?? const [],
+        lesson: lesson,
+        isExamDay: isExamDay,
+      ),
+    );
+    if (result == null) return;
+
+    switch (result.action) {
+      case LessonChangeAction.setSubject:
+        await _timetableRepository.setPeriodChange(
+          date,
+          PeriodChange.replace(period: lesson.period, subject: result.subject),
+        );
+      case LessonChangeAction.cancel:
+        await _timetableRepository.setPeriodChange(
+          date,
+          PeriodChange.cancel(period: lesson.period),
+        );
+      case LessonChangeAction.reset:
+        await _timetableRepository.clearPeriodChange(date, lesson.period);
+    }
+  }
+
+  /// 週・日表示に渡す、授業に関する操作
   LessonTestActions get _testActions => LessonTestActions(
     onAdd: (date, lesson) => _openTestEditor(
       date: date,
@@ -198,6 +235,7 @@ class _CalendarPageState extends State<CalendarPage> {
     onEdit: (test) => _openTestEditor(test: test),
     onSetWeekSkipped: (rule, date, skipped) =>
         _testRepository.setWeekSkipped(rule.id, date, skipped),
+    onChangeLesson: _changeLesson,
   );
 
   /// ＋ボタン：予定か、小テスト・学校イベントかを選ぶ
