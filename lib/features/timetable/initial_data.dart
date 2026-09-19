@@ -1,11 +1,17 @@
-/// 初期データ（最初の1回だけ Firestore に登録する）
+/// 初期データ（アプリから Firestore に登録する）
 ///
 /// 登録したあとは、アプリの画面から修正する。
 /// このファイルを書き換えても、登録済みのデータは変わらない。
+/// 新しいデータを追加するときは、timetable_repository.dart の版番号を上げる。
 library;
 
+import 'school_periods.dart';
 import 'timetable_models.dart';
 import 'week_cycle.dart';
+
+// ================================================================
+// 版1：科目・基本時間割・基準日・10月の例外
+// ================================================================
 
 /// 教科・科目の一覧（1年生）
 const List<Subject> initialSubjects = [
@@ -67,11 +73,65 @@ final List<WeekAnchor> initialAnchors = [
 /// 週単位の例外：10/12〜の週（10/13〜16）は、その週だけⅠ週
 const Map<String, WeekType> initialWeekOverrides = {'2026-10-12': WeekType.one};
 
-/// 特定日の例外：10/19（月）だけⅡ週の時間割
+// ================================================================
+// 特定日の例外（版1：10/19、版2：短縮日課・試験日課）
+// ================================================================
+
+/// 後期中間試験の日
+final List<DateTime> _midtermExamDays = [
+  DateTime(2026, 11, 25),
+  DateTime(2026, 11, 26),
+  DateTime(2026, 11, 27),
+  DateTime(2026, 11, 30),
+];
+
 final List<DayOverride> initialDayOverrides = [
+  // 版1
   DayOverride(
     date: DateTime(2026, 10, 19),
     weekType: WeekType.two,
     note: 'この日だけⅡ週の時間割',
   ),
+
+  // 版2
+  DayOverride(
+    date: DateTime(2026, 11, 24),
+    schedule: DaySchedule.shortened,
+    note: '後期中間試験前の短縮日課',
+  ),
+  for (final day in _midtermExamDays)
+    DayOverride(date: day, schedule: DaySchedule.exam, note: '後期中間試験'),
 ];
+
+// ================================================================
+// 版2：学校休業日
+// ================================================================
+
+/// 学校休業日（キー：Firestore に保存するときの ID）
+final Map<String, SchoolClosure> initialClosures = {
+  'winter-2026': SchoolClosure(
+    start: DateTime(2026, 12, 24),
+    end: DateTime(2027, 1, 7),
+    title: '冬休み',
+  ),
+  'entrance-exam-2027-02-16': SchoolClosure(
+    start: DateTime(2027, 2, 16),
+    end: DateTime(2027, 2, 16),
+    title: '高校入試（学力検査）',
+  ),
+  'entrance-exam-2027-02-17': SchoolClosure(
+    start: DateTime(2027, 2, 17),
+    end: DateTime(2027, 2, 17),
+    title: '高校入試（特色検査）',
+  ),
+  'entrance-exam-2027-02-22': SchoolClosure(
+    start: DateTime(2027, 2, 22),
+    end: DateTime(2027, 2, 22),
+    title: '高校入試（追検査）',
+  ),
+  'spring-2027': SchoolClosure(
+    start: DateTime(2027, 3, 25),
+    end: DateTime(2027, 4, 2),
+    title: '春休み',
+  ),
+};

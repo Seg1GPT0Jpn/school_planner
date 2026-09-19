@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../core/japanese_holidays.dart';
 import 'day_timetable_resolver.dart';
 import 'initial_data.dart';
 import 'school_periods.dart';
@@ -14,7 +15,7 @@ import 'week_cycle.dart';
 /// Firestore から読み込んだ時間割データ一式
 class TimetableData {
   const TimetableData({
-    required this.isSeeded,
+    required this.dataVersion,
     required this.subjects,
     required this.slots,
     required this.anchors,
@@ -23,8 +24,8 @@ class TimetableData {
     required this.closures,
   });
 
-  /// 初期データを登録済みか
-  final bool isSeeded;
+  /// 登録済みの初期データの版（0 = 未登録）
+  final int dataVersion;
 
   final List<Subject> subjects;
   final List<TimetableSlot> slots;
@@ -32,6 +33,13 @@ class TimetableData {
   final Map<String, WeekType> weekOverrides;
   final List<DayOverride> dayOverrides;
   final List<SchoolClosure> closures;
+
+  /// 初期データを登録済みか
+  bool get isSeeded => dataVersion > 0;
+
+  /// 新しい版の初期データがあるか
+  bool get hasInitialDataUpdate =>
+      isSeeded && dataVersion < TimetableRepository.latestDataVersion;
 
   /// このデータを使って「その日の時間割」を計算する係
   DayTimetableResolver get resolver => DayTimetableResolver(
@@ -42,6 +50,7 @@ class TimetableData {
     slots: slots,
     dayOverrides: dayOverrides,
     closures: closures,
+    holidays: japaneseHolidays,
   );
 
   /// 通常時間割の1コマを取り出す（なければ null）
@@ -61,6 +70,11 @@ class TimetableData {
 class TimetableRepository {
   TimetableRepository({required this.uid, FirebaseFirestore? firestore})
     : _db = firestore ?? FirebaseFirestore.instance;
+
+  /// 初期データの最新の版
+  ///   1：科目・基本時間割・基準日・10月の例外
+  ///   2：学校休業日・短縮日課・試験日課
+  static const int latestDataVersion = 2;
 
   final String uid;
   final FirebaseFirestore _db;
@@ -124,13 +138,19 @@ class TimetableRepository {
     List<Map<String, dynamic>> docs(String name) =>
         s[name]!.docs.map((d) => d.data()).toList();
 
-    final isSeeded = s['settings']!.docs.any((d) => d.id == 'app');
+    // 登録済みの版（版番号がない古いデータは版1とみなす）
+    var dataVersion = 0;
+    for (final d in s['settings']!.docs) {
+      if (d.id == 'app') {
+        dataVersion = _toInt(d.data()['initialDataVersion'] ?? 1);
+      }
+    }
 
     final subjectMaps = docs('subjects')
       ..sort((a, b) => _toInt(a['order']).compareTo(_toInt(b['order'])));
 
     return TimetableData(
-      isSeeded: isSeeded,
+      dataVersion: dataVersion,
       subjects: [
         for (final m in subjectMaps)
           Subject(name: m['name'] as String, category: m['category'] as String),
@@ -173,66 +193,86 @@ class TimetableRepository {
   }
 
   // ------------------------------------------------------------
-  // 初期データの登録（最初の1回だけ）
+  // 初期データの登録（版ごとに、まだ登録していない分だけ）
   // ------------------------------------------------------------
 
-  /// 初期データを登録する。すでに登録済みなら何もしない。
+  /// 初期データを登録する。登録済みの版より新しい分だけを追加する。
   Future<void> seedInitialData() async {
     final meta = _col('settings').doc('app');
-    if ((await meta.get()).exists) return;
+    final metaSnapshot = await meta.get();
+    final currentVersion = metaSnapshot.exists
+        ? _toInt(metaSnapshot.data()?['initialDataVersion'] ?? 1)
+        : 0;
+
+    if (currentVersion >= latestDataVersion) return;
 
     // まとめて書き込む（途中で失敗したら全部やり直しになる＝中途半端にならない）
     final batch = _db.batch();
 
-    for (var i = 0; i < initialSubjects.length; i++) {
-      final subject = initialSubjects[i];
-      batch.set(_col('subjects').doc(subject.name), {
-        'name': subject.name,
-        'category': subject.category,
-        'order': i,
-      });
+    // ---- 版1 ----
+    if (currentVersion < 1) {
+      for (var i = 0; i < initialSubjects.length; i++) {
+        final subject = initialSubjects[i];
+        batch.set(_col('subjects').doc(subject.name), {
+          'name': subject.name,
+          'category': subject.category,
+          'order': i,
+        });
+      }
+
+      for (final slot in initialSlots) {
+        batch.set(
+          _col('timetable_slots')
+              .doc(slotId(slot.weekType, slot.weekday, slot.period)),
+          {
+            'weekType': slot.weekType.name,
+            'weekday': slot.weekday,
+            'period': slot.period,
+            'subject': slot.subject,
+            'room': slot.room,
+            'teacher': slot.teacher,
+            'memo': slot.memo,
+          },
+        );
+      }
+
+      for (final anchor in initialAnchors) {
+        batch.set(_col('week_anchors').doc(dateKey(mondayOf(anchor.date))), {
+          'date': dateKey(anchor.date),
+          'weekType': anchor.weekType.name,
+        });
+      }
+
+      for (final entry in initialWeekOverrides.entries) {
+        batch.set(_col('week_overrides').doc(entry.key), {
+          'weekType': entry.value.name,
+        });
+      }
     }
 
-    for (final slot in initialSlots) {
-      batch.set(
-        _col('timetable_slots')
-            .doc(slotId(slot.weekType, slot.weekday, slot.period)),
-        {
-          'weekType': slot.weekType.name,
-          'weekday': slot.weekday,
-          'period': slot.period,
-          'subject': slot.subject,
-          'room': slot.room,
-          'teacher': slot.teacher,
-          'memo': slot.memo,
-        },
-      );
-    }
+    // ---- 版1・版2 共通：特定日の例外（同じ日付は上書きになる） ----
+    if (currentVersion < 2) {
+      for (final override in initialDayOverrides) {
+        batch.set(
+          _col('timetable_overrides').doc(dateKey(override.date)),
+          _dayOverrideToMap(override),
+        );
+      }
 
-    for (final anchor in initialAnchors) {
-      batch.set(_col('week_anchors').doc(dateKey(mondayOf(anchor.date))), {
-        'date': dateKey(anchor.date),
-        'weekType': anchor.weekType.name,
-      });
-    }
-
-    for (final entry in initialWeekOverrides.entries) {
-      batch.set(_col('week_overrides').doc(entry.key), {
-        'weekType': entry.value.name,
-      });
-    }
-
-    for (final override in initialDayOverrides) {
-      batch.set(
-        _col('timetable_overrides').doc(dateKey(override.date)),
-        _dayOverrideToMap(override),
-      );
+      // ---- 版2：学校休業日 ----
+      for (final entry in initialClosures.entries) {
+        batch.set(_col('closures').doc(entry.key), {
+          'start': dateKey(entry.value.start),
+          'end': dateKey(entry.value.end),
+          'title': entry.value.title,
+        });
+      }
     }
 
     batch.set(meta, {
-      'initialDataVersion': 1,
-      'initialDataSeededAt': FieldValue.serverTimestamp(),
-    });
+      'initialDataVersion': latestDataVersion,
+      'initialDataUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
     await batch.commit();
   }
@@ -256,6 +296,7 @@ class TimetableRepository {
 
   static Map<String, dynamic> _dayOverrideToMap(DayOverride o) => {
     'date': dateKey(o.date),
+    'schedule': o.schedule?.name,
     'weekType': o.weekType?.name,
     'note': o.note,
     'changes': [
@@ -275,12 +316,16 @@ class TimetableRepository {
   };
 
   static DayOverride _dayOverrideFromMap(Map<String, dynamic> m) {
+    final scheduleName = m['schedule'] as String?;
     final weekTypeName = m['weekType'] as String?;
     final changeMaps = (m['changes'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
 
     return DayOverride(
       date: _parseDate(m['date'] as String),
+      schedule: scheduleName == null
+          ? null
+          : DaySchedule.values.byName(scheduleName),
       weekType: weekTypeName == null
           ? null
           : WeekType.values.byName(weekTypeName),

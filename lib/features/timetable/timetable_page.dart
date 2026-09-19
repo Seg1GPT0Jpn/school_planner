@@ -97,10 +97,30 @@ class _TimetablePageState extends State<TimetablePage> {
                 ],
               ),
             ),
-            body: TabBarView(
+            body: Column(
               children: [
-                _WeekTable(data: data, weekType: WeekType.one),
-                _WeekTable(data: data, weekType: WeekType.two),
+                // 新しい版の初期データがあるときだけ表示
+                if (data.hasInitialDataUpdate)
+                  Card(
+                    margin: const EdgeInsets.all(16),
+                    child: ListTile(
+                      leading: const Icon(Icons.new_releases_outlined),
+                      title: const Text('追加の初期データがあります'),
+                      subtitle: Text(_errorMessage ?? '学校休業日・短縮日課・試験日課'),
+                      trailing: FilledButton(
+                        onPressed: _isSeeding ? null : _seed,
+                        child: const Text('登録'),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _WeekTable(data: data, weekType: WeekType.one),
+                      _WeekTable(data: data, weekType: WeekType.two),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -193,7 +213,7 @@ class _WeekTable extends StatelessWidget {
                   for (final label in _weekdayLabels) cell(Text(label)),
                 ],
               ),
-              // 1〜3限
+              // 午前の時限
               for (final period in SchoolPeriods.all.take(
                 SchoolPeriods.lunchAfterPeriod,
               ))
@@ -208,7 +228,7 @@ class _WeekTable extends StatelessWidget {
                   for (var i = 0; i < 5; i++) cell(const SizedBox.shrink()),
                 ],
               ),
-              // 4・5限
+              // 午後の時限
               for (final period in SchoolPeriods.all.skip(
                 SchoolPeriods.lunchAfterPeriod,
               ))
