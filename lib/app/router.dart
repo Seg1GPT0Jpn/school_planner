@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../features/auth/auth_state.dart';
 import '../features/auth/login_page.dart';
+import '../features/calendar/calendar_page.dart';
 import '../features/home/home_page.dart';
 import '../features/timetable/timetable_page.dart';
 import '../widgets/placeholder_page.dart';
@@ -12,6 +13,10 @@ import 'app_shell.dart';
 final AuthStateNotifier _authState = AuthStateNotifier();
 
 /// アプリ全体の画面遷移（ルーティング）の設定
+///
+/// ※ この設定はアプリ起動時に1回だけ作られる。
+///    変更したときは、ホットリロード（r）ではなく
+///    ホットリスタート（R）か、起動し直しが必要。
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
 
@@ -48,10 +53,7 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/calendar',
-              builder: (context, state) => const PlaceholderPage(
-                title: 'カレンダー',
-                icon: Icons.calendar_month,
-              ),
+              builder: (context, state) => const CalendarPage(),
             ),
           ],
         ),
