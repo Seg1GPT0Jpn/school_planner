@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
+import '../grades/grades_view.dart';
 import '../study/study_view.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
@@ -51,6 +52,7 @@ class _GoalsPageState extends State<GoalsPage> {
                 ButtonSegment(value: 0, label: Text('目標')),
                 ButtonSegment(value: 1, label: Text('ふり返り')),
                 ButtonSegment(value: 2, label: Text('勉強時間')),
+                ButtonSegment(value: 3, label: Text('成績')),
               ],
               selected: {_view},
               showSelectedIcon: false,
@@ -61,6 +63,7 @@ class _GoalsPageState extends State<GoalsPage> {
             child: switch (_view) {
               1 => const _ReflectionView(),
               2 => const StudyView(),
+              3 => const GradesView(),
               _ => const _GoalList(),
             },
           ),
