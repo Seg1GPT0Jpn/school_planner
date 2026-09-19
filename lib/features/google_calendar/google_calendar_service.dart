@@ -89,6 +89,36 @@ class GoogleCalendarService {
     ];
   }
 
+  /// 予定の一覧（繰り返しの予定は1回ずつに分けて取得）
+  Future<List<Map<String, dynamic>>> listEvents(
+    String calendarId,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final items = <Map<String, dynamic>>[];
+    String? page;
+    do {
+      final data = await _call(
+        'GET',
+        '/calendars/${Uri.encodeComponent(calendarId)}/events',
+        query: {
+          'timeMin': from.toUtc().toIso8601String(),
+          'timeMax': to.toUtc().toIso8601String(),
+          'singleEvents': 'true',
+          'orderBy': 'startTime',
+          'maxResults': '2500',
+          if (page != null) 'pageToken': page,
+        },
+      );
+      items.addAll([
+        for (final e in (data['items'] as List<dynamic>? ?? const []))
+          Map<String, dynamic>.from(e as Map),
+      ]);
+      page = data['nextPageToken'] as String?;
+    } while (page != null);
+    return items;
+  }
+
   /// 「つづり」カレンダーを作る（ID を返す）
   Future<String> createTsuzuriCalendar() async {
     final data = await _call(

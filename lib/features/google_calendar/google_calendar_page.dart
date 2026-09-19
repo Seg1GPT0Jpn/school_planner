@@ -97,10 +97,20 @@ class _GoogleCalendarPageState extends State<GoogleCalendarPage> {
                         radius: 8,
                         backgroundColor: _hex(c.color) ?? cs.primary,
                       ),
-                      onChanged: (v) => _repo.setReadIds(
-                        v == true ? [...s.readIds, c.id] : [...s.readIds]
-                          ..remove(c.id),
-                      ),
+                      onChanged: (v) async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await _repo.setReadIds(
+                            v == true
+                                ? [...s.readIds, c.id]
+                                : ([...s.readIds]..remove(c.id)),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('保存できませんでした：$e')),
+                          );
+                        }
+                      },
                     ),
                 const Divider(height: 32),
                 Text('書き込み先', style: Theme.of(context).textTheme.titleMedium),

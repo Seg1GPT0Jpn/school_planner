@@ -1,8 +1,11 @@
-/// 予定の保存・読み込み（Firestore とのやりとりはここだけで行う）
+/// 予定の保存・読み込み
 library;
+
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../google_calendar/google_sync.dart';
 import 'calendar_event.dart';
 import 'event_category.dart';
 
@@ -16,19 +19,46 @@ class EventRepository {
   CollectionReference<Map<String, dynamic>> get _events =>
       _db.collection('users').doc(uid).collection('events');
 
-  /// すべての予定を、開始日時の順に見張る（変わるたびに届く）
+  /// 自分の予定＋Google から読み込んだ予定
   Stream<List<CalendarEvent>> watchAll() {
-    return _events
-        .orderBy('start')
-        .snapshots()
-        .map(
-          (snapshot) => [
-            for (final doc in snapshot.docs) _fromMap(doc.id, doc.data()),
-          ],
+    var own = const <CalendarEvent>[];
+    var google = const <CalendarEvent>[];
+    var gotOwn = false, gotGoogle = false;
+    final subs = <StreamSubscription<dynamic>>[];
+    late final StreamController<List<CalendarEvent>> controller;
+
+    void emit() {
+      if (gotOwn && gotGoogle) controller.add([...own, ...google]);
+    }
+
+    controller = StreamController<List<CalendarEvent>>(
+      onListen: () {
+        subs.add(
+          _events.orderBy('start').snapshots().listen((s) {
+            own = [for (final d in s.docs) _fromMap(d.id, d.data())];
+            gotOwn = true;
+            emit();
+          }, onError: controller.addError),
         );
+        subs.add(
+          GoogleSyncRepository(uid: uid, firestore: _db).watchCached().listen((
+            g,
+          ) {
+            google = g;
+            gotGoogle = true;
+            emit();
+          }, onError: controller.addError),
+        );
+      },
+      onCancel: () async {
+        for (final s in subs) {
+          await s.cancel();
+        }
+      },
+    );
+    return controller.stream;
   }
 
-  /// 保存する（新しい予定なら追加、既存の予定なら上書き）
   Future<void> save(CalendarEvent event) async {
     final data = _toMap(event);
     if (event.id == null) {
@@ -45,7 +75,6 @@ class EventRepository {
     }
   }
 
-  /// 削除する
   Future<void> delete(String id) => _events.doc(id).delete();
 
   static String? _emptyToNull(String? s) =>
@@ -70,7 +99,6 @@ class EventRepository {
       isAllDay: m['isAllDay'] as bool? ?? false,
       location: m['location'] as String?,
       memo: m['memo'] as String?,
-      // 新しい形（categoryId）→ 10-1 の古い形（category）→ その他
       categoryId:
           m['categoryId'] as String? ??
           m['category'] as String? ??

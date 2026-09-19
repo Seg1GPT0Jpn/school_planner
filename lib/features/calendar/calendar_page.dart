@@ -8,6 +8,7 @@ import '../events/event_category.dart';
 import '../events/event_category_repository.dart';
 import '../events/event_edit_page.dart';
 import '../events/event_repository.dart';
+import '../google_calendar/google_sync.dart';
 import '../recurring/recurring_pages.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
@@ -140,6 +141,10 @@ class _CalendarPageState extends State<CalendarPage> {
 
   void _openEditor({CalendarEvent? event, DateTime? start}) {
     // 定期の予定から作られたものは、専用のメニューを出す
+    if (event != null && isGoogleEvent(event)) {
+      showGoogleEventSheet(context, event);
+      return;
+    }
     if (event != null && isRecurringInstance(event)) {
       showRecurringInstanceSheet(context, event);
       return;
@@ -334,6 +339,11 @@ class _CalendarPageState extends State<CalendarPage> {
                 tooltip: '次の表示へ進む（Ctrl+Y）',
                 onPressed: _forwardHistory.isEmpty ? null : _goForward,
               ),
+              IconButton(
+                icon: const Icon(Icons.sync),
+                tooltip: 'Google カレンダーと同期',
+                onPressed: () => syncGoogleWithFeedback(context),
+              ),
               TextButton(onPressed: _goToday, child: const Text('今日')),
               const SizedBox(width: 8),
             ],
@@ -360,9 +370,14 @@ class _CalendarPageState extends State<CalendarPage> {
                         stream: _recurringStream,
                         builder: (context, rs) {
                           final categories = cs.data ?? defaultEventCategories;
-                          Color colorOf(CalendarEvent e) => Color(
-                            findCategory(categories, e.categoryId).colorValue,
-                          );
+                          Color colorOf(CalendarEvent e) =>
+                              googleEventColor(e) ??
+                              Color(
+                                findCategory(
+                                  categories,
+                                  e.categoryId,
+                                ).colorValue,
+                              );
 
                           // 予定＋定期の予定（表示している月の前後を展開）
                           final events = [
