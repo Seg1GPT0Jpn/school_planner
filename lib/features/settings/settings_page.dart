@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../belongings/belongings_pages.dart';
 import '../events/category_manage_page.dart';
+import '../google_calendar/google_calendar_page.dart';
 import '../events/event_category_repository.dart';
 import '../notifications/notification_planner.dart';
 import '../recurring/recurring_pages.dart';
@@ -92,6 +93,12 @@ class SettingsPage extends StatelessWidget {
                 leading: const Icon(Icons.repeat),
                 title: const Text('塾・部活などの定期の予定'),
                 onTap: () => openRecurringList(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.sync),
+                title: const Text('Google カレンダー'),
+                subtitle: const Text('読み込み・書き込みの設定'),
+                onTap: () => _push(context, const GoogleCalendarPage()),
               ),
               header('通知（Android のアプリのみ）'),
               ListTile(
