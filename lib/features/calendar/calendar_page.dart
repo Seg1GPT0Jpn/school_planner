@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
+import '../events/event_category_repository.dart';
 import '../events/event_edit_page.dart';
 import '../events/event_repository.dart';
 import 'month_view.dart';
@@ -48,6 +49,9 @@ class _CalendarPageState extends State<CalendarPage> {
     super.initState();
     _stream = TimetableRepository(uid: FirebaseAuth.instance.currentUser!.uid)
         .watch();
+    // 予定のカテゴリがまだなければ、最初の6つを登録しておく
+    EventCategoryRepository(uid: FirebaseAuth.instance.currentUser!.uid)
+        .ensureDefaults();
   }
 
   /// 前へ（-1）・次へ（+1）
@@ -80,6 +84,9 @@ class _CalendarPageState extends State<CalendarPage> {
         fullscreenDialog: true,
         builder: (_) => EventEditPage(
           repository: EventRepository(
+            uid: FirebaseAuth.instance.currentUser!.uid,
+          ),
+          categoryRepository: EventCategoryRepository(
             uid: FirebaseAuth.instance.currentUser!.uid,
           ),
           initialStart: start,

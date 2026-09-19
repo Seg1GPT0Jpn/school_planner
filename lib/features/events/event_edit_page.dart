@@ -2,7 +2,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
 import 'calendar_event.dart';
-import 'event_colors.dart';
+import 'category_manage_page.dart';
+import 'event_category.dart';
+import 'event_category_repository.dart';
 import 'event_repository.dart';
 
 /// 予定の追加・編集画面
@@ -10,12 +12,14 @@ class EventEditPage extends StatefulWidget {
   const EventEditPage({
     super.key,
     required this.repository,
+    required this.categoryRepository,
     this.event,
     this.initialStart,
     this.initialAllDay = false,
   });
 
   final EventRepository repository;
+  final EventCategoryRepository categoryRepository;
 
   /// 編集する予定（新しく追加するときは null）
   final CalendarEvent? event;
@@ -34,11 +38,12 @@ class _EventEditPageState extends State<EventEditPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _locationController;
   late final TextEditingController _memoController;
+  late final Stream<List<EventCategory>> _categoryStream;
 
   late DateTime _start;
   late DateTime _end;
   late bool _isAllDay;
-  late EventCategory _category;
+  late String _categoryId;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -53,7 +58,8 @@ class _EventEditPageState extends State<EventEditPage> {
     _locationController = TextEditingController(text: e?.location ?? '');
     _memoController = TextEditingController(text: e?.memo ?? '');
     _isAllDay = e?.isAllDay ?? widget.initialAllDay;
-    _category = e?.category ?? EventCategory.other;
+    _categoryId = e?.categoryId ?? EventCategory.otherId;
+    _categoryStream = widget.categoryRepository.watch();
 
     if (e != null) {
       _start = e.start;
@@ -132,6 +138,15 @@ class _EventEditPageState extends State<EventEditPage> {
     });
   }
 
+  void _openCategoryManager() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            CategoryManagePage(repository: widget.categoryRepository),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     // 終日の予定は、時刻を 0:00 にそろえる
     final start = _isAllDay
@@ -147,7 +162,7 @@ class _EventEditPageState extends State<EventEditPage> {
       isAllDay: _isAllDay,
       location: _locationController.text,
       memo: _memoController.text,
-      category: _category,
+      categoryId: _categoryId,
     );
 
     final error = event.validate();
@@ -266,23 +281,40 @@ class _EventEditPageState extends State<EventEditPage> {
 
               // カテゴリ
               const SizedBox(height: 8),
-              Text('カテゴリ', style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
                 children: [
-                  for (final category in EventCategory.values)
-                    ChoiceChip(
-                      avatar: CircleAvatar(
-                        radius: 6,
-                        backgroundColor: eventCategoryColor(category),
-                      ),
-                      label: Text(category.label),
-                      selected: _category == category,
-                      onSelected: (_) => setState(() => _category = category),
-                    ),
+                  Text('カテゴリ', style: Theme.of(context).textTheme.labelLarge),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _openCategoryManager,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('編集'),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 4),
+              StreamBuilder<List<EventCategory>>(
+                stream: _categoryStream,
+                builder: (context, snapshot) {
+                  final categories = snapshot.data ?? const <EventCategory>[];
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final category in categories)
+                        ChoiceChip(
+                          avatar: CircleAvatar(
+                            radius: 6,
+                            backgroundColor: Color(category.colorValue),
+                          ),
+                          label: Text(category.name),
+                          selected: _categoryId == category.id,
+                          onSelected: (_) =>
+                              setState(() => _categoryId = category.id),
+                        ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 16),
               const Divider(),

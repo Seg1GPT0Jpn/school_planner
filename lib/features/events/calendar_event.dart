@@ -1,20 +1,7 @@
 /// 予定のデータ
 library;
 
-/// 予定のカテゴリ
-enum EventCategory {
-  school('学校'),
-  club('部活'),
-  study('勉強'),
-  personal('個人'),
-  important('重要'),
-  other('その他');
-
-  const EventCategory(this.label);
-
-  /// 画面表示用の名前
-  final String label;
-}
+import 'event_category.dart';
 
 /// 日付だけにする（時刻を切り捨てる）
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -29,7 +16,7 @@ class CalendarEvent {
     this.isAllDay = false,
     this.location,
     this.memo,
-    this.category = EventCategory.other,
+    this.categoryId = EventCategory.otherId,
   });
 
   /// Firestore の ID（まだ保存していない予定は null）
@@ -46,7 +33,9 @@ class CalendarEvent {
   final bool isAllDay;
   final String? location;
   final String? memo;
-  final EventCategory category;
+
+  /// カテゴリの ID
+  final String categoryId;
 
   /// その日に表示する予定か
   bool occursOn(DateTime date) {
@@ -71,27 +60,5 @@ class CalendarEvent {
       return '終了時刻は開始時刻より後にしてください';
     }
     return null;
-  }
-
-  CalendarEvent copyWith({
-    String? id,
-    String? title,
-    DateTime? start,
-    DateTime? end,
-    bool? isAllDay,
-    String? location,
-    String? memo,
-    EventCategory? category,
-  }) {
-    return CalendarEvent(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      start: start ?? this.start,
-      end: end ?? this.end,
-      isAllDay: isAllDay ?? this.isAllDay,
-      location: location ?? this.location,
-      memo: memo ?? this.memo,
-      category: category ?? this.category,
-    );
   }
 }

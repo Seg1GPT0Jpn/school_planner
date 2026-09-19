@@ -4,6 +4,7 @@ library;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'calendar_event.dart';
+import 'event_category.dart';
 
 class EventRepository {
   EventRepository({required this.uid, FirebaseFirestore? firestore})
@@ -47,16 +48,17 @@ class EventRepository {
   /// 削除する
   Future<void> delete(String id) => _events.doc(id).delete();
 
+  static String? _emptyToNull(String? s) =>
+      (s == null || s.trim().isEmpty) ? null : s.trim();
+
   static Map<String, dynamic> _toMap(CalendarEvent e) => {
     'title': e.title.trim(),
     'start': Timestamp.fromDate(e.start),
     'end': Timestamp.fromDate(e.end),
     'isAllDay': e.isAllDay,
-    'location': (e.location?.trim().isEmpty ?? true)
-        ? null
-        : e.location!.trim(),
-    'memo': (e.memo?.trim().isEmpty ?? true) ? null : e.memo!.trim(),
-    'category': e.category.name,
+    'location': _emptyToNull(e.location),
+    'memo': _emptyToNull(e.memo),
+    'categoryId': e.categoryId,
   };
 
   static CalendarEvent _fromMap(String id, Map<String, dynamic> m) {
@@ -68,9 +70,11 @@ class EventRepository {
       isAllDay: m['isAllDay'] as bool? ?? false,
       location: m['location'] as String?,
       memo: m['memo'] as String?,
-      category:
-          EventCategory.values.asNameMap()[m['category']] ??
-          EventCategory.other,
+      // 新しい形（categoryId）→ 10-1 の古い形（category）→ その他
+      categoryId:
+          m['categoryId'] as String? ??
+          m['category'] as String? ??
+          EventCategory.otherId,
     );
   }
 }
