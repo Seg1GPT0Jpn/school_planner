@@ -83,6 +83,7 @@ class DayTimetable {
     required this.lessons,
     this.weekType,
     this.isWeekOverridden = false,
+    this.isDayWeekTypeOverridden = false,
     this.hasDayOverride = false,
     this.closureTitle,
     this.note,
@@ -91,19 +92,29 @@ class DayTimetable {
   final DateTime date;
   final DayStatus status;
   final List<ResolvedLesson> lessons;
+
+  /// この日に使われた時間割の週
   final WeekType? weekType;
+
+  /// この週に週単位override が設定されているか
   final bool isWeekOverridden;
+
+  /// この日だけ、使う時間割の週が変更されているか
+  final bool isDayWeekTypeOverridden;
+
   final bool hasDayOverride;
   final String? closureTitle;
   final String? note;
 
   /// 「時間割変更あり」の表示に使う
-  bool get hasChanges => lessons.any(
-    (l) =>
-        l.status == LessonStatus.changed ||
-        l.status == LessonStatus.added ||
-        l.status == LessonStatus.cancelled,
-  );
+  bool get hasChanges =>
+      isDayWeekTypeOverridden ||
+      lessons.any(
+        (l) =>
+            l.status == LessonStatus.changed ||
+            l.status == LessonStatus.added ||
+            l.status == LessonStatus.cancelled,
+      );
 }
 
 /// 通常時間割・週の判定・例外を組み合わせて、その日の時間割を決める
@@ -156,8 +167,10 @@ class DayTimetableResolver {
       );
     }
 
-    // ③④ Ⅰ週かⅡ週か（週単位override → 基準日の自動判定）
-    final weekType = weekCalculator.weekTypeFor(day);
+    // ②③④ Ⅰ週かⅡ週か
+    //   特定日の指定 → 週単位override → 基準日の自動判定 の順に優先
+    final dayWeekType = dayOverride?.weekType;
+    final weekType = dayWeekType ?? weekCalculator.weekTypeFor(day);
 
     // ⑤ 通常時間割を並べる
     final lessons = <int, ResolvedLesson>{};
@@ -177,7 +190,7 @@ class DayTimetableResolver {
       );
     }
 
-    // ② 特定日override を上から重ねる
+    // ② 特定日の時限ごとの変更を上から重ねる
     if (dayOverride != null) {
       for (final change in dayOverride.changes) {
         _applyChange(lessons, change);
@@ -195,6 +208,7 @@ class DayTimetableResolver {
       lessons: sortedLessons,
       weekType: weekType,
       isWeekOverridden: weekCalculator.isOverridden(day),
+      isDayWeekTypeOverridden: dayWeekType != null,
       hasDayOverride: dayOverride != null,
       note: dayOverride?.note,
     );

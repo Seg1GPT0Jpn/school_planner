@@ -4,6 +4,17 @@ library;
 import 'school_periods.dart';
 import 'week_cycle.dart';
 
+/// 科目（例：現代の国語）と、それが属する教科（例：国語）
+class Subject {
+  const Subject({required this.name, required this.category});
+
+  /// 科目名（時間割に表示する名前）
+  final String name;
+
+  /// 教科名（色分けなどに使う）
+  final String category;
+}
+
 /// 通常時間割の1コマ（Ⅰ週/Ⅱ週 × 曜日 × 時限）
 class TimetableSlot {
   const TimetableSlot({
@@ -108,11 +119,21 @@ class PeriodChange {
 
 /// 特定日の時間割変更（1日分）
 class DayOverride {
-  const DayOverride({required this.date, required this.changes, this.note});
+  const DayOverride({
+    required this.date,
+    this.weekType,
+    this.changes = const [],
+    this.note,
+  });
 
   final DateTime date;
 
-  /// 変更の一覧（上から順に適用する）
+  /// その日だけ使う時間割の週（例：Ⅰ週の中の1日だけⅡ週の時間割）
+  ///
+  /// null のときは、週単位override・自動判定の結果をそのまま使う。
+  final WeekType? weekType;
+
+  /// 時限ごとの変更の一覧（上から順に適用する）
   final List<PeriodChange> changes;
 
   /// その日全体のメモ（例：「文化祭準備のため」）
