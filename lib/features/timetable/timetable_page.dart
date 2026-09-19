@@ -1,14 +1,17 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/date_format.dart';
 import 'school_periods.dart';
 import 'school_settings_page.dart';
 import 'subject_color_page.dart';
 import 'subject_colors.dart';
+import 'timetable_models.dart';
 import 'timetable_repository.dart';
+import 'timetable_version.dart';
+import 'timetable_version_repository.dart';
 import 'week_cycle.dart';
 
-/// 時間割タブ
 class TimetablePage extends StatefulWidget {
   const TimetablePage({super.key});
 
@@ -18,17 +21,22 @@ class TimetablePage extends StatefulWidget {
 
 class _TimetablePageState extends State<TimetablePage> {
   late final TimetableRepository _repository;
+  late final TimetableVersionRepository _versionRepository;
   late final Stream<TimetableData> _stream;
 
   bool _isSeeding = false;
   String? _errorMessage;
 
+  /// 選んでいる版の切り替え日（null＝最初の時間割）
+  DateTime? _selectedFrom;
+  bool _hasPicked = false;
+
   @override
   void initState() {
     super.initState();
-    _repository = TimetableRepository(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-    );
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    _repository = TimetableRepository(uid: uid);
+    _versionRepository = TimetableVersionRepository(uid: uid);
     _stream = _repository.watch();
   }
 
@@ -46,10 +54,91 @@ class _TimetablePageState extends State<TimetablePage> {
     }
   }
 
-  void _openSubjectColors() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SubjectColorPage()));
+  void _push(Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  TimetableVersion? _findVersion(TimetableData data, DateTime? from) {
+    if (from == null) return null;
+    for (final v in data.versions) {
+      if (dateKey(v.validFrom) == dateKey(from)) return v;
+    }
+    return null;
+  }
+
+  Future<void> _createVersion(List<TimetableSlot> copyFrom) async {
+    final date = await showDatePicker(
+      context: context,
+      helpText: '新しい時間割を使い始める日',
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035, 12, 31),
+    );
+    if (date == null) return;
+    await _versionRepository.createVersion(date, copyFrom);
+    setState(() {
+      _selectedFrom = date;
+      _hasPicked = true;
+    });
+  }
+
+  Future<void> _deleteVersion(TimetableVersion v) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('${formatDateJa(v.validFrom)}からの時間割を削除しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _versionRepository.deleteVersion(v.validFrom);
+    setState(() {
+      _selectedFrom = null;
+      _hasPicked = true;
+    });
+  }
+
+  Future<void> _editCell(
+    TimetableData data,
+    TimetableVersion? version,
+    WeekType weekType,
+    int weekday,
+    int period,
+  ) async {
+    // 戻り値：科目名／''＝空き／null＝キャンセル
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (c) => SimpleDialog(
+        title: Text('${weekType.label} ${weekdayLabel(weekday)}曜 $period限'),
+        children: [
+          for (final s in data.subjects)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(c).pop(s.name),
+              child: Text(s.name),
+            ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(c).pop(''),
+            child: const Text('（空き）'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null) return;
+    await _versionRepository.setSlot(
+      version: version,
+      weekType: weekType,
+      weekday: weekday,
+      period: period,
+      subject: picked.isEmpty ? null : picked,
+    );
   }
 
   @override
@@ -63,37 +152,30 @@ class _TimetablePageState extends State<TimetablePage> {
         if (!snapshot.hasData) {
           return const _SimpleScaffold(child: CircularProgressIndicator());
         }
-
         final data = snapshot.data!;
 
-        // まだ初期データを登録していない
         if (!data.isSeeded) {
           return _SimpleScaffold(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('時間割がまだ登録されていません'),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _isSeeding ? null : _seed,
-                  icon: const Icon(Icons.download),
-                  label: const Text('基本時間割を登録する'),
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ],
-              ],
+            child: FilledButton.icon(
+              onPressed: _isSeeding ? null : _seed,
+              icon: const Icon(Icons.download),
+              label: const Text('基本時間割を登録する'),
             ),
           );
         }
 
-        // Ⅰ週・Ⅱ週の時間割表
+        // 最初は「今日使われている版」を表示
+        if (!_hasPicked) {
+          TimetableVersion? current;
+          final today = DateTime.now();
+          for (final v in data.versions) {
+            if (!v.validFrom.isAfter(today)) current = v;
+          }
+          _selectedFrom = current?.validFrom;
+        }
+        final version = _findVersion(data, _selectedFrom);
+        final slots = version?.slots ?? data.slots;
+
         return DefaultTabController(
           length: 2,
           child: Scaffold(
@@ -103,16 +185,12 @@ class _TimetablePageState extends State<TimetablePage> {
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
                   tooltip: '学校の設定',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const SchoolSettingsPage(),
-                    ),
-                  ),
+                  onPressed: () => _push(const SchoolSettingsPage()),
                 ),
                 IconButton(
                   icon: const Icon(Icons.palette_outlined),
                   tooltip: '教科の色',
-                  onPressed: _openSubjectColors,
+                  onPressed: () => _push(const SubjectColorPage()),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -125,12 +203,10 @@ class _TimetablePageState extends State<TimetablePage> {
             ),
             body: Column(
               children: [
-                // 新しい版の初期データがあるときだけ表示
                 if (data.hasInitialDataUpdate)
                   Card(
                     margin: const EdgeInsets.all(16),
                     child: ListTile(
-                      leading: const Icon(Icons.new_releases_outlined),
                       title: const Text('追加の初期データがあります'),
                       subtitle: Text(_errorMessage ?? '学校休業日・短縮日課・試験日課'),
                       trailing: FilledButton(
@@ -139,11 +215,67 @@ class _TimetablePageState extends State<TimetablePage> {
                       ),
                     ),
                   ),
+
+                // 版の選択・新しい時間割・削除
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: version == null
+                              ? ''
+                              : dateKey(version.validFrom),
+                          items: [
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('最初の時間割'),
+                            ),
+                            for (final v in data.versions)
+                              DropdownMenuItem(
+                                value: dateKey(v.validFrom),
+                                child: Text('${formatDateJa(v.validFrom)}から'),
+                              ),
+                          ],
+                          onChanged: (key) => setState(() {
+                            _hasPicked = true;
+                            _selectedFrom = (key == null || key.isEmpty)
+                                ? null
+                                : data.versions
+                                      .firstWhere(
+                                        (v) => dateKey(v.validFrom) == key,
+                                      )
+                                      .validFrom;
+                          }),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        tooltip: 'この時間割をコピーして新しい時間割を作る',
+                        onPressed: () => _createVersion(slots),
+                      ),
+                      if (version != null)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: 'この時間割を削除',
+                          onPressed: () => _deleteVersion(version),
+                        ),
+                    ],
+                  ),
+                ),
+
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _WeekTable(data: data, weekType: WeekType.one),
-                      _WeekTable(data: data, weekType: WeekType.two),
+                      for (final w in [WeekType.one, WeekType.two])
+                        _WeekTable(
+                          data: data,
+                          slots: slots,
+                          weekType: w,
+                          onTapCell: (weekday, period) =>
+                              _editCell(data, version, w, weekday, period),
+                        ),
                     ],
                   ),
                 ),
@@ -156,68 +288,103 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 }
 
-/// タイトルと中央の表示だけの簡単な画面
 class _SimpleScaffold extends StatelessWidget {
   const _SimpleScaffold({required this.child});
-
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('時間割')),
-      body: Center(
-        child: Padding(padding: const EdgeInsets.all(24), child: child),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('時間割')),
+    body: Center(
+      child: Padding(padding: const EdgeInsets.all(24), child: child),
+    ),
+  );
 }
 
-/// 1週間分の時間割表（行：時限、列：曜日）
+/// 1週間分の時間割表（マスをタップで編集）
 class _WeekTable extends StatelessWidget {
-  const _WeekTable({required this.data, required this.weekType});
+  const _WeekTable({
+    required this.data,
+    required this.slots,
+    required this.weekType,
+    required this.onTapCell,
+  });
 
   final TimetableData data;
+  final List<TimetableSlot> slots;
   final WeekType weekType;
+  final void Function(int weekday, int period) onTapCell;
 
-  static const List<String> _weekdayLabels = ['月', '火', '水', '木', '金'];
+  static const List<String> _labels = ['月', '火', '水', '木', '金'];
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final smallText = Theme.of(context).textTheme.bodySmall;
+    final cs = Theme.of(context).colorScheme;
+    final small = Theme.of(context).textTheme.bodySmall;
 
-    Widget cell(Widget child, {Color? color}) => Container(
-      color: color,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      alignment: Alignment.center,
-      child: child,
+    Widget cell(Widget child, {Color? color, VoidCallback? onTap}) => InkWell(
+      onTap: onTap,
+      child: Container(
+        color: color,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        alignment: Alignment.center,
+        child: child,
+      ),
     );
 
-    TableRow periodRow(SchoolPeriod period) {
-      return TableRow(
-        children: [
-          cell(
-            Column(
-              children: [
-                Text(period.label, style: smallText),
-                Text(
-                  period.start.toString(),
-                  style: smallText?.copyWith(color: colorScheme.outline),
-                ),
-              ],
-            ),
+    Widget slotCell(int weekday, int period) {
+      if (!SchoolPeriods.isRegularPeriod(weekday, period)) {
+        return cell(
+          Text('—', style: small?.copyWith(color: cs.outline)),
+          color: cs.surfaceContainerLow,
+        );
+      }
+      TimetableSlot? slot;
+      for (final s in slots) {
+        if (s.weekType == weekType &&
+            s.weekday == weekday &&
+            s.period == period) {
+          slot = s;
+        }
+      }
+      final tap = () => onTapCell(weekday, period);
+      if (slot == null) return cell(const SizedBox.shrink(), onTap: tap);
+
+      String? category;
+      for (final s in data.subjects) {
+        if (s.name == slot.subject) category = s.category;
+      }
+      final color = subjectColorOf(context, category);
+      return cell(
+        Text(
+          slot.subject,
+          textAlign: TextAlign.center,
+          style: small?.copyWith(
+            color: Color.lerp(color, Colors.black, 0.45),
+            fontWeight: FontWeight.bold,
           ),
-          for (var i = 0; i < 5; i++)
-            _slotCell(
-              context,
-              weekday: DateTime.monday + i,
-              period: period.number,
-              cellBuilder: cell,
-            ),
-        ],
+        ),
+        color: color.withValues(alpha: 0.18),
+        onTap: tap,
       );
     }
+
+    TableRow row(SchoolPeriod p) => TableRow(
+      children: [
+        cell(
+          Column(
+            children: [
+              Text(p.label, style: small),
+              Text(
+                p.start.toString(),
+                style: small?.copyWith(color: cs.outline),
+              ),
+            ],
+          ),
+        ),
+        for (var i = 0; i < 5; i++) slotCell(DateTime.monday + i, p.number),
+      ],
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -225,84 +392,36 @@ class _WeekTable extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
           child: Table(
-            border: TableBorder.all(color: colorScheme.outlineVariant),
+            border: TableBorder.all(color: cs.outlineVariant),
             columnWidths: const {0: FixedColumnWidth(52)},
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: [
-              // 見出し（曜日）
               TableRow(
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                ),
+                decoration: BoxDecoration(color: cs.surfaceContainerHighest),
                 children: [
                   cell(const SizedBox.shrink()),
-                  for (final label in _weekdayLabels) cell(Text(label)),
+                  for (final l in _labels) cell(Text(l)),
                 ],
               ),
-              // 午前の時限
-              for (final period in SchoolPeriods.all.take(
+              for (final p in SchoolPeriods.all.take(
                 SchoolPeriods.lunchAfterPeriod,
               ))
-                periodRow(period),
-              // 昼休み
+                row(p),
               TableRow(
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerLow,
-                ),
+                decoration: BoxDecoration(color: cs.surfaceContainerLow),
                 children: [
-                  cell(Text('昼', style: smallText)),
+                  cell(Text('昼', style: small)),
                   for (var i = 0; i < 5; i++) cell(const SizedBox.shrink()),
                 ],
               ),
-              // 午後の時限
-              for (final period in SchoolPeriods.all.skip(
+              for (final p in SchoolPeriods.all.skip(
                 SchoolPeriods.lunchAfterPeriod,
               ))
-                periodRow(period),
+                row(p),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _slotCell(
-    BuildContext context, {
-    required int weekday,
-    required int period,
-    required Widget Function(Widget child, {Color? color}) cellBuilder,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final smallText = Theme.of(context).textTheme.bodySmall;
-
-    // 水・金の5限など、通常は存在しない時限
-    if (!SchoolPeriods.isRegularPeriod(weekday, period)) {
-      return cellBuilder(
-        Text('—', style: smallText?.copyWith(color: colorScheme.outline)),
-        color: colorScheme.surfaceContainerLow,
-      );
-    }
-
-    final slot = data.slotAt(weekType, weekday, period);
-    if (slot == null) return cellBuilder(const SizedBox.shrink());
-
-    // 科目 → 教科 → 色（マスを淡く塗る）
-    String? category;
-    for (final s in data.subjects) {
-      if (s.name == slot.subject) category = s.category;
-    }
-    final color = subjectColorOf(context, category);
-
-    return cellBuilder(
-      Text(
-        slot.subject,
-        style: smallText?.copyWith(
-          color: Color.lerp(color, Colors.black, 0.45),
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
-      ),
-      color: color.withValues(alpha: 0.18),
     );
   }
 }

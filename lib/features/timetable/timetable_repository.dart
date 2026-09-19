@@ -1,4 +1,4 @@
-/// 時間割データの保存・読み込み（Firestore とのやりとりはここだけで行う）
+/// 時間割データの保存・読み込み
 library;
 
 import 'dart:async';
@@ -15,9 +15,10 @@ import 'day_timetable_resolver.dart';
 import 'initial_data.dart';
 import 'school_periods.dart';
 import 'timetable_models.dart';
+import 'timetable_version.dart';
+import 'timetable_version_repository.dart';
 import 'week_cycle.dart';
 
-/// Firestore から読み込んだ時間割データ一式
 class TimetableData {
   const TimetableData({
     required this.dataVersion,
@@ -29,36 +30,33 @@ class TimetableData {
     required this.closures,
     required this.schoolTests,
     required this.weeklyRules,
+    required this.versions,
   });
 
-  /// 登録済みの初期データの版（0 = 未登録）
   final int dataVersion;
-
   final List<Subject> subjects;
+
+  /// 最初の時間割
   final List<TimetableSlot> slots;
+
   final List<WeekAnchor> anchors;
   final Map<String, WeekType> weekOverrides;
   final List<DayOverride> dayOverrides;
   final List<SchoolClosure> closures;
-
-  /// 手で登録した小テスト・学校イベント
   final List<SchoolTest> schoolTests;
-
-  /// 毎週のテストのルール（LEAP など）
   final List<WeeklyLessonTestRule> weeklyRules;
 
-  /// 初期データを登録済みか
+  /// 切り替え日つきの時間割（古い順）
+  final List<TimetableVersion> versions;
+
   bool get isSeeded => dataVersion > 0;
 
-  /// 新しい版の初期データがあるか
   bool get hasInitialDataUpdate =>
       isSeeded && dataVersion < TimetableRepository.latestDataVersion;
 
-  /// 使うルール（まだ保存されていなければ、LEAP の初期値）
   List<WeeklyLessonTestRule> get activeRules =>
       weeklyRules.isEmpty ? [leapRule] : weeklyRules;
 
-  /// その科目の授業で行う毎週のテストのルール（なければ null）
   WeeklyLessonTestRule? ruleForSubject(String? subject) {
     for (final rule in activeRules) {
       if (rule.subject == subject) return rule;
@@ -66,13 +64,18 @@ class TimetableData {
     return null;
   }
 
-  /// その日の小テスト・学校イベント（手で登録したもの）
   List<SchoolTest> testsOn(DateTime date) => [
     for (final t in schoolTests)
       if (t.isOn(date)) t,
   ];
 
-  /// 時間割だけを計算する係（小テストの印は付けない）
+  /// その日に使う時間割
+  List<TimetableSlot> slotsForDate(DateTime date) =>
+      slotsOn(date, slots, versions);
+
+  List<TimetableSlot> Function(DateTime)? get _slotsFn =>
+      versions.isEmpty ? null : slotsForDate;
+
   DayTimetableResolver get baseResolver => DayTimetableResolver(
     weekCalculator: WeekCycleCalculator(
       anchors: anchors,
@@ -82,9 +85,9 @@ class TimetableData {
     dayOverrides: dayOverrides,
     closures: closures,
     holidays: japaneseHolidays,
+    slotsForDate: _slotsFn,
   );
 
-  /// 画面で使う計算係（小テストの印を付ける）
   DayTimetableResolver get resolver {
     final base = baseResolver;
     final calculators = [
@@ -97,38 +100,22 @@ class TimetableData {
       dayOverrides: dayOverrides,
       closures: closures,
       holidays: japaneseHolidays,
+      slotsForDate: _slotsFn,
       postProcess: (day) =>
           annotateLessonTests(day, calculators, manualTests: schoolTests),
     );
   }
-
-  /// 通常時間割の1コマを取り出す（なければ null）
-  TimetableSlot? slotAt(WeekType weekType, int weekday, int period) {
-    for (final slot in slots) {
-      if (slot.weekType == weekType &&
-          slot.weekday == weekday &&
-          slot.period == period) {
-        return slot;
-      }
-    }
-    return null;
-  }
 }
 
-/// 時間割データの保存・読み込みを担当する
 class TimetableRepository {
   TimetableRepository({required this.uid, FirebaseFirestore? firestore})
     : _db = firestore ?? FirebaseFirestore.instance;
 
-  /// 初期データの最新の版
-  ///   1：科目・基本時間割・基準日・10月の例外
-  ///   2：学校休業日・短縮日課・試験日課
   static const int latestDataVersion = 2;
 
   final String uid;
   final FirebaseFirestore _db;
 
-  /// 見張るコレクションの一覧
   static const List<String> _collections = [
     'settings',
     'subjects',
@@ -139,6 +126,7 @@ class TimetableRepository {
     'closures',
     'school_tests',
     'weekly_test_rules',
+    'timetable_versions',
   ];
 
   CollectionReference<Map<String, dynamic>> _col(String name) =>
@@ -147,18 +135,12 @@ class TimetableRepository {
   static String slotId(WeekType weekType, int weekday, int period) =>
       '${weekType.name}-$weekday-$period';
 
-  // ------------------------------------------------------------
-  // 読み込み（リアルタイム）
-  // ------------------------------------------------------------
-
-  /// 時間割データ一式を見張り、どれかが変わるたびに最新の一式を届ける
   Stream<TimetableData> watch() {
     final latest = <String, QuerySnapshot<Map<String, dynamic>>>{};
     final subscriptions = <StreamSubscription<dynamic>>[];
     late final StreamController<TimetableData> controller;
 
     void emitIfReady() {
-      // すべてのコレクションを1回以上読み込めたら届ける
       if (latest.length == _collections.length) {
         controller.add(_build(latest));
       }
@@ -189,7 +171,6 @@ class TimetableRepository {
     List<Map<String, dynamic>> docs(String name) =>
         s[name]!.docs.map((d) => d.data()).toList();
 
-    // 登録済みの版（版番号がない古いデータは版1とみなす）
     var dataVersion = 0;
     for (final d in s['settings']!.docs) {
       if (d.id == 'app') {
@@ -200,6 +181,11 @@ class TimetableRepository {
     final subjectMaps = docs('subjects')
       ..sort((a, b) => _toInt(a['order']).compareTo(_toInt(b['order'])));
 
+    final versions = [
+      for (final m in docs('timetable_versions'))
+        TimetableVersionRepository.versionFromMap(m),
+    ]..sort((a, b) => a.validFrom.compareTo(b.validFrom));
+
     return TimetableData(
       dataVersion: dataVersion,
       subjects: [
@@ -208,15 +194,7 @@ class TimetableRepository {
       ],
       slots: [
         for (final m in docs('timetable_slots'))
-          TimetableSlot(
-            weekType: WeekType.values.byName(m['weekType'] as String),
-            weekday: _toInt(m['weekday']),
-            period: _toInt(m['period']),
-            subject: m['subject'] as String,
-            room: m['room'] as String?,
-            teacher: m['teacher'] as String?,
-            memo: m['memo'] as String?,
-          ),
+          TimetableVersionRepository.slotFromMap(m),
       ],
       anchors: [
         for (final m in docs('week_anchors'))
@@ -248,19 +226,16 @@ class TimetableRepository {
         for (final d in s['weekly_test_rules']!.docs)
           SchoolTestRepository.ruleFromMap(d.id, d.data()),
       ],
+      versions: versions,
     );
   }
 
-  // ------------------------------------------------------------
-  // 特定日の時限の変更（科目の変更・休講・試験科目）
-  // ------------------------------------------------------------
+  // ---------------- 特定日の時限の変更 ----------------
 
-  /// その日のその時限の変更を保存する（同じ時限の変更があれば置き換える）
   Future<void> setPeriodChange(DateTime date, PeriodChange change) async {
     final doc = _col('timetable_overrides').doc(dateKey(date));
     final snapshot = await doc.get();
     final data = snapshot.data() ?? <String, dynamic>{};
-
     await doc.set({
       ...data,
       'date': dateKey(date),
@@ -272,9 +247,6 @@ class TimetableRepository {
     });
   }
 
-  /// その日のその時限の変更を消す（元に戻す）
-  ///
-  /// ほかに何も設定が残らなければ、その日の例外ごと削除する。
   Future<void> clearPeriodChange(DateTime date, int period) async {
     final doc = _col('timetable_overrides').doc(dateKey(date));
     final snapshot = await doc.get();
@@ -286,21 +258,19 @@ class TimetableRepository {
       period,
       null,
     );
-
-    final hasOtherSettings =
+    final hasOther =
         data['schedule'] != null ||
         data['weekType'] != null ||
         data['note'] != null ||
         changes.isNotEmpty;
 
-    if (hasOtherSettings) {
+    if (hasOther) {
       await doc.set({...data, 'changes': changes});
     } else {
       await doc.delete();
     }
   }
 
-  /// 変更の一覧のうち、その時限のものを change に置き換える（null なら消す）
   static List<Map<String, dynamic>> updatedChanges(
     List<dynamic>? existing,
     int period,
@@ -309,29 +279,22 @@ class TimetableRepository {
     final result = [
       for (final c in existing ?? const []) Map<String, dynamic>.from(c as Map),
     ]..removeWhere((c) => _toInt(c['period']) == period);
-
     if (change != null) result.add(_changeToMap(change));
     return result;
   }
 
-  // ------------------------------------------------------------
-  // 初期データの登録（版ごとに、まだ登録していない分だけ）
-  // ------------------------------------------------------------
+  // ---------------- 初期データの登録 ----------------
 
-  /// 初期データを登録する。登録済みの版より新しい分だけを追加する。
   Future<void> seedInitialData() async {
     final meta = _col('settings').doc('app');
     final metaSnapshot = await meta.get();
     final currentVersion = metaSnapshot.exists
         ? _toInt(metaSnapshot.data()?['initialDataVersion'] ?? 1)
         : 0;
-
     if (currentVersion >= latestDataVersion) return;
 
-    // まとめて書き込む（途中で失敗したら全部やり直しになる＝中途半端にならない）
     final batch = _db.batch();
 
-    // ---- 版1 ----
     if (currentVersion < 1) {
       for (var i = 0; i < initialSubjects.length; i++) {
         final subject = initialSubjects[i];
@@ -341,30 +304,19 @@ class TimetableRepository {
           'order': i,
         });
       }
-
       for (final slot in initialSlots) {
         batch.set(
           _col('timetable_slots')
               .doc(slotId(slot.weekType, slot.weekday, slot.period)),
-          {
-            'weekType': slot.weekType.name,
-            'weekday': slot.weekday,
-            'period': slot.period,
-            'subject': slot.subject,
-            'room': slot.room,
-            'teacher': slot.teacher,
-            'memo': slot.memo,
-          },
+          TimetableVersionRepository.slotToMap(slot),
         );
       }
-
       for (final anchor in initialAnchors) {
         batch.set(_col('week_anchors').doc(dateKey(mondayOf(anchor.date))), {
           'date': dateKey(anchor.date),
           'weekType': anchor.weekType.name,
         });
       }
-
       for (final entry in initialWeekOverrides.entries) {
         batch.set(_col('week_overrides').doc(entry.key), {
           'weekType': entry.value.name,
@@ -372,7 +324,6 @@ class TimetableRepository {
       }
     }
 
-    // ---- 版1・版2 共通：特定日の例外（同じ日付は上書きになる） ----
     if (currentVersion < 2) {
       for (final override in initialDayOverrides) {
         batch.set(
@@ -380,8 +331,6 @@ class TimetableRepository {
           _dayOverrideToMap(override),
         );
       }
-
-      // ---- 版2：学校休業日 ----
       for (final entry in initialClosures.entries) {
         batch.set(_col('closures').doc(entry.key), {
           'start': dateKey(entry.value.start),
@@ -395,13 +344,10 @@ class TimetableRepository {
       'initialDataVersion': latestDataVersion,
       'initialDataUpdatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-
     await batch.commit();
   }
 
-  // ------------------------------------------------------------
-  // 変換用の小さな関数
-  // ------------------------------------------------------------
+  // ---------------- 変換 ----------------
 
   static int _toInt(Object? value) => (value as num).toInt();
 

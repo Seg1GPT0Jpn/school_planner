@@ -1,29 +1,14 @@
 /// その日の時間割を最終決定する
 library;
 
+import 'dart:collection';
+
 import 'school_periods.dart';
 import 'timetable_models.dart';
 import 'week_cycle.dart';
 
-/// 最終決定された授業の状態
-enum LessonStatus {
-  /// 通常どおり
-  normal,
+enum LessonStatus { normal, changed, added, cancelled, empty }
 
-  /// 特定日の変更あり
-  changed,
-
-  /// 通常はない時限に追加
-  added,
-
-  /// 休講
-  cancelled,
-
-  /// 時間割が未設定（空きコマ）
-  empty,
-}
-
-/// 最終決定された1コマ
 class ResolvedLesson {
   const ResolvedLesson({
     required this.period,
@@ -49,55 +34,32 @@ class ResolvedLesson {
   /// この授業で行う小テスト（例：LEAP単語テスト 1201〜1300）
   final String? testLabel;
 
-  /// 時刻はそのまま、授業の中身だけを other のものにする（入れ替え用）
-  ResolvedLesson withContentOf(ResolvedLesson other) {
-    return ResolvedLesson(
-      period: period,
-      start: start,
-      end: end,
-      status: LessonStatus.changed,
-      subject: other.subject,
-      room: other.room,
-      teacher: other.teacher,
-      memo: other.memo,
-    );
-  }
+  ResolvedLesson withContentOf(ResolvedLesson other) => ResolvedLesson(
+    period: period,
+    start: start,
+    end: end,
+    status: LessonStatus.changed,
+    subject: other.subject,
+    room: other.room,
+    teacher: other.teacher,
+    memo: other.memo,
+  );
 
-  /// 小テストの印を付けたものを作る
-  ResolvedLesson withTestLabel(String label) {
-    return ResolvedLesson(
-      period: period,
-      start: start,
-      end: end,
-      status: status,
-      subject: subject,
-      room: room,
-      teacher: teacher,
-      memo: memo,
-      testLabel: label,
-    );
-  }
+  ResolvedLesson withTestLabel(String label) => ResolvedLesson(
+    period: period,
+    start: start,
+    end: end,
+    status: status,
+    subject: subject,
+    room: room,
+    teacher: teacher,
+    memo: memo,
+    testLabel: label,
+  );
 }
 
-/// その日の状態
-enum DayStatus {
-  /// 授業あり
-  school,
+enum DayStatus { school, noSchool, closed, holiday, weekUnknown }
 
-  /// 土日などで授業なし
-  noSchool,
-
-  /// 学校休業日（夏休み・臨時休校など）
-  closed,
-
-  /// 国民の祝日・休日
-  holiday,
-
-  /// Ⅰ週/Ⅱ週を判定できない（基準日が未設定など）
-  weekUnknown,
-}
-
-/// 最終決定された1日分の時間割
 class DayTimetable {
   const DayTimetable({
     required this.date,
@@ -116,30 +78,15 @@ class DayTimetable {
   final DateTime date;
   final DayStatus status;
   final List<ResolvedLesson> lessons;
-
-  /// その日の日課（通常・短縮・試験）
   final DaySchedule schedule;
-
-  /// この日に使われた時間割の週
   final WeekType? weekType;
-
-  /// この週に週単位override が設定されているか
   final bool isWeekOverridden;
-
-  /// この日だけ、使う時間割の週が変更されているか
   final bool isDayWeekTypeOverridden;
-
   final bool hasDayOverride;
-
-  /// 学校休業日の名前（例：冬休み）
   final String? closureTitle;
-
-  /// 祝日の名前（例：敬老の日）
   final String? holidayName;
-
   final String? note;
 
-  /// 「時間割変更あり」の表示に使う
   bool get hasChanges =>
       schedule != DaySchedule.regular ||
       isDayWeekTypeOverridden ||
@@ -150,28 +97,23 @@ class DayTimetable {
             l.status == LessonStatus.cancelled,
       );
 
-  /// 小テストがある授業が1つでもあるか
   bool get hasTests => lessons.any((l) => l.testLabel != null);
 
-  /// 授業だけを差し替えたものを作る（それ以外はそのまま）
-  DayTimetable withLessons(List<ResolvedLesson> newLessons) {
-    return DayTimetable(
-      date: date,
-      status: status,
-      lessons: newLessons,
-      schedule: schedule,
-      weekType: weekType,
-      isWeekOverridden: isWeekOverridden,
-      isDayWeekTypeOverridden: isDayWeekTypeOverridden,
-      hasDayOverride: hasDayOverride,
-      closureTitle: closureTitle,
-      holidayName: holidayName,
-      note: note,
-    );
-  }
+  DayTimetable withLessons(List<ResolvedLesson> newLessons) => DayTimetable(
+    date: date,
+    status: status,
+    lessons: newLessons,
+    schedule: schedule,
+    weekType: weekType,
+    isWeekOverridden: isWeekOverridden,
+    isDayWeekTypeOverridden: isDayWeekTypeOverridden,
+    hasDayOverride: hasDayOverride,
+    closureTitle: closureTitle,
+    holidayName: holidayName,
+    note: note,
+  );
 }
 
-/// 通常時間割・週の判定・例外を組み合わせて、その日の時間割を決める
 class DayTimetableResolver {
   DayTimetableResolver({
     required this.weekCalculator,
@@ -180,9 +122,8 @@ class DayTimetableResolver {
     List<SchoolClosure> closures = const [],
     Map<String, String> holidays = const {},
     this.postProcess,
-  }) : _slots = {
-         for (final s in slots) _slotKey(s.weekType, s.weekday, s.period): s,
-       },
+    this.slotsForDate,
+  }) : _slots = _toMap(slots),
        _dayOverrides = {for (final o in dayOverrides) dateKey(o.date): o},
        _closures = closures,
        _holidays = holidays;
@@ -191,27 +132,41 @@ class DayTimetableResolver {
   final Map<String, TimetableSlot> _slots;
   final Map<String, DayOverride> _dayOverrides;
   final List<SchoolClosure> _closures;
-
-  /// 祝日の一覧（キー：dateKey、値：祝日名）
   final Map<String, String> _holidays;
 
   /// 計算の最後に通す「仕上げの係」（小テストの印を付けるなど）
   final DayTimetable Function(DayTimetable day)? postProcess;
 
+  /// 日付ごとに使う時間割（切り替え日つきの時間割。null なら slots を使う）
+  final List<TimetableSlot> Function(DateTime date)? slotsForDate;
+
+  /// 版ごとの表を、何度も作らないための記録
+  final Map<List<TimetableSlot>, Map<String, TimetableSlot>> _versionMaps =
+      HashMap.identity();
+
   static String _slotKey(WeekType weekType, int weekday, int period) =>
       '${weekType.name}-$weekday-$period';
 
-  /// その日の時間割を最終決定する（仕上げの係があれば通す）
+  static Map<String, TimetableSlot> _toMap(List<TimetableSlot> slots) => {
+    for (final s in slots) _slotKey(s.weekType, s.weekday, s.period): s,
+  };
+
+  Map<String, TimetableSlot> _slotMapFor(DateTime day) {
+    final f = slotsForDate;
+    if (f == null) return _slots;
+    final list = f(day);
+    return _versionMaps.putIfAbsent(list, () => _toMap(list));
+  }
+
   DayTimetable resolve(DateTime date) {
     final day = _resolveTimetable(date);
     return postProcess == null ? day : postProcess!(day);
   }
 
-  /// 時間割だけを決める
   DayTimetable _resolveTimetable(DateTime date) {
     final day = dateOnly(date);
 
-    // ① 学校休業日（最優先）
+    // ① 学校休業日
     for (final closure in _closures) {
       if (closure.contains(day)) {
         return DayTimetable(
@@ -223,7 +178,7 @@ class DayTimetableResolver {
       }
     }
 
-    // ② 国民の祝日・休日
+    // ② 祝日
     final holidayName = _holidays[dateKey(day)];
     if (holidayName != null) {
       return DayTimetable(
@@ -238,7 +193,7 @@ class DayTimetableResolver {
     final dayOverride = _dayOverrides[dateKey(day)];
     final isSchoolWeekday = SchoolPeriods.schoolWeekdays.contains(weekday);
 
-    // ③ 土日で、特定日の変更もなければ授業なし
+    // ③ 土日
     if (!isSchoolWeekday && dayOverride == null) {
       return DayTimetable(
         date: day,
@@ -248,20 +203,19 @@ class DayTimetableResolver {
     }
 
     // ④ Ⅰ週かⅡ週か
-    //   特定日の指定 → 週単位override → 基準日の自動判定 の順に優先
     final dayWeekType = dayOverride?.weekType;
     final weekType = dayWeekType ?? weekCalculator.weekTypeFor(day);
 
-    // ⑤ その日の日課と時限
+    // ⑤ 日課と時限
     final schedule = dayOverride?.schedule ?? DaySchedule.regular;
     final periods = SchoolPeriods.periodsForSchedule(schedule, weekday);
+    final slotMap = _slotMapFor(day);
 
-    // 通常時間割を並べる（試験日課は空欄から始める）
     final lessons = <int, ResolvedLesson>{};
     for (final period in periods) {
       final slot = (weekType == null || !schedule.usesRegularTimetable)
           ? null
-          : _slots[_slotKey(weekType, weekday, period.number)];
+          : slotMap[_slotKey(weekType, weekday, period.number)];
       lessons[period.number] = ResolvedLesson(
         period: period.number,
         start: period.start,
@@ -274,7 +228,6 @@ class DayTimetableResolver {
       );
     }
 
-    // 特定日の時限ごとの変更を上から重ねる
     if (dayOverride != null) {
       for (final change in dayOverride.changes) {
         _applyChange(lessons, change, periods);
@@ -300,7 +253,6 @@ class DayTimetableResolver {
     );
   }
 
-  /// 変更を1つ適用する
   void _applyChange(
     Map<int, ResolvedLesson> lessons,
     PeriodChange change,
@@ -310,7 +262,6 @@ class DayTimetableResolver {
 
     switch (change.type) {
       case PeriodChangeType.replace:
-        // 時刻の決め方：変更で指定 → 元の授業 → その日の日課 → 通常日課
         SchoolPeriod? standard;
         for (final p in schedulePeriods) {
           if (p.number == change.period) standard = p;
@@ -335,7 +286,7 @@ class DayTimetableResolver {
         );
 
       case PeriodChangeType.cancel:
-        if (base == null) return; // もともとない時限は何もしない
+        if (base == null) return;
         lessons[change.period] = ResolvedLesson(
           period: base.period,
           start: base.start,
