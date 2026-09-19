@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/color_palette_picker.dart';
+import '../events/calendar_event.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/timetable_repository.dart';
@@ -12,6 +14,8 @@ class MonthView extends StatelessWidget {
     required this.data,
     required this.month,
     required this.today,
+    required this.events,
+    required this.colorOf,
     required this.onDayTap,
   });
 
@@ -21,6 +25,9 @@ class MonthView extends StatelessWidget {
   final DateTime month;
 
   final DateTime today;
+
+  final List<CalendarEvent> events;
+  final Color Function(CalendarEvent event) colorOf;
 
   /// 日付がタップされたとき
   final ValueChanged<DateTime> onDayTap;
@@ -62,7 +69,7 @@ class MonthView extends StatelessWidget {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 88),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
@@ -133,9 +140,21 @@ class MonthView extends StatelessWidget {
   }
 
   Widget _buildDayCell(DateTime date, DayTimetableResolver resolver) {
+    // その日の予定（終日を先に、あとは開始時刻の順）
+    final dayEvents =
+        [
+          for (final e in events)
+            if (e.occursOn(date)) e,
+        ]..sort((a, b) {
+          if (a.isAllDay != b.isAllDay) return a.isAllDay ? -1 : 1;
+          return a.start.compareTo(b.start);
+        });
+
     return _DayCell(
       date: date,
       day: resolver.resolve(date),
+      events: dayEvents,
+      colorOf: colorOf,
       isInMonth: date.month == month.month,
       isToday:
           date.year == today.year &&
@@ -187,6 +206,8 @@ class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.date,
     required this.day,
+    required this.events,
+    required this.colorOf,
     required this.isInMonth,
     required this.isToday,
     required this.onTap,
@@ -194,9 +215,14 @@ class _DayCell extends StatelessWidget {
 
   final DateTime date;
   final DayTimetable day;
+  final List<CalendarEvent> events;
+  final Color Function(CalendarEvent event) colorOf;
   final bool isInMonth;
   final bool isToday;
   final VoidCallback onTap;
+
+  /// 1マスに表示する帯の最大数
+  static const int _maxItems = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -224,94 +250,130 @@ class _DayCell extends StatelessWidget {
 
     final smallStyle = textTheme.labelSmall?.copyWith(fontSize: 10);
 
+    // 日付の下に並べるもの（祝日名・休業日名・試験の帯・予定の帯）
+    final items = <Widget>[
+      if (isHoliday)
+        Text(
+          day.holidayName ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: smallStyle?.copyWith(color: colorScheme.error),
+        ),
+      if (isClosed)
+        Text(
+          day.closureTitle ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: smallStyle?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+      if (isExam)
+        _Band(
+          text: day.note ?? '試験',
+          background: colorScheme.primaryContainer,
+          foreground: colorScheme.onPrimaryContainer,
+        ),
+      for (final e in events)
+        _Band(
+          text: e.title,
+          background: colorOf(e),
+          foreground: readableTextColor(colorOf(e)),
+        ),
+    ];
+    final hiddenCount = items.length - _maxItems;
+
     return Opacity(
       opacity: isInMonth ? 1 : 0.35,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          height: 64,
+          height: 76,
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             // 学校休業日はマス全体を灰色に
             color: isClosed ? colorScheme.surfaceContainerHighest : null,
             border: Border.all(color: colorScheme.outlineVariant, width: 0.5),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  // 日付（今日は丸で囲む）
-                  Container(
-                    width: 22,
-                    height: 22,
-                    alignment: Alignment.center,
-                    decoration: isToday
-                        ? BoxDecoration(
-                            color: colorScheme.primary,
-                            shape: BoxShape.circle,
-                          )
-                        : null,
-                    child: Text(
-                      '${date.day}',
-                      style: textTheme.labelMedium?.copyWith(
-                        color: isToday ? colorScheme.onPrimary : numberColor,
-                      ),
-                    ),
-                  ),
-                  if (hasMinorChange)
+          // 中身があふれても、エラーにならないようにする
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 日付（今日は丸で囲む）
                     Container(
-                      margin: const EdgeInsets.only(left: 2),
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: colorScheme.tertiary,
-                        shape: BoxShape.circle,
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: isToday
+                          ? BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                            )
+                          : null,
+                      child: Text(
+                        '${date.day}',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: isToday ? colorScheme.onPrimary : numberColor,
+                        ),
                       ),
                     ),
-                ],
-              ),
-              if (isHoliday)
-                Text(
-                  day.holidayName ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: smallStyle?.copyWith(color: colorScheme.error),
+                    if (hasMinorChange)
+                      Container(
+                        margin: const EdgeInsets.only(left: 2),
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: colorScheme.tertiary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
                 ),
-              if (isClosed)
-                Text(
-                  day.closureTitle ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: smallStyle?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                ...items.take(_maxItems),
+                if (hiddenCount > 0)
+                  Text(
+                    '+$hiddenCount',
+                    style: smallStyle?.copyWith(color: colorScheme.outline),
                   ),
-                ),
-              // 試験は、予定と同じ色付きの帯
-              if (isExam)
-                Container(
-                  margin: const EdgeInsets.only(top: 2),
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 3,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    day.note ?? '試験',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: smallStyle?.copyWith(
-                      color: colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 月表示の色付きの帯
+class _Band extends StatelessWidget {
+  const _Band({
+    required this.text,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String text;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontSize: 10, color: foreground),
       ),
     );
   }
