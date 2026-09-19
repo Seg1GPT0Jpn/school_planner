@@ -12,7 +12,6 @@ import 'recurring_schedule.dart';
 RecurringRepository _repo() =>
     RecurringRepository(uid: FirebaseAuth.instance.currentUser!.uid);
 
-/// 定期の予定の一覧を開く
 void openRecurringList(BuildContext context) {
   Navigator.of(
     context,
@@ -20,7 +19,6 @@ void openRecurringList(BuildContext context) {
   ).push(MaterialPageRoute<void>(builder: (_) => const RecurringListPage()));
 }
 
-/// カレンダーで定期の予定をタップしたとき
 void showRecurringInstanceSheet(BuildContext context, CalendarEvent event) {
   final parsed = parseRecurringInstance(event);
   if (parsed == null) return;
@@ -36,7 +34,7 @@ void showRecurringInstanceSheet(BuildContext context, CalendarEvent event) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(event.title, style: Theme.of(c).textTheme.headlineSmall),
+            Text(event.title, style: Theme.of(c).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               '${formatDateJa(date)}  ${_hm(event.start)}〜${_hm(event.end)}',
@@ -71,7 +69,6 @@ String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 String _dateText(DateTime? d, String empty) =>
     d == null ? empty : formatDateJa(d);
 
-/// 一覧
 class RecurringListPage extends StatefulWidget {
   const RecurringListPage({super.key});
 
@@ -116,7 +113,9 @@ class _RecurringListPageState extends State<RecurringListPage> {
               for (final s in list)
                 ListTile(
                   leading: CircleAvatar(child: Text(weekdayLabel(s.weekday))),
-                  title: Text(s.title),
+                  title: Text(
+                    s.test == null ? s.title : '${s.title}（${s.test!.title}）',
+                  ),
                   subtitle: Text(
                     '${s.start}〜${s.end}　'
                     '${_dateText(s.validFrom, '')}'
@@ -133,7 +132,6 @@ class _RecurringListPageState extends State<RecurringListPage> {
   }
 }
 
-/// 追加・編集
 class RecurringEditPage extends StatefulWidget {
   const RecurringEditPage({super.key, this.schedule});
 
@@ -144,6 +142,8 @@ class RecurringEditPage extends StatefulWidget {
 }
 
 class _RecurringEditPageState extends State<RecurringEditPage> {
+  late final RecurringTestConfig? _t0 = widget.schedule?.test;
+
   late final _title = TextEditingController(text: widget.schedule?.title);
   late final _location = TextEditingController(text: widget.schedule?.location);
   late int _weekday = widget.schedule?.weekday ?? DateTime.monday;
@@ -156,6 +156,16 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
   late final _categories = EventCategoryRepository(
     uid: FirebaseAuth.instance.currentUser!.uid,
   ).watch();
+
+  // ミニテスト
+  late bool _hasTest = _t0 != null;
+  late final _testTitle = TextEditingController(text: _t0?.title);
+  late bool _hasRange = _t0?.hasRange ?? false;
+  late DateTime _baseDate = _t0?.baseDate ?? DateTime.now();
+  late final _baseStart = TextEditingController(text: '${_t0?.baseStart ?? 1}');
+  late final _step = TextEditingController(text: '${_t0?.step ?? 50}');
+  late bool _withReview = _t0?.withReview ?? false;
+
   String? _error;
 
   Future<ClockTime?> _pickTime(ClockTime t) async {
@@ -176,6 +186,17 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
     lastDate: DateTime(2035, 12, 31),
   );
 
+  RecurringTestConfig? _buildTest() {
+    if (!_hasTest) return null;
+    return RecurringTestConfig(
+      title: _testTitle.text.trim(),
+      baseDate: _hasRange ? _baseDate : null,
+      baseStart: _hasRange ? int.tryParse(_baseStart.text) ?? 1 : null,
+      step: int.tryParse(_step.text) ?? 50,
+      withReview: _hasRange && _withReview,
+    );
+  }
+
   Future<void> _save() async {
     final s = RecurringSchedule(
       id: widget.schedule?.id,
@@ -188,6 +209,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
       categoryId: _categoryId,
       location: _location.text,
       skippedDates: widget.schedule?.skippedDates ?? const {},
+      test: _buildTest(),
     );
     final error = s.validate();
     if (error != null) return setState(() => _error = error);
@@ -310,8 +332,72 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
             controller: _location,
             decoration: const InputDecoration(labelText: '場所'),
           ),
+
+          // ---------------- 毎回のミニテスト ----------------
+          const Divider(height: 32),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('毎回のミニテスト'),
+            value: _hasTest,
+            onChanged: (v) => setState(() => _hasTest = v),
+          ),
+          if (_hasTest) ...[
+            TextField(
+              controller: _testTitle,
+              decoration: const InputDecoration(labelText: 'テストの名前（例：EEVI）'),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('範囲を自動で進める'),
+              value: _hasRange,
+              onChanged: (v) => setState(() => _hasRange = v),
+            ),
+            if (_hasRange) ...[
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      final d = await _pickDate(_baseDate);
+                      if (d != null) setState(() => _baseDate = d);
+                    },
+                    child: Text(formatDateJa(_baseDate)),
+                  ),
+                  const Text('の範囲が'),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: _baseStart,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const Text(' から'),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('1回で進む数'),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: _step,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('前回の範囲も出す'),
+                value: _withReview,
+                onChanged: (v) => setState(() => _withReview = v),
+              ),
+            ],
+          ],
+
           if (skipped.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const Divider(height: 32),
             Text('休みにした日（× で戻す）', style: label),
             Wrap(
               spacing: 6,

@@ -32,7 +32,6 @@ class RecurringRepository {
 
   Future<void> delete(String id) => _col.doc(id).delete();
 
-  /// その日だけ休みにする／戻す
   Future<void> setSkipped(String id, DateTime date, bool skipped) {
     final key = dateKey(date);
     return _col.doc(id).update({
@@ -53,6 +52,28 @@ class RecurringRepository {
     return ClockTime(p[0], p[1]);
   }
 
+  static Map<String, dynamic>? _testToMap(RecurringTestConfig? t) => t == null
+      ? null
+      : {
+          'title': t.title.trim(),
+          'baseDate': t.baseDate == null ? null : dateKey(t.baseDate!),
+          'baseStart': t.baseStart,
+          'step': t.step,
+          'withReview': t.withReview,
+        };
+
+  static RecurringTestConfig? _testFromMap(Object? v) {
+    if (v is! Map) return null;
+    final m = Map<String, dynamic>.from(v);
+    return RecurringTestConfig(
+      title: m['title'] as String? ?? '',
+      baseDate: _date(m['baseDate']),
+      baseStart: (m['baseStart'] as num?)?.toInt(),
+      step: (m['step'] as num?)?.toInt() ?? 50,
+      withReview: m['withReview'] as bool? ?? false,
+    );
+  }
+
   static Map<String, dynamic> toMap(RecurringSchedule r) => {
     'title': r.title.trim(),
     'weekday': r.weekday,
@@ -65,6 +86,7 @@ class RecurringRepository {
         ? null
         : r.location!.trim(),
     'skippedDates': r.skippedDates.toList()..sort(),
+    'test': _testToMap(r.test),
   };
 
   static RecurringSchedule fromMap(String id, Map<String, dynamic> m) {
@@ -82,6 +104,7 @@ class RecurringRepository {
         for (final s in (m['skippedDates'] as List<dynamic>? ?? const []))
           s as String,
       },
+      test: _testFromMap(m['test']),
     );
   }
 }

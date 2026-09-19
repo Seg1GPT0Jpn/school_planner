@@ -6,10 +6,34 @@ import '../events/event_category.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/week_cycle.dart';
 
-/// カレンダーに出すときの予定IDの頭につける印
 const String recurringIdPrefix = 'recurring:';
 
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// 毎回のミニテストの設定
+class RecurringTestConfig {
+  const RecurringTestConfig({
+    required this.title,
+    this.baseDate,
+    this.baseStart,
+    this.step = 50,
+    this.withReview = false,
+  });
+
+  final String title;
+
+  /// この日の範囲が baseStart から（どちらも null なら範囲なし）
+  final DateTime? baseDate;
+  final int? baseStart;
+
+  /// 1回で進む数
+  final int step;
+
+  /// 前回の範囲も出すか
+  final bool withReview;
+
+  bool get hasRange => baseDate != null && baseStart != null;
+}
 
 class RecurringSchedule {
   const RecurringSchedule({
@@ -23,6 +47,7 @@ class RecurringSchedule {
     this.categoryId = EventCategory.otherId,
     this.location,
     this.skippedDates = const {},
+    this.test,
   });
 
   final String? id;
@@ -33,20 +58,17 @@ class RecurringSchedule {
 
   final ClockTime start;
   final ClockTime end;
-
-  /// この日から（null なら最初から）
   final DateTime? validFrom;
-
-  /// この日まで（null ならずっと）
   final DateTime? validUntil;
-
   final String categoryId;
   final String? location;
 
   /// 休みにした日（dateKey）
   final Set<String> skippedDates;
 
-  /// その日に行うか
+  /// 毎回のミニテスト（なければ null）
+  final RecurringTestConfig? test;
+
   bool occursOn(DateTime date) {
     final d = _day(date);
     if (d.weekday != weekday) return false;
@@ -55,7 +77,6 @@ class RecurringSchedule {
     return !skippedDates.contains(dateKey(d));
   }
 
-  /// その日の分を、カレンダー用の予定にする
   CalendarEvent toEvent(DateTime date) {
     final d = _day(date);
     return CalendarEvent(
@@ -68,7 +89,6 @@ class RecurringSchedule {
     );
   }
 
-  /// 入力内容の確認（問題がなければ null）
   String? validate() {
     if (title.trim().isEmpty) return '名前を入力してください';
     if (end.totalMinutes <= start.totalMinutes) {
@@ -79,11 +99,13 @@ class RecurringSchedule {
         _day(validUntil!).isBefore(_day(validFrom!))) {
       return '終了日は開始日より後にしてください';
     }
+    if (test != null && test!.title.trim().isEmpty) {
+      return 'ミニテストの名前を入力してください';
+    }
     return null;
   }
 }
 
-/// from 〜 to（to は含まない）の定期の予定を、カレンダー用の予定に展開する
 List<CalendarEvent> expandRecurring(
   List<RecurringSchedule> schedules,
   DateTime from,
@@ -102,11 +124,9 @@ List<CalendarEvent> expandRecurring(
   return result;
 }
 
-/// カレンダーの予定が、定期の予定から作られたものか
 bool isRecurringInstance(CalendarEvent e) =>
     e.id?.startsWith(recurringIdPrefix) ?? false;
 
-/// カレンダーの予定から、元の定期の予定のIDと日付を取り出す
 (String, DateTime)? parseRecurringInstance(CalendarEvent e) {
   if (!isRecurringInstance(e)) return null;
   final rest = e.id!.substring(recurringIdPrefix.length);

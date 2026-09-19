@@ -1,4 +1,4 @@
-/// 定期の予定で毎回行うテスト（例：塾の英語で EEVI 単語テスト）
+/// 定期の予定で毎回行うミニテストの計算
 library;
 
 import '../events/calendar_event.dart';
@@ -6,104 +6,71 @@ import '../school_tests/school_test.dart';
 import '../school_tests/upcoming_tests.dart';
 import 'recurring_schedule.dart';
 
-class RecurringTestRule {
-  const RecurringTestRule({
-    required this.titleKeyword,
-    required this.testTitle,
-    required this.baseDate,
-    required this.baseStart,
-    this.step = 50,
-  });
-
-  /// 定期の予定の名前にこの文字が入っていたら対象（例：英語）
-  final String titleKeyword;
-  final String testTitle;
-
-  /// この日の範囲が baseStart から
-  final DateTime baseDate;
-  final int baseStart;
-  final int step;
-}
-
-/// EEVI：9/18 が 1〜50、50語ずつ
-final eeviRule = RecurringTestRule(
-  titleKeyword: '英語',
-  testTitle: 'EEVI',
-  baseDate: DateTime(2026, 9, 18),
-  baseStart: 1,
-);
-
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 DateTime _next(DateTime d) => DateTime(d.year, d.month, d.day + 1);
 
 class RecurringTestOccurrence {
-  const RecurringTestOccurrence(this.rule, this.start);
+  const RecurringTestOccurrence(this.config, this.start);
 
-  final RecurringTestRule rule;
+  final RecurringTestConfig config;
 
-  /// 記述（新しい範囲）の始まり
-  final int start;
+  /// 範囲の始まり（範囲なしのテストは null）
+  final int? start;
 
-  int get end => start + rule.step - 1;
+  String get rangeText {
+    final s = start;
+    if (s == null) return '';
+    final text = '$s〜${s + config.step - 1}';
+    if (!config.withReview || s <= config.baseStart!) return text;
+    return '$text・前回 ${s - config.step}〜${s - 1}';
+  }
 
-  /// 選択（前回の範囲）。初回はなし
-  bool get hasReview => start > rule.baseStart;
-
-  String get rangeText => hasReview
-      ? '記述 $start〜$end・選択 ${start - rule.step}〜${start - 1}'
-      : '記述 $start〜$end';
-
-  String get label => '${rule.testTitle} $rangeText';
+  String get label =>
+      rangeText.isEmpty ? config.title : '${config.title} $rangeText';
 }
 
-/// その日のその定期の予定で行うテスト（なければ null）
-RecurringTestOccurrence? recurringTestOn(
-  RecurringSchedule s,
-  DateTime date,
-  RecurringTestRule rule,
-) {
+/// その日のミニテスト（なければ null）
+RecurringTestOccurrence? recurringTestOn(RecurringSchedule s, DateTime date) {
+  final config = s.test;
   final d = _day(date);
-  if (!s.title.contains(rule.titleKeyword) || !s.occursOn(d)) return null;
+  if (config == null || !s.occursOn(d)) return null;
+  if (!config.hasRange) return RecurringTestOccurrence(config, null);
 
-  final base = _day(rule.baseDate);
+  final base = _day(config.baseDate!);
   var count = 0;
   int start;
   if (!d.isBefore(base)) {
     for (var x = base; x.isBefore(d); x = _next(x)) {
       if (s.occursOn(x)) count++;
     }
-    start = rule.baseStart + rule.step * count;
+    start = config.baseStart! + config.step * count;
   } else {
     for (var x = d; x.isBefore(base); x = _next(x)) {
       if (s.occursOn(x)) count++;
     }
-    start = rule.baseStart - rule.step * count;
+    start = config.baseStart! - config.step * count;
   }
-  return start < 1 ? null : RecurringTestOccurrence(rule, start);
+  return start < 1 ? null : RecurringTestOccurrence(config, start);
 }
 
-/// 定期の予定をカレンダー用に展開し、テストがある回は名前に付け足す
+/// カレンダー用に展開し、ミニテストがある回は名前に付け足す
 List<CalendarEvent> expandRecurringWithTests(
   List<RecurringSchedule> schedules,
   DateTime from,
-  DateTime to, {
-  List<RecurringTestRule>? rules,
-}) {
+  DateTime to,
+) {
   final result = <CalendarEvent>[];
   for (var d = _day(from); d.isBefore(to); d = _next(d)) {
     for (final s in schedules) {
       if (!s.occursOn(d)) continue;
       final e = s.toEvent(d);
-      final labels = [
-        for (final r in rules ?? [eeviRule])
-          if (recurringTestOn(s, d, r) case final o?) o.label,
-      ];
+      final o = recurringTestOn(s, d);
       result.add(
-        labels.isEmpty
+        o == null
             ? e
             : CalendarEvent(
                 id: e.id,
-                title: '${e.title}｜${labels.join(' / ')}',
+                title: '${e.title}｜${o.label}',
                 start: e.start,
                 end: e.end,
                 location: e.location,
@@ -119,26 +86,23 @@ List<CalendarEvent> expandRecurringWithTests(
 List<UpcomingItem> upcomingRecurringTests(
   List<RecurringSchedule> schedules,
   DateTime from,
-  int days, {
-  List<RecurringTestRule>? rules,
-}) {
+  int days,
+) {
   final items = <UpcomingItem>[];
   for (var i = 0; i < days; i++) {
     final d = DateTime(from.year, from.month, from.day + i);
     for (final s in schedules) {
-      for (final r in rules ?? [eeviRule]) {
-        final o = recurringTestOn(s, d, r);
-        if (o == null) continue;
-        items.add(
-          UpcomingItem(
-            date: d,
-            title: '${s.title} ${r.testTitle}',
-            kindLabel: SchoolTestKind.quiz.label,
-            isTest: true,
-            detail: o.rangeText,
-          ),
-        );
-      }
+      final o = recurringTestOn(s, d);
+      if (o == null) continue;
+      items.add(
+        UpcomingItem(
+          date: d,
+          title: '${s.title} ${o.config.title}',
+          kindLabel: SchoolTestKind.quiz.label,
+          isTest: true,
+          detail: o.rangeText.isEmpty ? null : o.rangeText,
+        ),
+      );
     }
   }
   return items;
