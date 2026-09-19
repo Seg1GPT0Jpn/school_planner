@@ -69,6 +69,9 @@ String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 String _dateText(DateTime? d, String empty) =>
     d == null ? empty : formatDateJa(d);
 
+int _firstDay(RecurringSchedule s) =>
+    s.weekdays.isEmpty ? 8 : s.weekdays.reduce((a, b) => a < b ? a : b);
+
 class RecurringListPage extends StatefulWidget {
   const RecurringListPage({super.key});
 
@@ -99,7 +102,7 @@ class _RecurringListPageState extends State<RecurringListPage> {
         builder: (context, snapshot) {
           final list = [...?snapshot.data]
             ..sort((a, b) {
-              final w = a.weekday.compareTo(b.weekday);
+              final w = _firstDay(a).compareTo(_firstDay(b));
               return w != 0
                   ? w
                   : a.start.totalMinutes.compareTo(b.start.totalMinutes);
@@ -112,7 +115,12 @@ class _RecurringListPageState extends State<RecurringListPage> {
             children: [
               for (final s in list)
                 ListTile(
-                  leading: CircleAvatar(child: Text(weekdayLabel(s.weekday))),
+                  leading: CircleAvatar(
+                    child: Text(
+                      s.weekdayText,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
                   title: Text(
                     s.test == null ? s.title : '${s.title}（${s.test!.title}）',
                   ),
@@ -146,7 +154,10 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
 
   late final _title = TextEditingController(text: widget.schedule?.title);
   late final _location = TextEditingController(text: widget.schedule?.location);
-  late int _weekday = widget.schedule?.weekday ?? DateTime.monday;
+  late final Set<int> _weekdays = {
+    ...?widget.schedule?.weekdays,
+    if (widget.schedule == null) DateTime.monday,
+  };
   late ClockTime _start = widget.schedule?.start ?? ClockTime(19, 40);
   late ClockTime _end = widget.schedule?.end ?? ClockTime(21, 40);
   late DateTime? _from = widget.schedule?.validFrom;
@@ -201,7 +212,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
     final s = RecurringSchedule(
       id: widget.schedule?.id,
       title: _title.text,
-      weekday: _weekday,
+      weekdays: {..._weekdays},
       start: _start,
       end: _end,
       validFrom: _from,
@@ -213,13 +224,15 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
     );
     final error = s.validate();
     if (error != null) return setState(() => _error = error);
+    final nav = Navigator.of(context);
     await _repo().save(s);
-    if (mounted) Navigator.of(context).pop();
+    nav.pop();
   }
 
   Future<void> _delete() async {
+    final nav = Navigator.of(context);
     await _repo().delete(widget.schedule!.id!);
-    if (mounted) Navigator.of(context).pop();
+    nav.pop();
   }
 
   @override
@@ -245,18 +258,20 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
         children: [
           TextField(
             controller: _title,
-            decoration: const InputDecoration(labelText: '名前（例：塾 英語）'),
+            decoration: const InputDecoration(labelText: '名前（例：塾 英語、部活）'),
           ),
           const SizedBox(height: 16),
-          Text('曜日', style: label),
+          Text('曜日（複数選べます）', style: label),
           Wrap(
             spacing: 6,
             children: [
               for (var w = 1; w <= 7; w++)
-                ChoiceChip(
+                FilterChip(
                   label: Text(weekdayLabel(w)),
-                  selected: _weekday == w,
-                  onSelected: (_) => setState(() => _weekday = w),
+                  selected: _weekdays.contains(w),
+                  onSelected: (on) => setState(
+                    () => on ? _weekdays.add(w) : _weekdays.remove(w),
+                  ),
                 ),
             ],
           ),
@@ -406,13 +421,14 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
                   InputChip(
                     label: Text(k),
                     onDeleted: () async {
+                      final nav = Navigator.of(context);
                       final p = k.split('-').map(int.parse).toList();
                       await _repo().setSkipped(
                         widget.schedule!.id!,
                         DateTime(p[0], p[1], p[2]),
                         false,
                       );
-                      if (mounted) Navigator.of(context).pop();
+                      nav.pop();
                     },
                   ),
               ],

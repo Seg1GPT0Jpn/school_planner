@@ -21,25 +21,21 @@ class RecurringTestConfig {
   });
 
   final String title;
-
-  /// この日の範囲が baseStart から（どちらも null なら範囲なし）
   final DateTime? baseDate;
   final int? baseStart;
-
-  /// 1回で進む数
   final int step;
-
-  /// 前回の範囲も出すか
   final bool withReview;
 
   bool get hasRange => baseDate != null && baseStart != null;
 }
 
 class RecurringSchedule {
-  const RecurringSchedule({
+  /// 曜日は weekdays（複数）か weekday（1つ）のどちらかで指定する
+  RecurringSchedule({
     this.id,
     required this.title,
-    required this.weekday,
+    Set<int>? weekdays,
+    int? weekday,
     required this.start,
     required this.end,
     this.validFrom,
@@ -48,13 +44,13 @@ class RecurringSchedule {
     this.location,
     this.skippedDates = const {},
     this.test,
-  });
+  }) : weekdays = weekdays ?? {weekday ?? DateTime.monday};
 
   final String? id;
   final String title;
 
-  /// 曜日（1=月 〜 7=日）
-  final int weekday;
+  /// 曜日（1=月 〜 7=日）。複数可
+  final Set<int> weekdays;
 
   final ClockTime start;
   final ClockTime end;
@@ -62,16 +58,18 @@ class RecurringSchedule {
   final DateTime? validUntil;
   final String categoryId;
   final String? location;
-
-  /// 休みにした日（dateKey）
   final Set<String> skippedDates;
-
-  /// 毎回のミニテスト（なければ null）
   final RecurringTestConfig? test;
+
+  /// 曜日を「月・火」のような文字にする
+  String get weekdayText {
+    final list = weekdays.toList()..sort();
+    return list.map(weekdayLabelOf).join('・');
+  }
 
   bool occursOn(DateTime date) {
     final d = _day(date);
-    if (d.weekday != weekday) return false;
+    if (!weekdays.contains(d.weekday)) return false;
     if (validFrom != null && d.isBefore(_day(validFrom!))) return false;
     if (validUntil != null && d.isAfter(_day(validUntil!))) return false;
     return !skippedDates.contains(dateKey(d));
@@ -91,6 +89,7 @@ class RecurringSchedule {
 
   String? validate() {
     if (title.trim().isEmpty) return '名前を入力してください';
+    if (weekdays.isEmpty) return '曜日を1つ以上選んでください';
     if (end.totalMinutes <= start.totalMinutes) {
       return '終了時刻は開始時刻より後にしてください';
     }
@@ -105,6 +104,10 @@ class RecurringSchedule {
     return null;
   }
 }
+
+/// 曜日の1文字（1=月 〜 7=日）
+String weekdayLabelOf(int weekday) =>
+    const ['月', '火', '水', '木', '金', '土', '日'][weekday - 1];
 
 List<CalendarEvent> expandRecurring(
   List<RecurringSchedule> schedules,

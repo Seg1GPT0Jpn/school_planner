@@ -65,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Icon(Icons.menu_book, size: 72, color: colorScheme.primary),
               const SizedBox(height: 16),
-              Text('わたしの手帳', style: textTheme.headlineMedium),
+              Text('つづり', style: textTheme.headlineMedium),
               const SizedBox(height: 8),
               Text('時間割・予定・目標をひとつに', style: textTheme.bodyMedium),
               const SizedBox(height: 32),
