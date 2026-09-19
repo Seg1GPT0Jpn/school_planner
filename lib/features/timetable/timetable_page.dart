@@ -6,6 +6,7 @@ import 'school_periods.dart';
 import 'school_settings_page.dart';
 import 'subject_color_page.dart';
 import 'subject_colors.dart';
+import 'subject_manage_page.dart';
 import 'timetable_models.dart';
 import 'timetable_repository.dart';
 import 'timetable_version.dart';
@@ -182,6 +183,11 @@ class _TimetablePageState extends State<TimetablePage> {
             appBar: AppBar(
               title: const Text('時間割'),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.menu_book_outlined),
+                  tooltip: '科目の管理',
+                  onPressed: () => _push(const SubjectManagePage()),
+                ),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
                   tooltip: '学校の設定',

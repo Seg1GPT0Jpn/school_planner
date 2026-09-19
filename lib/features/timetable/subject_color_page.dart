@@ -61,22 +61,6 @@ class _SubjectColorPageState extends State<SubjectColorPage> {
               constraints: const BoxConstraints(maxWidth: 560),
               child: ListView(
                 children: [
-                  // ▼ 確認用（原因が分かったら削除する）
-                  StreamBuilder<Map<String, int>>(
-                    stream: _colorRepository.watch(),
-                    builder: (context, colorSnapshot) {
-                      return ListTile(
-                        title: Text(
-                          '確認用：画面が受け取った色 ${customColors.length}件 ／ '
-                          'Firestore から直接読んだ色 ${colorSnapshot.data?.length ?? '-'}件',
-                        ),
-                        subtitle: colorSnapshot.hasError
-                            ? Text('エラー：${colorSnapshot.error}')
-                            : null,
-                      );
-                    },
-                  ),
-                  // ▲ 確認用ここまで
                   for (final category in categories)
                     ListTile(
                       leading: CircleAvatar(

@@ -13,6 +13,8 @@ Color categoryColor(String? category) {
     '英語' => Colors.purple.shade400,
     '理科' => Colors.green.shade600,
     '社会' => Colors.orange.shade700,
+    '地理・歴史' => Colors.orange.shade700,
+    '公民' => const Color.fromARGB(255, 218, 134, 104),
     '情報' => Colors.teal.shade500,
     '副教科' => Colors.blueGrey.shade400,
     _ => Colors.grey.shade500,

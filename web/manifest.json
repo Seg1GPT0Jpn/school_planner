@@ -1,6 +1,6 @@
 {
-    "name": "school_planner",
-    "short_name": "school_planner",
+    "name": "つづり",
+    "short_name": "つづり",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",

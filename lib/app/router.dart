@@ -5,6 +5,7 @@ import '../features/auth/auth_state.dart';
 import '../features/auth/login_page.dart';
 import '../features/calendar/calendar_page.dart';
 import '../features/home/home_page.dart';
+import '../features/todo/todo_page.dart';
 import '../features/timetable/timetable_page.dart';
 import '../widgets/placeholder_page.dart';
 import 'app_shell.dart';
@@ -69,10 +70,7 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/todo',
-              builder: (context, state) => const PlaceholderPage(
-                title: 'ToDo',
-                icon: Icons.check_circle,
-              ),
+              builder: (context, state) => const TodoPage(),
             ),
           ],
         ),
