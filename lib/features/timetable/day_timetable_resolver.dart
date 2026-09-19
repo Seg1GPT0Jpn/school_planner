@@ -84,6 +84,7 @@ class DayTimetable {
     required this.date,
     required this.status,
     required this.lessons,
+    this.schedule = DaySchedule.regular,
     this.weekType,
     this.isWeekOverridden = false,
     this.isDayWeekTypeOverridden = false,
@@ -97,6 +98,9 @@ class DayTimetable {
   final DayStatus status;
   final List<ResolvedLesson> lessons;
 
+  /// その日の日課（通常・短縮・試験）
+  final DaySchedule schedule;
+
   /// この日に使われた時間割の週
   final WeekType? weekType;
 
@@ -108,7 +112,7 @@ class DayTimetable {
 
   final bool hasDayOverride;
 
-  /// 学校休業日の名前（例：夏休み）
+  /// 学校休業日の名前（例：冬休み）
   final String? closureTitle;
 
   /// 祝日の名前（例：敬老の日）
@@ -118,6 +122,7 @@ class DayTimetable {
 
   /// 「時間割変更あり」の表示に使う
   bool get hasChanges =>
+      schedule != DaySchedule.regular ||
       isDayWeekTypeOverridden ||
       lessons.any(
         (l) =>
@@ -198,10 +203,14 @@ class DayTimetableResolver {
     final dayWeekType = dayOverride?.weekType;
     final weekType = dayWeekType ?? weekCalculator.weekTypeFor(day);
 
-    // 通常時間割を並べる
+    // ⑤ その日の日課と時限
+    final schedule = dayOverride?.schedule ?? DaySchedule.regular;
+    final periods = SchoolPeriods.periodsForSchedule(schedule, weekday);
+
+    // 通常時間割を並べる（試験日課は空欄から始める）
     final lessons = <int, ResolvedLesson>{};
-    for (final period in SchoolPeriods.periodsFor(weekday)) {
-      final slot = weekType == null
+    for (final period in periods) {
+      final slot = (weekType == null || !schedule.usesRegularTimetable)
           ? null
           : _slots[_slotKey(weekType, weekday, period.number)];
       lessons[period.number] = ResolvedLesson(
@@ -219,19 +228,21 @@ class DayTimetableResolver {
     // 特定日の時限ごとの変更を上から重ねる
     if (dayOverride != null) {
       for (final change in dayOverride.changes) {
-        _applyChange(lessons, change);
+        _applyChange(lessons, change, periods);
       }
     }
 
     final sortedLessons = lessons.values.toList()
       ..sort((a, b) => a.period.compareTo(b.period));
 
+    final isWeekUnknown =
+        weekType == null && isSchoolWeekday && schedule.usesRegularTimetable;
+
     return DayTimetable(
       date: day,
-      status: (weekType == null && isSchoolWeekday)
-          ? DayStatus.weekUnknown
-          : DayStatus.school,
+      status: isWeekUnknown ? DayStatus.weekUnknown : DayStatus.school,
       lessons: sortedLessons,
+      schedule: schedule,
       weekType: weekType,
       isWeekOverridden: weekCalculator.isOverridden(day),
       isDayWeekTypeOverridden: dayWeekType != null,
@@ -241,14 +252,23 @@ class DayTimetableResolver {
   }
 
   /// 変更を1つ適用する
-  void _applyChange(Map<int, ResolvedLesson> lessons, PeriodChange change) {
+  void _applyChange(
+    Map<int, ResolvedLesson> lessons,
+    PeriodChange change,
+    List<SchoolPeriod> schedulePeriods,
+  ) {
     final base = lessons[change.period];
 
     switch (change.type) {
       case PeriodChangeType.replace:
-        final standard = (change.period >= 1 && change.period <= 5)
-            ? SchoolPeriods.byNumber(change.period)
-            : null;
+        // 時刻の決め方：変更で指定 → 元の授業 → その日の日課 → 通常日課
+        SchoolPeriod? standard;
+        for (final p in schedulePeriods) {
+          if (p.number == change.period) standard = p;
+        }
+        if (standard == null && change.period >= 1 && change.period <= 5) {
+          standard = SchoolPeriods.byNumber(change.period);
+        }
         final start = change.start ?? base?.start ?? standard?.start;
         final end = change.end ?? base?.end ?? standard?.end;
         if (start == null || end == null) {

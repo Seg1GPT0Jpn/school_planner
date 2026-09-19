@@ -121,12 +121,16 @@ class PeriodChange {
 class DayOverride {
   const DayOverride({
     required this.date,
+    this.schedule,
     this.weekType,
     this.changes = const [],
     this.note,
   });
 
   final DateTime date;
+
+  /// その日の日課（null のときは通常日課）
+  final DaySchedule? schedule;
 
   /// その日だけ使う時間割の週（例：Ⅰ週の中の1日だけⅡ週の時間割）
   ///
@@ -136,6 +140,6 @@ class DayOverride {
   /// 時限ごとの変更の一覧（上から順に適用する）
   final List<PeriodChange> changes;
 
-  /// その日全体のメモ（例：「文化祭準備のため」）
+  /// その日全体のメモ（例：「後期中間試験」）
   final String? note;
 }
