@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../events/calendar_event.dart';
 import '../events/event_repository.dart';
+import '../belongings/belongings.dart';
+import '../belongings/belongings_repository.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
@@ -33,6 +35,7 @@ class _NotificationSyncState extends State<NotificationSync> {
   List<CalendarEvent> _events = const [];
   List<RecurringSchedule> _recurring = const [];
   List<Todo> _todos = const [];
+  BelongingSettings _belongings = const BelongingSettings();
 
   @override
   void initState() {
@@ -62,6 +65,9 @@ class _NotificationSyncState extends State<NotificationSync> {
           .watch()
           .listen((r) => _set(() => _recurring = r)),
       TodoRepository(uid: uid).watch().listen((t) => _set(() => _todos = t)),
+      BelongingsRepository(uid: uid)
+          .watchSettings()
+          .listen((b) => _set(() => _belongings = b)),
     ]);
   }
 
@@ -100,6 +106,11 @@ class _NotificationSyncState extends State<NotificationSync> {
         ),
       ],
       todos: mergeTodos(_todos, data.schoolTests),
+      belongingsOn: (d) => belongingsFor(
+        day: data.resolver.resolve(d),
+        recurring: _recurring,
+        settings: _belongings,
+      ),
     );
     NotificationService.instance.replaceAll(plan);
   }

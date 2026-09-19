@@ -75,6 +75,7 @@ List<PlannedNotification> planNotifications({
   required List<UpcomingItem> upcoming,
   required List<CalendarEvent> events,
   required List<Todo> todos,
+  List<String> Function(DateTime date)? belongingsOn,
 }) {
   final result = <PlannedNotification>[];
   var id = 1;
@@ -122,7 +123,11 @@ List<PlannedNotification> planNotifications({
           id++,
           eveningTime,
           '明日（${d.month}/${d.day}）',
-          lines.join('\n'),
+          [
+            ...lines,
+            if (belongingsOn != null && belongingsOn(d).isNotEmpty)
+              '🎒 ${belongingsOn(d).join('・')}',
+          ].join('\n'),
         ),
       );
     }
