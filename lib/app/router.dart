@@ -1,13 +1,42 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../features/auth/auth_state.dart';
+import '../features/auth/login_page.dart';
+import '../features/home/home_page.dart';
 import '../widgets/placeholder_page.dart';
 import 'app_shell.dart';
+
+/// ログイン状態の見張り役
+final AuthStateNotifier _authState = AuthStateNotifier();
 
 /// アプリ全体の画面遷移（ルーティング）の設定
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
+
+  // ログイン状態が変わったら、下の redirect をもう一度確認する
+  refreshListenable: _authState,
+
+  // 画面を開くたびに「今いてよい画面か」を確認する
+  redirect: (context, state) {
+    final isLoggedIn = _authState.isLoggedIn;
+    final isOnLoginPage = state.matchedLocation == '/login';
+
+    // ログインしていない → ログイン画面へ
+    if (!isLoggedIn && !isOnLoginPage) return '/login';
+
+    // ログイン済みなのにログイン画面にいる → ホームへ
+    if (isLoggedIn && isOnLoginPage) return '/';
+
+    // それ以外はそのまま
+    return null;
+  },
+
   routes: [
+    // ログイン画面（タブの外）
+    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+
+    // タブのある画面たち
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return AppShell(navigationShell: navigationShell);
@@ -16,11 +45,7 @@ final GoRouter appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           routes: [
-            GoRoute(
-              path: '/',
-              builder: (context, state) =>
-                  const PlaceholderPage(title: 'ホーム', icon: Icons.home),
-            ),
+            GoRoute(path: '/', builder: (context, state) => const HomePage()),
           ],
         ),
         StatefulShellBranch(
