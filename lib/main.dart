@@ -1,6 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  // Flutter の準備が整うのを待つ
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase に接続する（接続が終わるまで待つ）
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -10,56 +19,37 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'わたしの手帳',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
       ),
-      home: const MyHomePage(title: 'わたしの手帳'),
+      home: const ConnectionCheckPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+/// Firebase に接続できたかを確認するための仮の画面
+class ConnectionCheckPage extends StatelessWidget {
+  const ConnectionCheckPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 接続した Firebase プロジェクトの ID を取得
+    final projectId = Firebase.app().options.projectId;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: const Text('わたしの手帳')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            const Icon(Icons.cloud_done, size: 64, color: Colors.green),
+            const SizedBox(height: 16),
+            const Text('Firebase 接続OK', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 8),
+            Text('プロジェクト: $projectId'),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
