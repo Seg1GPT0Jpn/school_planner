@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // このアプリを使ってよい人か（あなたの Google アカウントだけ）
+    function isOwnerAccount() {
+      return request.auth != null
+          && request.auth.token.email == 'kzmsegawa@gmail.com'
+          && request.auth.token.email_verified == true;
+    }
+
+    // users/{自分のID}/ の中だけ、本人が読み書きできる
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwnerAccount()
+                         && request.auth.uid == userId;
+    }
+
+    // ここに書いていない場所は、すべて読み書き禁止
+  }
+}
