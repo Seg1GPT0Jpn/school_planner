@@ -26,10 +26,19 @@ class DayTimetableCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 見出しと週の種類
+            // 見出し・日課・週の種類
             Row(
               children: [
                 Expanded(child: Text(title, style: textTheme.titleMedium)),
+                if (day.status == DayStatus.school &&
+                    day.schedule != DaySchedule.regular) ...[
+                  _Tag(
+                    label: day.schedule.label,
+                    background: colorScheme.tertiaryContainer,
+                    foreground: colorScheme.onTertiaryContainer,
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 if (day.weekType != null && day.status == DayStatus.school)
                   _Tag(
                     label: isException
@@ -93,8 +102,10 @@ class DayTimetableCard extends StatelessWidget {
         final rows = <Widget>[];
         final hasMorning = day.lessons.any((l) => l.period <= lunchAfter);
         for (final lesson in day.lessons) {
-          // 午前の授業と午後の授業の間に昼休みを入れる
-          if (lesson.period == lunchAfter + 1 && hasMorning) {
+          // 午前の授業と午後の授業の間に昼休みを入れる（通常日課のみ）
+          if (day.schedule.hasLunch &&
+              lesson.period == lunchAfter + 1 &&
+              hasMorning) {
             rows.add(const _LunchRow());
           }
           rows.add(_LessonRow(lesson: lesson));
@@ -149,6 +160,15 @@ class _LessonRow extends StatelessWidget {
                   : null,
             ),
           ),
+          // 小テストの印
+          if (lesson.testLabel != null) ...[
+            _Tag(
+              label: lesson.testLabel!,
+              background: colorScheme.errorContainer,
+              foreground: colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 4),
+          ],
           if (statusLabel != null)
             _Tag(
               label: statusLabel,
@@ -188,7 +208,7 @@ class _LunchRow extends StatelessWidget {
   }
 }
 
-/// 小さな印（Ⅰ週・変更・休講など）
+/// 小さな印（Ⅰ週・変更・休講・小テストなど）
 class _Tag extends StatelessWidget {
   const _Tag({
     required this.label,

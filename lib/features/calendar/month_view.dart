@@ -250,7 +250,7 @@ class _DayCell extends StatelessWidget {
 
     final smallStyle = textTheme.labelSmall?.copyWith(fontSize: 10);
 
-    // 日付の下に並べるもの（祝日名・休業日名・試験の帯・予定の帯）
+    // 日付の下に並べるもの（祝日名・休業日名・試験・小テスト・予定）
     final items = <Widget>[
       if (isHoliday)
         Text(
@@ -271,6 +271,13 @@ class _DayCell extends StatelessWidget {
           text: day.note ?? '試験',
           background: colorScheme.primaryContainer,
           foreground: colorScheme.onPrimaryContainer,
+        ),
+      // 小テスト（LEAP など）
+      if (day.hasTests)
+        _Band(
+          text: day.lessons.firstWhere((l) => l.testLabel != null).testLabel!,
+          background: colorScheme.errorContainer,
+          foreground: colorScheme.onErrorContainer,
         ),
       for (final e in events)
         _Band(

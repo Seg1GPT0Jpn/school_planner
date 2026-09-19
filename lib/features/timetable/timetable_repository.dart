@@ -6,6 +6,9 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/japanese_holidays.dart';
+import '../school_tests/initial_rules.dart';
+import '../school_tests/lesson_test_annotation.dart';
+import '../school_tests/weekly_lesson_test.dart';
 import 'day_timetable_resolver.dart';
 import 'initial_data.dart';
 import 'school_periods.dart';
@@ -41,8 +44,8 @@ class TimetableData {
   bool get hasInitialDataUpdate =>
       isSeeded && dataVersion < TimetableRepository.latestDataVersion;
 
-  /// このデータを使って「その日の時間割」を計算する係
-  DayTimetableResolver get resolver => DayTimetableResolver(
+  /// 時間割だけを計算する係（小テストの印は付けない）
+  DayTimetableResolver get baseResolver => DayTimetableResolver(
     weekCalculator: WeekCycleCalculator(
       anchors: anchors,
       weekOverrides: weekOverrides,
@@ -52,6 +55,22 @@ class TimetableData {
     closures: closures,
     holidays: japaneseHolidays,
   );
+
+  /// 画面で使う計算係（毎週の小テストの印を付ける）
+  DayTimetableResolver get resolver {
+    final base = baseResolver;
+    final calculators = [
+      WeeklyLessonTestCalculator(rule: leapRule, resolver: base),
+    ];
+    return DayTimetableResolver(
+      weekCalculator: base.weekCalculator,
+      slots: slots,
+      dayOverrides: dayOverrides,
+      closures: closures,
+      holidays: japaneseHolidays,
+      postProcess: (day) => annotateLessonTests(day, calculators),
+    );
+  }
 
   /// 通常時間割の1コマを取り出す（なければ null）
   TimetableSlot? slotAt(WeekType weekType, int weekday, int period) {

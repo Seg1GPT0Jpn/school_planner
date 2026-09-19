@@ -34,6 +34,7 @@ class ResolvedLesson {
     this.room,
     this.teacher,
     this.memo,
+    this.testLabel,
   });
 
   final int period;
@@ -44,6 +45,9 @@ class ResolvedLesson {
   final String? room;
   final String? teacher;
   final String? memo;
+
+  /// この授業で行う小テスト（例：LEAP単語テスト 1201〜1300）
+  final String? testLabel;
 
   /// 時刻はそのまま、授業の中身だけを other のものにする（入れ替え用）
   ResolvedLesson withContentOf(ResolvedLesson other) {
@@ -56,6 +60,21 @@ class ResolvedLesson {
       room: other.room,
       teacher: other.teacher,
       memo: other.memo,
+    );
+  }
+
+  /// 小テストの印を付けたものを作る
+  ResolvedLesson withTestLabel(String label) {
+    return ResolvedLesson(
+      period: period,
+      start: start,
+      end: end,
+      status: status,
+      subject: subject,
+      room: room,
+      teacher: teacher,
+      memo: memo,
+      testLabel: label,
     );
   }
 }
@@ -130,6 +149,26 @@ class DayTimetable {
             l.status == LessonStatus.added ||
             l.status == LessonStatus.cancelled,
       );
+
+  /// 小テストがある授業が1つでもあるか
+  bool get hasTests => lessons.any((l) => l.testLabel != null);
+
+  /// 授業だけを差し替えたものを作る（それ以外はそのまま）
+  DayTimetable withLessons(List<ResolvedLesson> newLessons) {
+    return DayTimetable(
+      date: date,
+      status: status,
+      lessons: newLessons,
+      schedule: schedule,
+      weekType: weekType,
+      isWeekOverridden: isWeekOverridden,
+      isDayWeekTypeOverridden: isDayWeekTypeOverridden,
+      hasDayOverride: hasDayOverride,
+      closureTitle: closureTitle,
+      holidayName: holidayName,
+      note: note,
+    );
+  }
 }
 
 /// 通常時間割・週の判定・例外を組み合わせて、その日の時間割を決める
@@ -140,6 +179,7 @@ class DayTimetableResolver {
     List<DayOverride> dayOverrides = const [],
     List<SchoolClosure> closures = const [],
     Map<String, String> holidays = const {},
+    this.postProcess,
   }) : _slots = {
          for (final s in slots) _slotKey(s.weekType, s.weekday, s.period): s,
        },
@@ -155,11 +195,20 @@ class DayTimetableResolver {
   /// 祝日の一覧（キー：dateKey、値：祝日名）
   final Map<String, String> _holidays;
 
+  /// 計算の最後に通す「仕上げの係」（小テストの印を付けるなど）
+  final DayTimetable Function(DayTimetable day)? postProcess;
+
   static String _slotKey(WeekType weekType, int weekday, int period) =>
       '${weekType.name}-$weekday-$period';
 
-  /// その日の時間割を最終決定する
+  /// その日の時間割を最終決定する（仕上げの係があれば通す）
   DayTimetable resolve(DateTime date) {
+    final day = _resolveTimetable(date);
+    return postProcess == null ? day : postProcess!(day);
+  }
+
+  /// 時間割だけを決める
+  DayTimetable _resolveTimetable(DateTime date) {
     final day = dateOnly(date);
 
     // ① 学校休業日（最優先）

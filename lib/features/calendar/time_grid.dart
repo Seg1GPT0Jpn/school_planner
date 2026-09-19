@@ -693,7 +693,7 @@ class _LessonBlock extends StatelessWidget {
     final isEmpty = lesson.status == LessonStatus.empty;
     final isFaded = isCancelled || isEmpty;
 
-    final base = categoryColor(category);
+    final base = subjectColorOf(context, category);
     final background = isFaded
         ? colorScheme.surfaceContainerHigh
         : base.withValues(alpha: 0.22);
@@ -749,6 +749,18 @@ class _LessonBlock extends StatelessWidget {
                     color: foreground,
                   ),
                 ),
+                // 小テストの印
+                if (lesson.testLabel != null)
+                  Text(
+                    lesson.testLabel!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 if (statusLabel != null)
                   Text(
                     statusLabel,
@@ -811,6 +823,9 @@ void _showLessonDetails(
                 _DetailRow(icon: Icons.person_outline, text: lesson.teacher!),
               if (lesson.memo != null)
                 _DetailRow(icon: Icons.notes, text: lesson.memo!),
+              // 小テスト
+              if (lesson.testLabel != null)
+                _DetailRow(icon: Icons.edit_note, text: lesson.testLabel!),
               if (statusText != null)
                 _DetailRow(icon: Icons.info_outline, text: statusText),
             ],
