@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
+import '../study/study_view.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
 
@@ -27,13 +28,14 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
-  bool _reflection = false;
+  /// 0：目標　1：ふり返り　2：勉強時間
+  int _view = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('目標')),
-      floatingActionButton: _reflection
+      floatingActionButton: _view != 0
           ? null
           : FloatingActionButton(
               tooltip: '目標を追加',
@@ -44,18 +46,23 @@ class _GoalsPageState extends State<GoalsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(8),
-            child: SegmentedButton<bool>(
+            child: SegmentedButton<int>(
               segments: const [
-                ButtonSegment(value: false, label: Text('目標')),
-                ButtonSegment(value: true, label: Text('ふり返り')),
+                ButtonSegment(value: 0, label: Text('目標')),
+                ButtonSegment(value: 1, label: Text('ふり返り')),
+                ButtonSegment(value: 2, label: Text('勉強時間')),
               ],
-              selected: {_reflection},
+              selected: {_view},
               showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _reflection = s.first),
+              onSelectionChanged: (s) => setState(() => _view = s.first),
             ),
           ),
           Expanded(
-            child: _reflection ? const _ReflectionView() : const _GoalList(),
+            child: switch (_view) {
+              1 => const _ReflectionView(),
+              2 => const StudyView(),
+              _ => const _GoalList(),
+            },
           ),
         ],
       ),
