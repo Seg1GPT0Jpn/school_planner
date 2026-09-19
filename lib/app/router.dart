@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../features/auth/auth_state.dart';
 import '../features/auth/login_page.dart';
 import '../features/home/home_page.dart';
+import '../features/timetable/timetable_page.dart';
 import '../widgets/placeholder_page.dart';
 import 'app_shell.dart';
 
@@ -22,13 +23,8 @@ final GoRouter appRouter = GoRouter(
     final isLoggedIn = _authState.isLoggedIn;
     final isOnLoginPage = state.matchedLocation == '/login';
 
-    // ログインしていない → ログイン画面へ
     if (!isLoggedIn && !isOnLoginPage) return '/login';
-
-    // ログイン済みなのにログイン画面にいる → ホームへ
     if (isLoggedIn && isOnLoginPage) return '/';
-
-    // それ以外はそのまま
     return null;
   },
 
@@ -63,8 +59,7 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/timetable',
-              builder: (context, state) =>
-                  const PlaceholderPage(title: '時間割', icon: Icons.table_chart),
+              builder: (context, state) => const TimetablePage(),
             ),
           ],
         ),
