@@ -11,6 +11,7 @@ import '../events/event_repository.dart';
 import '../recurring/recurring_pages.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
+import '../recurring/recurring_test_rule.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_edit_page.dart';
 import '../school_tests/school_test_repository.dart';
@@ -366,7 +367,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           // 予定＋定期の予定（表示している月の前後を展開）
                           final events = [
                             ...?es.data,
-                            ...expandRecurring(
+                            ...expandRecurringWithTests(
                               rs.data ?? const [],
                               DateTime(_focused.year, _focused.month - 1, 1),
                               DateTime(_focused.year, _focused.month + 2, 1),
