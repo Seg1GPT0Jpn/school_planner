@@ -76,7 +76,7 @@ class RecurringRepository {
 
   static Map<String, dynamic> toMap(RecurringSchedule r) => {
     'title': r.title.trim(),
-    'weekday': r.weekday,
+    'weekdays': r.weekdays.toList()..sort(),
     'start': r.start.toString(),
     'end': r.end.toString(),
     'validFrom': r.validFrom == null ? null : dateKey(r.validFrom!),
@@ -93,7 +93,10 @@ class RecurringRepository {
     return RecurringSchedule(
       id: id,
       title: m['title'] as String? ?? '',
-      weekday: (m['weekday'] as num).toInt(),
+      // 新しい形（weekdays）→ 古い形（weekday 1つ）の順に読む
+      weekdays: m['weekdays'] is List
+          ? {for (final w in m['weekdays'] as List) (w as num).toInt()}
+          : {(m['weekday'] as num).toInt()},
       start: _time(m['start']),
       end: _time(m['end']),
       validFrom: _date(m['validFrom']),
