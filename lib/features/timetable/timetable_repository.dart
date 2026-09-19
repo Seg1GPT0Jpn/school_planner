@@ -8,6 +8,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/japanese_holidays.dart';
 import '../school_tests/initial_rules.dart';
 import '../school_tests/lesson_test_annotation.dart';
+import '../school_tests/school_test.dart';
+import '../school_tests/school_test_repository.dart';
 import '../school_tests/weekly_lesson_test.dart';
 import 'day_timetable_resolver.dart';
 import 'initial_data.dart';
@@ -25,6 +27,8 @@ class TimetableData {
     required this.weekOverrides,
     required this.dayOverrides,
     required this.closures,
+    required this.schoolTests,
+    required this.weeklyRules,
   });
 
   /// 登録済みの初期データの版（0 = 未登録）
@@ -37,12 +41,36 @@ class TimetableData {
   final List<DayOverride> dayOverrides;
   final List<SchoolClosure> closures;
 
+  /// 手で登録した小テスト・学校イベント
+  final List<SchoolTest> schoolTests;
+
+  /// 毎週のテストのルール（LEAP など）
+  final List<WeeklyLessonTestRule> weeklyRules;
+
   /// 初期データを登録済みか
   bool get isSeeded => dataVersion > 0;
 
   /// 新しい版の初期データがあるか
   bool get hasInitialDataUpdate =>
       isSeeded && dataVersion < TimetableRepository.latestDataVersion;
+
+  /// 使うルール（まだ保存されていなければ、LEAP の初期値）
+  List<WeeklyLessonTestRule> get activeRules =>
+      weeklyRules.isEmpty ? [leapRule] : weeklyRules;
+
+  /// その科目の授業で行う毎週のテストのルール（なければ null）
+  WeeklyLessonTestRule? ruleForSubject(String? subject) {
+    for (final rule in activeRules) {
+      if (rule.subject == subject) return rule;
+    }
+    return null;
+  }
+
+  /// その日の小テスト・学校イベント（手で登録したもの）
+  List<SchoolTest> testsOn(DateTime date) => [
+    for (final t in schoolTests)
+      if (t.isOn(date)) t,
+  ];
 
   /// 時間割だけを計算する係（小テストの印は付けない）
   DayTimetableResolver get baseResolver => DayTimetableResolver(
@@ -56,11 +84,12 @@ class TimetableData {
     holidays: japaneseHolidays,
   );
 
-  /// 画面で使う計算係（毎週の小テストの印を付ける）
+  /// 画面で使う計算係（小テストの印を付ける）
   DayTimetableResolver get resolver {
     final base = baseResolver;
     final calculators = [
-      WeeklyLessonTestCalculator(rule: leapRule, resolver: base),
+      for (final rule in activeRules)
+        WeeklyLessonTestCalculator(rule: rule, resolver: base),
     ];
     return DayTimetableResolver(
       weekCalculator: base.weekCalculator,
@@ -68,7 +97,8 @@ class TimetableData {
       dayOverrides: dayOverrides,
       closures: closures,
       holidays: japaneseHolidays,
-      postProcess: (day) => annotateLessonTests(day, calculators),
+      postProcess: (day) =>
+          annotateLessonTests(day, calculators, manualTests: schoolTests),
     );
   }
 
@@ -107,6 +137,8 @@ class TimetableRepository {
     'week_overrides',
     'timetable_overrides',
     'closures',
+    'school_tests',
+    'weekly_test_rules',
   ];
 
   CollectionReference<Map<String, dynamic>> _col(String name) =>
@@ -207,6 +239,14 @@ class TimetableRepository {
             end: _parseDate(m['end'] as String),
             title: m['title'] as String,
           ),
+      ],
+      schoolTests: [
+        for (final d in s['school_tests']!.docs)
+          SchoolTestRepository.testFromMap(d.id, d.data()),
+      ],
+      weeklyRules: [
+        for (final d in s['weekly_test_rules']!.docs)
+          SchoolTestRepository.ruleFromMap(d.id, d.data()),
       ],
     );
   }

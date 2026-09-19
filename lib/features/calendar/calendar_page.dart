@@ -8,6 +8,9 @@ import '../events/event_category.dart';
 import '../events/event_category_repository.dart';
 import '../events/event_edit_page.dart';
 import '../events/event_repository.dart';
+import '../school_tests/school_test.dart';
+import '../school_tests/school_test_edit_page.dart';
+import '../school_tests/school_test_repository.dart';
 import '../timetable/timetable_repository.dart';
 import 'month_view.dart';
 import 'time_grid.dart';
@@ -41,10 +44,14 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late final EventRepository _eventRepository;
   late final EventCategoryRepository _categoryRepository;
+  late final SchoolTestRepository _testRepository;
 
   late final Stream<TimetableData> _timetableStream;
   late final Stream<List<CalendarEvent>> _eventStream;
   late final Stream<List<EventCategory>> _categoryStream;
+
+  /// 最後に読み込んだ時間割データ（小テストの登録画面で科目一覧に使う）
+  TimetableData? _latestData;
 
   CalendarMode _mode = CalendarMode.month;
 
@@ -74,13 +81,15 @@ class _CalendarPageState extends State<CalendarPage> {
 
     _eventRepository = EventRepository(uid: uid);
     _categoryRepository = EventCategoryRepository(uid: uid);
+    _testRepository = SchoolTestRepository(uid: uid);
 
     _timetableStream = TimetableRepository(uid: uid).watch();
     _eventStream = _eventRepository.watchAll();
     _categoryStream = _categoryRepository.watch();
 
-    // 予定のカテゴリがまだなければ、最初の6つを登録しておく
+    // 初期値がまだなければ登録しておく
     _categoryRepository.ensureDefaults();
+    _testRepository.ensureDefaultRules();
   }
 
   // ------------------------------------------------------------
@@ -139,7 +148,7 @@ class _CalendarPageState extends State<CalendarPage> {
   void _openDay(DateTime date) => _changeView(CalendarMode.day, date);
 
   // ------------------------------------------------------------
-  // 予定の追加・編集
+  // 予定・小テストの追加・編集
   // ------------------------------------------------------------
 
   /// 予定の入力画面を開く（event があれば編集、なければ追加）
@@ -157,7 +166,75 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  /// ＋ボタン
+  /// 小テスト・学校イベントの入力画面を開く
+  void _openTestEditor({
+    SchoolTest? test,
+    DateTime? date,
+    String? subject,
+    int? period,
+  }) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => SchoolTestEditPage(
+          repository: _testRepository,
+          subjects: _latestData?.subjects ?? const [],
+          test: test,
+          initialDate: date,
+          initialSubject: subject,
+          initialPeriod: period,
+        ),
+      ),
+    );
+  }
+
+  /// 週・日表示に渡す、小テストの操作
+  LessonTestActions get _testActions => LessonTestActions(
+    onAdd: (date, lesson) => _openTestEditor(
+      date: date,
+      subject: lesson.subject,
+      period: lesson.period,
+    ),
+    onEdit: (test) => _openTestEditor(test: test),
+    onSetWeekSkipped: (rule, date, skipped) =>
+        _testRepository.setWeekSkipped(rule.id, date, skipped),
+  );
+
+  /// ＋ボタン：予定か、小テスト・学校イベントかを選ぶ
+  void _showAddMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.event),
+                title: const Text('予定を追加'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _createEvent();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_note),
+                title: const Text('小テスト・学校イベントを追加'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openTestEditor(date: _focused);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 予定を追加
   ///   今日を見ているときは次の正時（例：16:40 → 17:00）、
   ///   それ以外の日は 9:00 から始まる予定を用意する
   void _createEvent() {
@@ -231,8 +308,8 @@ class _CalendarPageState extends State<CalendarPage> {
         autofocus: true,
         child: Scaffold(
           floatingActionButton: FloatingActionButton(
-            tooltip: '予定を追加',
-            onPressed: _createEvent,
+            tooltip: '追加',
+            onPressed: _showAddMenu,
             child: const Icon(Icons.add),
           ),
           appBar: AppBar(
@@ -266,6 +343,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 return const Center(child: CircularProgressIndicator());
               }
               final data = timetableSnapshot.data!;
+              _latestData = data;
 
               return StreamBuilder<List<CalendarEvent>>(
                 stream: _eventStream,
@@ -367,6 +445,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 colorOf: colorOf,
                 onCreateAt: (start) => _openEditor(start: start),
                 onEventTap: (event) => _openEditor(event: event),
+                testActions: _testActions,
               ),
               CalendarMode.day => TimeGridView(
                 data: data,
@@ -376,6 +455,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 colorOf: colorOf,
                 onCreateAt: (start) => _openEditor(start: start),
                 onEventTap: (event) => _openEditor(event: event),
+                testActions: _testActions,
               ),
             },
           ),

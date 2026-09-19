@@ -76,6 +76,9 @@ class SchoolTest {
   /// 画面に出す名前（例：現代の国語 漢字テスト）
   String get displayTitle => subject == null ? title : '$subject $title';
 
+  /// 授業のブロックに出す短い名前（例：漢字テスト p.20〜35）
+  String get lessonLabel => scope == null ? title : '$title $scope';
+
   /// その日のものか
   bool isOn(DateTime day) => _day(date) == _day(day);
 

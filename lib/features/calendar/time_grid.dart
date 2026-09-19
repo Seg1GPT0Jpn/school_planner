@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/date_format.dart';
 import '../../widgets/color_palette_picker.dart';
 import '../events/calendar_event.dart';
+import '../school_tests/school_test.dart';
+import '../school_tests/weekly_lesson_test.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/subject_colors.dart';
@@ -30,6 +32,25 @@ bool _isSameDay(DateTime a, DateTime b) =>
 
 String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 
+/// 小テストに関する操作（カレンダー画面から渡してもらう）
+class LessonTestActions {
+  const LessonTestActions({
+    required this.onAdd,
+    required this.onEdit,
+    required this.onSetWeekSkipped,
+  });
+
+  /// この授業に小テストを追加する
+  final void Function(DateTime date, ResolvedLesson lesson) onAdd;
+
+  /// 登録済みの小テスト・学校イベントを編集する
+  final ValueChanged<SchoolTest> onEdit;
+
+  /// 毎週のテストを、その週だけ「なし」にする／戻す
+  final void Function(WeeklyLessonTestRule rule, DateTime date, bool skipped)
+  onSetWeekSkipped;
+}
+
 /// Google カレンダー風の時間軸表示（週表示・日表示の共通部品）
 class TimeGridView extends StatefulWidget {
   const TimeGridView({
@@ -41,6 +62,7 @@ class TimeGridView extends StatefulWidget {
     required this.colorOf,
     required this.onCreateAt,
     required this.onEventTap,
+    required this.testActions,
   });
 
   final TimetableData data;
@@ -61,6 +83,9 @@ class TimeGridView extends StatefulWidget {
 
   /// 予定がタップされたとき
   final ValueChanged<CalendarEvent> onEventTap;
+
+  /// 小テストに関する操作
+  final LessonTestActions testActions;
 
   @override
   State<TimeGridView> createState() => _TimeGridViewState();
@@ -93,13 +118,13 @@ class _TimeGridViewState extends State<TimeGridView> {
 
   @override
   Widget build(BuildContext context) {
-    final resolver = widget.data.resolver;
+    final data = widget.data;
+    final resolver = data.resolver;
     final timetables = [for (final d in widget.days) resolver.resolve(d)];
+    final dayTests = [for (final d in widget.days) data.testsOn(d)];
 
     // 科目名 → 教科名（色分けに使う）
-    final categoryOf = {
-      for (final s in widget.data.subjects) s.name: s.category,
-    };
+    final categoryOf = {for (final s in data.subjects) s.name: s.category};
 
     // 左上に出す Ⅰ週/Ⅱ週（表示している日の中の月曜日で判定）
     WeekType? weekType;
@@ -112,14 +137,46 @@ class _TimeGridViewState extends State<TimeGridView> {
 
     return Column(
       children: [
-        _Header(
-          days: widget.days,
-          timetables: timetables,
-          today: widget.today,
-          weekType: weekType,
-          events: widget.events,
-          colorOf: widget.colorOf,
-          onEventTap: widget.onEventTap,
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: _gutterWidth,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    weekType?.label ?? '',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.secondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < widget.days.length; i++)
+                Expanded(
+                  child: _DayHeader(
+                    date: widget.days[i],
+                    day: timetables[i],
+                    isToday: _isSameDay(widget.days[i], widget.today),
+                    allDayEvents: [
+                      for (final e in widget.events)
+                        if (e.isAllDay && e.occursOn(widget.days[i])) e,
+                    ],
+                    // 時限を指定していない小テスト・行事は終日欄へ
+                    allDayTests: [
+                      for (final t in dayTests[i])
+                        if (t.period == null) t,
+                    ],
+                    colorOf: widget.colorOf,
+                    onEventTap: widget.onEventTap,
+                    onTestTap: widget.testActions.onEdit,
+                  ),
+                ),
+            ],
+          ),
         ),
         const Divider(height: 1),
         Expanded(
@@ -134,8 +191,10 @@ class _TimeGridViewState extends State<TimeGridView> {
                   for (var i = 0; i < widget.days.length; i++)
                     Expanded(
                       child: _DayColumn(
+                        data: data,
                         date: widget.days[i],
                         day: timetables[i],
+                        tests: dayTests[i],
                         isToday: _isSameDay(widget.days[i], widget.today),
                         now: _now,
                         categoryOf: categoryOf,
@@ -146,6 +205,7 @@ class _TimeGridViewState extends State<TimeGridView> {
                         colorOf: widget.colorOf,
                         onCreateAt: widget.onCreateAt,
                         onEventTap: widget.onEventTap,
+                        testActions: widget.testActions,
                       ),
                     ),
                 ],
@@ -162,83 +222,26 @@ class _TimeGridViewState extends State<TimeGridView> {
 // 上部：日付と終日欄
 // ------------------------------------------------------------
 
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.days,
-    required this.timetables,
-    required this.today,
-    required this.weekType,
-    required this.events,
-    required this.colorOf,
-    required this.onEventTap,
-  });
-
-  final List<DateTime> days;
-  final List<DayTimetable> timetables;
-  final DateTime today;
-  final WeekType? weekType;
-  final List<CalendarEvent> events;
-  final Color Function(CalendarEvent event) colorOf;
-  final ValueChanged<CalendarEvent> onEventTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: _gutterWidth,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                weekType?.label ?? '',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.secondary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          for (var i = 0; i < days.length; i++)
-            Expanded(
-              child: _DayHeader(
-                date: days[i],
-                day: timetables[i],
-                isToday: _isSameDay(days[i], today),
-                allDayEvents: [
-                  for (final e in events)
-                    if (e.isAllDay && e.occursOn(days[i])) e,
-                ],
-                colorOf: colorOf,
-                onEventTap: onEventTap,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _DayHeader extends StatelessWidget {
   const _DayHeader({
     required this.date,
     required this.day,
     required this.isToday,
     required this.allDayEvents,
+    required this.allDayTests,
     required this.colorOf,
     required this.onEventTap,
+    required this.onTestTap,
   });
 
   final DateTime date;
   final DayTimetable day;
   final bool isToday;
   final List<CalendarEvent> allDayEvents;
+  final List<SchoolTest> allDayTests;
   final Color Function(CalendarEvent event) colorOf;
   final ValueChanged<CalendarEvent> onEventTap;
+  final ValueChanged<SchoolTest> onTestTap;
 
   @override
   Widget build(BuildContext context) {
@@ -286,6 +289,21 @@ class _DayHeader extends StatelessWidget {
           const SizedBox(height: 4),
           for (final chip in _allDayChips(context, day))
             Padding(padding: const EdgeInsets.only(bottom: 2), child: chip),
+          // 時限なしの小テスト・学校イベント
+          for (final test in allDayTests)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: _AllDayChip(
+                text: test.displayTitle,
+                background: test.kind.isTest
+                    ? colorScheme.errorContainer
+                    : colorScheme.secondaryContainer,
+                foreground: test.kind.isTest
+                    ? colorScheme.onErrorContainer
+                    : colorScheme.onSecondaryContainer,
+                onTap: () => onTestTap(test),
+              ),
+            ),
           // 終日の予定
           for (final event in allDayEvents)
             Padding(
@@ -426,8 +444,10 @@ class _GridItem {
 
 class _DayColumn extends StatelessWidget {
   const _DayColumn({
+    required this.data,
     required this.date,
     required this.day,
+    required this.tests,
     required this.isToday,
     required this.now,
     required this.categoryOf,
@@ -435,10 +455,16 @@ class _DayColumn extends StatelessWidget {
     required this.colorOf,
     required this.onCreateAt,
     required this.onEventTap,
+    required this.testActions,
   });
 
+  final TimetableData data;
   final DateTime date;
   final DayTimetable day;
+
+  /// この日の小テスト・学校イベント（手で登録したもの）
+  final List<SchoolTest> tests;
+
   final bool isToday;
   final DateTime now;
   final Map<String, String> categoryOf;
@@ -449,6 +475,7 @@ class _DayColumn extends StatelessWidget {
   final Color Function(CalendarEvent event) colorOf;
   final ValueChanged<DateTime> onCreateAt;
   final ValueChanged<CalendarEvent> onEventTap;
+  final LessonTestActions testActions;
 
   List<_GridItem> _buildItems() {
     final dayStart = DateTime(date.year, date.month, date.day);
@@ -503,6 +530,7 @@ class _DayColumn extends StatelessWidget {
       for (final item in items) TimeRange(item.start, item.end),
     ]);
     final nowMinutes = now.hour * 60 + now.minute;
+    final weekKey = dateKey(mondayOf(date));
 
     return Container(
       decoration: BoxDecoration(
@@ -577,11 +605,23 @@ class _DayColumn extends StatelessWidget {
                   left: width * slots[i].column / slots[i].columnCount + 2,
                   width: width / slots[i].columnCount - 4,
                   child: items[i].lesson != null
-                      ? _LessonBlock(
-                          date: date,
-                          lesson: items[i].lesson!,
-                          category: categoryOf[items[i].lesson!.subject],
-                        )
+                      ? () {
+                          final lesson = items[i].lesson!;
+                          final rule = data.ruleForSubject(lesson.subject);
+                          return _LessonBlock(
+                            date: date,
+                            lesson: lesson,
+                            category: categoryOf[lesson.subject],
+                            lessonTests: [
+                              for (final t in tests)
+                                if (t.period == lesson.period) t,
+                            ],
+                            rule: rule,
+                            isWeekSkipped:
+                                rule?.skippedWeeks.contains(weekKey) ?? false,
+                            actions: testActions,
+                          );
+                        }()
                       : _EventBlock(
                           event: items[i].event!,
                           color: colorOf(items[i].event!),
@@ -678,11 +718,26 @@ class _LessonBlock extends StatelessWidget {
     required this.date,
     required this.lesson,
     required this.category,
+    required this.lessonTests,
+    required this.rule,
+    required this.isWeekSkipped,
+    required this.actions,
   });
 
   final DateTime date;
   final ResolvedLesson lesson;
   final String? category;
+
+  /// この授業に登録された小テスト（手で登録したもの）
+  final List<SchoolTest> lessonTests;
+
+  /// この科目で行う毎週のテストのルール（LEAP など。なければ null）
+  final WeeklyLessonTestRule? rule;
+
+  /// この週が「なし」になっているか
+  final bool isWeekSkipped;
+
+  final LessonTestActions actions;
 
   @override
   Widget build(BuildContext context) {
@@ -713,7 +768,16 @@ class _LessonBlock extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _showLessonDetails(context, date, lesson, category),
+        onTap: () => _showLessonDetails(
+          context,
+          date: date,
+          lesson: lesson,
+          category: category,
+          lessonTests: lessonTests,
+          rule: rule,
+          isWeekSkipped: isWeekSkipped,
+          actions: actions,
+        ),
         child: Container(
           decoration: BoxDecoration(
             border: Border(
@@ -780,11 +844,15 @@ class _LessonBlock extends StatelessWidget {
 
 /// 授業の詳細（下から出てくるシート）
 void _showLessonDetails(
-  BuildContext context,
-  DateTime date,
-  ResolvedLesson lesson,
-  String? category,
-) {
+  BuildContext context, {
+  required DateTime date,
+  required ResolvedLesson lesson,
+  required String? category,
+  required List<SchoolTest> lessonTests,
+  required WeeklyLessonTestRule? rule,
+  required bool isWeekSkipped,
+  required LessonTestActions actions,
+}) {
   final statusText = switch (lesson.status) {
     LessonStatus.normal => null,
     LessonStatus.changed => '時間割変更あり',
@@ -793,12 +861,23 @@ void _showLessonDetails(
     LessonStatus.empty => '時間割が未設定',
   };
 
+  // この授業に毎週のテスト（LEAP など）の印が付いているか
+  final hasRuleTest =
+      rule != null && (lesson.testLabel?.contains(rule.title) ?? false);
+
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
-    builder: (context) {
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      // ボタンを押したら、シートを閉じてから操作する
+      void closeThen(VoidCallback action) {
+        Navigator.of(sheetContext).pop();
+        action();
+      }
+
       return SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -806,7 +885,7 @@ void _showLessonDetails(
             children: [
               Text(
                 lesson.subject ?? '未設定',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(sheetContext).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               _DetailRow(
@@ -823,11 +902,49 @@ void _showLessonDetails(
                 _DetailRow(icon: Icons.person_outline, text: lesson.teacher!),
               if (lesson.memo != null)
                 _DetailRow(icon: Icons.notes, text: lesson.memo!),
-              // 小テスト
               if (lesson.testLabel != null)
                 _DetailRow(icon: Icons.edit_note, text: lesson.testLabel!),
               if (statusText != null)
                 _DetailRow(icon: Icons.info_outline, text: statusText),
+
+              // 登録済みの小テスト（タップで編集）
+              if (lessonTests.isNotEmpty) ...[
+                const Divider(),
+                for (final t in lessonTests)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.edit_note),
+                    title: Text(t.displayTitle),
+                    subtitle: t.scope == null ? null : Text(t.scope!),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => closeThen(() => actions.onEdit(t)),
+                  ),
+              ],
+
+              const Divider(),
+              TextButton.icon(
+                onPressed: () => closeThen(() => actions.onAdd(date, lesson)),
+                icon: const Icon(Icons.add),
+                label: const Text('この授業に小テストを追加'),
+              ),
+
+              // 毎週のテストの「なし」「戻す」
+              if (rule != null && isWeekSkipped)
+                TextButton.icon(
+                  onPressed: () => closeThen(
+                    () => actions.onSetWeekSkipped(rule, date, false),
+                  ),
+                  icon: const Icon(Icons.undo),
+                  label: Text('この週の${rule.title}を戻す'),
+                )
+              else if (hasRuleTest)
+                TextButton.icon(
+                  onPressed: () => closeThen(
+                    () => actions.onSetWeekSkipped(rule, date, true),
+                  ),
+                  icon: const Icon(Icons.block),
+                  label: Text('この週の${rule.title}をなしにする'),
+                ),
             ],
           ),
         ),

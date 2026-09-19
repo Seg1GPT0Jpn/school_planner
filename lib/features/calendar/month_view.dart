@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../widgets/color_palette_picker.dart';
 import '../events/calendar_event.dart';
+import '../school_tests/school_test.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/timetable_repository.dart';
@@ -154,6 +155,11 @@ class MonthView extends StatelessWidget {
       date: date,
       day: resolver.resolve(date),
       events: dayEvents,
+      // 時限なしの小テスト・学校イベント（時限ありは授業の印で表示される）
+      allDayTests: [
+        for (final t in data.testsOn(date))
+          if (t.period == null) t,
+      ],
       colorOf: colorOf,
       isInMonth: date.month == month.month,
       isToday:
@@ -207,6 +213,7 @@ class _DayCell extends StatelessWidget {
     required this.date,
     required this.day,
     required this.events,
+    required this.allDayTests,
     required this.colorOf,
     required this.isInMonth,
     required this.isToday,
@@ -216,6 +223,7 @@ class _DayCell extends StatelessWidget {
   final DateTime date;
   final DayTimetable day;
   final List<CalendarEvent> events;
+  final List<SchoolTest> allDayTests;
   final Color Function(CalendarEvent event) colorOf;
   final bool isInMonth;
   final bool isToday;
@@ -250,7 +258,7 @@ class _DayCell extends StatelessWidget {
 
     final smallStyle = textTheme.labelSmall?.copyWith(fontSize: 10);
 
-    // 日付の下に並べるもの（祝日名・休業日名・試験・小テスト・予定）
+    // 日付の下に並べるもの（祝日名・休業日名・試験・小テスト・行事・予定）
     final items = <Widget>[
       if (isHoliday)
         Text(
@@ -272,12 +280,24 @@ class _DayCell extends StatelessWidget {
           background: colorScheme.primaryContainer,
           foreground: colorScheme.onPrimaryContainer,
         ),
-      // 小テスト（LEAP など）
-      if (day.hasTests)
+      // 授業で行う小テスト（LEAP・時限を指定した小テスト）
+      for (final lesson in day.lessons)
+        if (lesson.testLabel != null)
+          _Band(
+            text: '${lesson.subject ?? ''} ${lesson.testLabel}',
+            background: colorScheme.errorContainer,
+            foreground: colorScheme.onErrorContainer,
+          ),
+      // 時限なしの小テスト・学校イベント
+      for (final t in allDayTests)
         _Band(
-          text: day.lessons.firstWhere((l) => l.testLabel != null).testLabel!,
-          background: colorScheme.errorContainer,
-          foreground: colorScheme.onErrorContainer,
+          text: t.displayTitle,
+          background: t.kind.isTest
+              ? colorScheme.errorContainer
+              : colorScheme.secondaryContainer,
+          foreground: t.kind.isTest
+              ? colorScheme.onErrorContainer
+              : colorScheme.onSecondaryContainer,
         ),
       for (final e in events)
         _Band(
