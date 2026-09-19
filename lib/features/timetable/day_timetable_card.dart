@@ -1,9 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'day_timetable_resolver.dart';
-import 'school_periods.dart';
 import '../../core/date_format.dart';
 import 'day_timetable_resolver.dart';
+import 'school_periods.dart';
 
 /// 1日分の時間割を表示するカード
 class DayTimetableCard extends StatelessWidget {
@@ -83,13 +82,15 @@ class DayTimetableCard extends StatelessWidget {
     switch (day.status) {
       case DayStatus.closed:
         return [Text('休業日：${day.closureTitle ?? ''}')];
+      case DayStatus.holiday:
+        return [Text('祝日：${day.holidayName ?? ''}（授業はありません）')];
       case DayStatus.noSchool:
         return [const Text('授業はありません')];
       case DayStatus.weekUnknown:
         return [const Text('Ⅰ週/Ⅱ週の基準日が設定されていません')];
       case DayStatus.school:
-        final rows = <Widget>[];
         const lunchAfter = SchoolPeriods.lunchAfterPeriod;
+        final rows = <Widget>[];
         final hasMorning = day.lessons.any((l) => l.period <= lunchAfter);
         for (final lesson in day.lessons) {
           // 午前の授業と午後の授業の間に昼休みを入れる

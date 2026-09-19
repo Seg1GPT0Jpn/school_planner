@@ -68,8 +68,11 @@ enum DayStatus {
   /// 土日などで授業なし
   noSchool,
 
-  /// 学校休業日
+  /// 学校休業日（夏休み・臨時休校など）
   closed,
+
+  /// 国民の祝日・休日
+  holiday,
 
   /// Ⅰ週/Ⅱ週を判定できない（基準日が未設定など）
   weekUnknown,
@@ -86,6 +89,7 @@ class DayTimetable {
     this.isDayWeekTypeOverridden = false,
     this.hasDayOverride = false,
     this.closureTitle,
+    this.holidayName,
     this.note,
   });
 
@@ -103,7 +107,13 @@ class DayTimetable {
   final bool isDayWeekTypeOverridden;
 
   final bool hasDayOverride;
+
+  /// 学校休業日の名前（例：夏休み）
   final String? closureTitle;
+
+  /// 祝日の名前（例：敬老の日）
+  final String? holidayName;
+
   final String? note;
 
   /// 「時間割変更あり」の表示に使う
@@ -124,16 +134,21 @@ class DayTimetableResolver {
     required List<TimetableSlot> slots,
     List<DayOverride> dayOverrides = const [],
     List<SchoolClosure> closures = const [],
+    Map<String, String> holidays = const {},
   }) : _slots = {
          for (final s in slots) _slotKey(s.weekType, s.weekday, s.period): s,
        },
        _dayOverrides = {for (final o in dayOverrides) dateKey(o.date): o},
-       _closures = closures;
+       _closures = closures,
+       _holidays = holidays;
 
   final WeekCycleCalculator weekCalculator;
   final Map<String, TimetableSlot> _slots;
   final Map<String, DayOverride> _dayOverrides;
   final List<SchoolClosure> _closures;
+
+  /// 祝日の一覧（キー：dateKey、値：祝日名）
+  final Map<String, String> _holidays;
 
   static String _slotKey(WeekType weekType, int weekday, int period) =>
       '${weekType.name}-$weekday-$period';
@@ -142,7 +157,7 @@ class DayTimetableResolver {
   DayTimetable resolve(DateTime date) {
     final day = dateOnly(date);
 
-    // ① 休業日（最優先）
+    // ① 学校休業日（最優先）
     for (final closure in _closures) {
       if (closure.contains(day)) {
         return DayTimetable(
@@ -154,11 +169,22 @@ class DayTimetableResolver {
       }
     }
 
+    // ② 国民の祝日・休日
+    final holidayName = _holidays[dateKey(day)];
+    if (holidayName != null) {
+      return DayTimetable(
+        date: day,
+        status: DayStatus.holiday,
+        lessons: const [],
+        holidayName: holidayName,
+      );
+    }
+
     final weekday = day.weekday;
     final dayOverride = _dayOverrides[dateKey(day)];
     final isSchoolWeekday = SchoolPeriods.schoolWeekdays.contains(weekday);
 
-    // 土日で、特定日の変更もなければ授業なし
+    // ③ 土日で、特定日の変更もなければ授業なし
     if (!isSchoolWeekday && dayOverride == null) {
       return DayTimetable(
         date: day,
@@ -167,12 +193,12 @@ class DayTimetableResolver {
       );
     }
 
-    // ②③④ Ⅰ週かⅡ週か
+    // ④ Ⅰ週かⅡ週か
     //   特定日の指定 → 週単位override → 基準日の自動判定 の順に優先
     final dayWeekType = dayOverride?.weekType;
     final weekType = dayWeekType ?? weekCalculator.weekTypeFor(day);
 
-    // ⑤ 通常時間割を並べる
+    // 通常時間割を並べる
     final lessons = <int, ResolvedLesson>{};
     for (final period in SchoolPeriods.periodsFor(weekday)) {
       final slot = weekType == null
@@ -190,7 +216,7 @@ class DayTimetableResolver {
       );
     }
 
-    // ② 特定日の時限ごとの変更を上から重ねる
+    // 特定日の時限ごとの変更を上から重ねる
     if (dayOverride != null) {
       for (final change in dayOverride.changes) {
         _applyChange(lessons, change);
