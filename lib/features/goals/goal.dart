@@ -11,6 +11,7 @@ enum GoalTerm {
 
 enum GoalProgressType {
   number('数値'),
+  studyTime('勉強時間'),
   checklist('チェックリスト'),
   none('なし');
 
@@ -30,6 +31,7 @@ class Goal {
     required this.title,
     this.term = GoalTerm.short,
     this.dueDate,
+    this.startDate,
     this.type = GoalProgressType.number,
     this.current = 0,
     this.target = 100,
@@ -44,22 +46,26 @@ class Goal {
   final String title;
   final GoalTerm term;
   final DateTime? dueDate;
+
+  /// 勉強時間の目標で、数え始める日
+  final DateTime? startDate;
+
   final GoalProgressType type;
+
+  /// 数値の今（勉強時間の目標では「時間」。自動で計算される）
   final num current;
   final num target;
   final String unit;
   final List<Milestone> milestones;
   final bool achieved;
   final String? memo;
-
-  /// 科目（なければ null）
   final String? subject;
 
-  /// 進み具合（0.0〜1.0）
   double get progress {
     if (achieved) return 1;
     switch (type) {
       case GoalProgressType.number:
+      case GoalProgressType.studyTime:
         if (target <= 0) return 0;
         return (current / target).clamp(0, 1).toDouble();
       case GoalProgressType.checklist:
@@ -70,9 +76,9 @@ class Goal {
     }
   }
 
-  /// 進み具合の文字（例：1300/2000語、2/5）
   String get progressText => switch (type) {
     GoalProgressType.number => '${_n(current)}/${_n(target)}$unit',
+    GoalProgressType.studyTime => '${_n(current)}/${_n(target)}時間',
     GoalProgressType.checklist =>
       '${milestones.where((m) => m.done).length}/${milestones.length}',
     GoalProgressType.none => achieved ? '達成' : '',
@@ -81,7 +87,6 @@ class Goal {
   static String _n(num v) => v == v.roundToDouble() ? '${v.toInt()}' : '$v';
 }
 
-/// 並べる順：短期 → 長期、その中は期限が近い順（期限なしは最後）
 List<Goal> sortGoals(List<Goal> goals) => [...goals]
   ..sort((a, b) {
     if (a.term != b.term) return a.term == GoalTerm.short ? -1 : 1;

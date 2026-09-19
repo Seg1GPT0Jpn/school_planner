@@ -218,6 +218,7 @@ class _GoalEditPageState extends State<GoalEditPage> {
   late DateTime? _due = _g?.dueDate;
   late bool _achieved = _g?.achieved ?? false;
   late String? _subject = _g?.subject;
+  late DateTime _start = _g?.startDate ?? DateTime.now();
   late final _subjects = TimetableRepository(
     uid: FirebaseAuth.instance.currentUser!.uid,
   ).watch();
@@ -229,7 +230,7 @@ class _GoalEditPageState extends State<GoalEditPage> {
       return setState(() => _error = '目標を入力してください');
     }
     final nav = Navigator.of(context);
-    await _repo().saveGoal(
+    await _repo().saveGoalAndRecompute(
       Goal(
         id: _g?.id,
         title: _title.text,
@@ -242,6 +243,7 @@ class _GoalEditPageState extends State<GoalEditPage> {
         milestones: _ms,
         achieved: _achieved,
         subject: _subject,
+        startDate: _type == GoalProgressType.studyTime ? _start : null,
         memo: _memo.text,
       ),
     );
@@ -397,6 +399,35 @@ class _GoalEditPageState extends State<GoalEditPage> {
                 ),
               ],
             ),
+          if (_type == GoalProgressType.studyTime) ...[
+            TextField(
+              controller: _target,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '目標（時間）'),
+            ),
+            Row(
+              children: [
+                const Text('数え始める日'),
+                const Spacer(),
+                TextButton(
+                  onPressed: () async {
+                    final d = await showDatePicker(
+                      context: context,
+                      initialDate: _start,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2035, 12, 31),
+                    );
+                    if (d != null) setState(() => _start = d);
+                  },
+                  child: Text(formatDateJa(_start)),
+                ),
+              ],
+            ),
+            Text(
+              '科目が「なし」ならすべての科目の合計。期限の日までの記録を数えます。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           if (_type == GoalProgressType.checklist) ...[
             for (var i = 0; i < _ms.length; i++)
               CheckboxListTile(

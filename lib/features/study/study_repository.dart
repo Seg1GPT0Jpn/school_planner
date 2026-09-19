@@ -4,8 +4,8 @@ library;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'study.dart';
+import 'study_goal.dart';
 
-/// 動いているタイマー
 class RunningTimer {
   const RunningTimer(this.subject, this.startedAt);
   final String? subject;
@@ -41,16 +41,20 @@ class StudyRepository {
     ]..sort((a, b) => b.start.compareTo(a.start)),
   );
 
-  Future<void> add(StudySession s) => _sessions.add({
-    'subject': s.subject,
-    'start': Timestamp.fromDate(s.start),
-    'minutes': s.minutes,
-    'memo': (s.memo?.trim().isEmpty ?? true) ? null : s.memo!.trim(),
-  });
+  Future<void> add(StudySession s) async {
+    await _sessions.add({
+      'subject': s.subject,
+      'start': Timestamp.fromDate(s.start),
+      'minutes': s.minutes,
+      'memo': (s.memo?.trim().isEmpty ?? true) ? null : s.memo!.trim(),
+    });
+    await recomputeStudyGoals(uid, firestore: _db);
+  }
 
-  Future<void> delete(String id) => _sessions.doc(id).delete();
-
-  // ---------------- タイマー ----------------
+  Future<void> delete(String id) async {
+    await _sessions.doc(id).delete();
+    await recomputeStudyGoals(uid, firestore: _db);
+  }
 
   Stream<RunningTimer?> watchTimer() => _timer.snapshots().map((s) {
     final m = s.data();
@@ -66,7 +70,6 @@ class StudyRepository {
     'startedAt': Timestamp.fromDate(DateTime.now()),
   });
 
-  /// 止めて記録する（1分未満は記録しない）
   Future<void> stopTimer(RunningTimer t) async {
     final minutes = DateTime.now().difference(t.startedAt).inMinutes;
     if (minutes >= 1) {

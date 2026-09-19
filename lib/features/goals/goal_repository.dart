@@ -4,6 +4,7 @@ library;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../timetable/week_cycle.dart';
+import '../study/study_goal.dart';
 import 'goal.dart';
 
 class Reflection {
@@ -44,6 +45,12 @@ class GoalRepository {
     }
   }
 
+  /// 保存して、勉強時間の目標なら計算し直す
+  Future<void> saveGoalAndRecompute(Goal g) async {
+    await saveGoal(g);
+    if (g.type == GoalProgressType.studyTime) await recomputeStudyGoals(uid);
+  }
+
   Future<void> deleteGoal(String id) => _col('goals').doc(id).delete();
 
   static Map<String, dynamic> goalToMap(Goal g) => {
@@ -58,6 +65,7 @@ class GoalRepository {
       for (final m in g.milestones) {'title': m.title, 'done': m.done},
     ],
     'achieved': g.achieved,
+    'startDate': g.startDate == null ? null : dateKey(g.startDate!),
     'subject': g.subject,
     'memo': (g.memo?.trim().isEmpty ?? true) ? null : g.memo!.trim(),
   };
@@ -80,6 +88,7 @@ class GoalRepository {
         ),
     ],
     achieved: m['achieved'] as bool? ?? false,
+    startDate: _date(m['startDate']),
     subject: m['subject'] as String?,
     memo: m['memo'] as String?,
   );
