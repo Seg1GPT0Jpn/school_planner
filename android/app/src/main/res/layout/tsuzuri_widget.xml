@@ -3,26 +3,125 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:background="@drawable/tsuzuri_widget_bg">
+    android:background="@drawable/tsuzuri_widget_bg"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_title"
+    <!-- 上の帯：今日／明日・日付 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="つづり"
-        android:textColor="#6D4C41"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        android:background="@drawable/tsuzuri_widget_header"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
-    <TextView
-        android:id="@+id/widget_body"
+        <TextView
+            android:id="@+id/widget_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/tsuzuri_widget_badge"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:text="今日"
+            android:textColor="@color/tsuzuri_w_header"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:textColor="#FFFFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="つづり"
+            android:textColor="#CCFFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 中身 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:lineSpacingExtra="2dp"
-        android:text=""
-        android:textColor="#3E2723"
-        android:textSize="13sp" />
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+            android:id="@+id/widget_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/tsuzuri_w_sub"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <LinearLayout android:id="@+id/row1" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period1" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot1" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject1" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test1" style="@style/TsuzuriTest" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row2" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period2" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot2" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject2" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test2" style="@style/TsuzuriTest" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row3" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period3" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot3" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject3" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test3" style="@style/TsuzuriTest" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row4" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period4" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot4" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject4" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test4" style="@style/TsuzuriTest" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row5" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period5" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot5" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject5" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test5" style="@style/TsuzuriTest" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row6" style="@style/TsuzuriRow">
+            <TextView android:id="@+id/period6" style="@style/TsuzuriPeriod" />
+            <TextView android:id="@+id/dot6" style="@style/TsuzuriDot" />
+            <TextView android:id="@+id/subject6" style="@style/TsuzuriSubject" />
+            <TextView android:id="@+id/test6" style="@style/TsuzuriTest" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@color/tsuzuri_w_divider" />
+
+        <TextView
+            android:id="@+id/widget_extra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="3dp"
+            android:textColor="@color/tsuzuri_w_sub"
+            android:textSize="12sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -34,6 +34,7 @@ void main() {
     );
     final w = buildWidgetDay(
       day: day,
+      subjectColors: {'数学Ⅰ': 0xFF2196F3},
       events: [
         CalendarEvent(
           title: '塾 数学',
@@ -57,18 +58,16 @@ void main() {
     );
     expect(w.date, '2026-09-21');
     expect(w.title, '9/21(月) Ⅰ週');
-    expect(
-      w.body,
-      '1限 数学Ⅰ\n'
-      '2限 ECⅠ  📝LEAP単語テスト 1301〜1400\n'
-      '3限 （休講）\n'
-      '📝進研模試\n'
-      '・体育祭の準備\n'
-      '19:40 塾 数学',
-    );
+    expect(w.message, '');
+    expect(w.lessons.map((l) => l.subject).toList(), ['数学Ⅰ', 'ECⅠ', '休講']);
+    expect(w.lessons[0].color, 0xFF2196F3);
+    expect(w.lessons[1].test, 'LEAP単語テスト 1301〜1400');
+    expect(w.lessons[2].cancelled, isTrue);
+    expect(w.encodedLessons.split('\n').first, '1\t数学Ⅰ\t\t${0xFF2196F3}\t0');
+    expect(w.extra, '📝 進研模試\n・体育祭の準備\n19:40  塾 数学');
   });
 
-  test('祝日は名前を出す', () {
+  test('祝日は説明だけ', () {
     final w = buildWidgetDay(
       day: DayTimetable(
         date: DateTime(2026, 9, 22),
@@ -78,6 +77,7 @@ void main() {
       ),
     );
     expect(w.title, '9/22(火)');
-    expect(w.body, '秋分の日');
+    expect(w.message, '秋分の日');
+    expect(w.lessons, isEmpty);
   });
 }

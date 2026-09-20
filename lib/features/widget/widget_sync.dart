@@ -13,6 +13,7 @@ import '../events/event_repository.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
+import '../timetable/subject_colors.dart';
 import '../timetable/timetable_repository.dart';
 import 'widget_text.dart';
 
@@ -40,12 +41,27 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
   List<CalendarEvent> _events = const [];
   List<RecurringSchedule> _recurring = const [];
 
+  /// 自分で選んだ教科の色（教科 → 色）
+  Map<String, int> _custom = const {};
+
   @override
   void initState() {
     super.initState();
     if (!_isAndroid) return;
     WidgetsBinding.instance.addObserver(this);
     _auth = FirebaseAuth.instance.authStateChanges().listen(_listen);
+  }
+
+  /// 教科の色が変わったときも作り直す
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isAndroid) return;
+    final custom = SubjectColorScope.customColorsOf(context);
+    if (!mapEquals(custom, _custom)) {
+      _custom = custom;
+      _schedule();
+    }
   }
 
   void _listen(User? user) {
@@ -87,6 +103,10 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
       ..._events,
       ...expandRecurringWithTests(_recurring, from, to),
     ];
+    final colors = {
+      for (final s in data.subjects)
+        s.name: _custom[s.category] ?? categoryColor(s.category).toARGB32(),
+    };
     final resolver = data.resolver;
 
     try {
@@ -96,10 +116,13 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
           day: resolver.resolve(d),
           events: events,
           tests: data.testsOn(d),
+          subjectColors: colors,
         );
         await HomeWidget.saveWidgetData('day${i}_date', w.date);
         await HomeWidget.saveWidgetData('day${i}_title', w.title);
-        await HomeWidget.saveWidgetData('day${i}_body', w.body);
+        await HomeWidget.saveWidgetData('day${i}_message', w.message);
+        await HomeWidget.saveWidgetData('day${i}_lessons', w.encodedLessons);
+        await HomeWidget.saveWidgetData('day${i}_extra', w.extra);
       }
       await HomeWidget.updateWidget(androidName: 'TsuzuriWidgetProvider');
     } catch (e) {

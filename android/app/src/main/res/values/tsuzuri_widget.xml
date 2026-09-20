@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ウィジェットの色（明るいとき） -->
+    <color name="tsuzuri_w_bg">#FFFBF3E6</color>
+    <color name="tsuzuri_w_header">#FF6D4C41</color>
+    <color name="tsuzuri_w_text">#FF3E2723</color>
+    <color name="tsuzuri_w_sub">#FF8D6E63</color>
+    <color name="tsuzuri_w_accent">#FFE65100</color>
+    <color name="tsuzuri_w_divider">#FFE0D3C3</color>
+    <color name="tsuzuri_w_badge">#FFFFF3E0</color>
+    <color name="tsuzuri_w_chip">#FFFFE0B2</color>
+
+    <!-- 時間割の1行 -->
+    <style name="TsuzuriRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingTop">3dp</item>
+        <item name="android:paddingBottom">3dp</item>
+    </style>
+
+    <style name="TsuzuriPeriod">
+        <item name="android:layout_width">18dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/tsuzuri_w_header</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TsuzuriDot">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginEnd">6dp</item>
+        <item name="android:text">●</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="TsuzuriSubject">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/tsuzuri_w_text</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TsuzuriTest">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:background">@drawable/tsuzuri_widget_chip</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:maxWidth">170dp</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingTop">1dp</item>
+        <item name="android:paddingBottom">1dp</item>
+        <item name="android:textColor">@color/tsuzuri_w_accent</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:visibility">gone</item>
+    </style>
+</resources>
