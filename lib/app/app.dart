@@ -4,6 +4,7 @@ import '../features/notifications/notification_sync.dart';
 import '../features/timetable/subject_colors.dart';
 import 'router.dart';
 import 'theme.dart';
+import '../features/widget/widget_sync.dart';
 
 /// アプリ全体の設定
 class App extends StatelessWidget {
@@ -29,7 +30,9 @@ class App extends StatelessWidget {
 
       // すべての画面の外側に「教科の色」と「通知」の係を置く
       builder: (context, child) {
-        return SubjectColorProvider(child: NotificationSync(child: child!));
+        return SubjectColorProvider(
+          child: NotificationSync(child: WidgetSync(child: child!)),
+        );
       },
     );
   }
