@@ -15,6 +15,19 @@ class GoogleCalendarInfo {
   final bool canWrite;
 }
 
+/// Google カレンダーから返ってきたエラー
+class GoogleApiException implements Exception {
+  const GoogleApiException(this.status, this.message);
+  final int status;
+  final String message;
+
+  /// その予定がもう Google にない
+  bool get isGone => status == 404 || status == 410;
+
+  @override
+  String toString() => message;
+}
+
 class GoogleCalendarService {
   GoogleCalendarService._();
   static final GoogleCalendarService instance = GoogleCalendarService._();
@@ -52,28 +65,76 @@ class GoogleCalendarService {
   }) async {
     if (!isConnected) await connect();
     final uri = Uri.parse('$_base$path').replace(queryParameters: query);
-    final headers = {
-      'Authorization': 'Bearer $_token',
-      'Content-Type': 'application/json',
-    };
-    final res = switch (method) {
-      'GET' => await http.get(uri, headers: headers),
-      'POST' => await http.post(uri, headers: headers, body: jsonEncode(body)),
-      'PUT' => await http.put(uri, headers: headers, body: jsonEncode(body)),
-      'DELETE' => await http.delete(uri, headers: headers),
-      _ => throw ArgumentError(method),
-    };
-    if (res.statusCode == 401) {
-      _token = null;
-      throw Exception('許可が切れました。もう一度「接続」してください');
+
+    // 「短い時間に送りすぎ」と言われたら、少し待ってやり直す（最大5回）
+    for (var attempt = 0; ; attempt++) {
+      final headers = {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      };
+      final res = switch (method) {
+        'GET' => await http.get(uri, headers: headers),
+        'POST' => await http.post(
+          uri,
+          headers: headers,
+          body: jsonEncode(body),
+        ),
+        'PUT' => await http.put(uri, headers: headers, body: jsonEncode(body)),
+        'PATCH' => await http.patch(
+          uri,
+          headers: headers,
+          body: jsonEncode(body),
+        ),
+        'DELETE' => await http.delete(uri, headers: headers),
+        _ => throw ArgumentError(method),
+      };
+      final text = res.body;
+
+      final tooMany =
+          res.statusCode == 429 ||
+          (res.statusCode == 403 && text.contains('ateLimitExceeded'));
+      if (tooMany && attempt < 5) {
+        await Future<void>.delayed(
+          Duration(milliseconds: 1000 * (1 << attempt)),
+        );
+        continue;
+      }
+      if (res.statusCode == 401) {
+        _token = null;
+        throw const GoogleApiException(401, '許可が切れました。もう一度「接続」してください');
+      }
+      if (tooMany) {
+        throw const GoogleApiException(
+          429,
+          '短い時間に送りすぎました。1分ほど待ってからもう一度🔄してください',
+        );
+      }
+      if (res.statusCode == 403 &&
+          (text.contains('insufficientPermissions') ||
+              text.contains('SCOPE_INSUFFICIENT'))) {
+        _token = null;
+        throw const GoogleApiException(
+          403,
+          '書き込みの許可がありません。⚙→「Googleカレンダー」で接続し直し、「カレンダーの表示・編集」を許可してください',
+        );
+      }
+      if (res.statusCode == 403) {
+        throw GoogleApiException(403, 'このカレンダーは変更できません（403）：$text');
+      }
+      if (res.statusCode >= 300) {
+        throw GoogleApiException(
+          res.statusCode,
+          'Google カレンダーのエラー（${res.statusCode}）：$text',
+        );
+      }
+      return text.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(text) as Map<String, dynamic>;
     }
-    if (res.statusCode >= 300) {
-      throw Exception('Google カレンダーのエラー（${res.statusCode}）：${res.body}');
-    }
-    return res.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(res.body) as Map<String, dynamic>;
   }
+
+  String _events(String calendarId) =>
+      '/calendars/${Uri.encodeComponent(calendarId)}/events';
 
   /// 自分のカレンダーの一覧
   Future<List<GoogleCalendarInfo>> listCalendars() async {
@@ -100,7 +161,7 @@ class GoogleCalendarService {
     do {
       final data = await _call(
         'GET',
-        '/calendars/${Uri.encodeComponent(calendarId)}/events',
+        _events(calendarId),
         query: {
           'timeMin': from.toUtc().toIso8601String(),
           'timeMax': to.toUtc().toIso8601String(),
@@ -117,6 +178,49 @@ class GoogleCalendarService {
       page = data['nextPageToken'] as String?;
     } while (page != null);
     return items;
+  }
+
+  /// 予定を追加する（Google の予定 ID を返す）
+  Future<String> insertEvent(
+    String calendarId,
+    Map<String, dynamic> body,
+  ) async {
+    final data = await _call('POST', _events(calendarId), body: body);
+    return data['id'] as String;
+  }
+
+  /// 予定を丸ごと書き換える
+  Future<void> updateEvent(
+    String calendarId,
+    String eventId,
+    Map<String, dynamic> body,
+  ) => _call(
+    'PUT',
+    '${_events(calendarId)}/${Uri.encodeComponent(eventId)}',
+    body: body,
+  );
+
+  /// 予定の一部だけ書き換える
+  Future<void> patchEvent(
+    String calendarId,
+    String eventId,
+    Map<String, dynamic> body,
+  ) => _call(
+    'PATCH',
+    '${_events(calendarId)}/${Uri.encodeComponent(eventId)}',
+    body: body,
+  );
+
+  /// 予定を消す（もう消えていたら何もしない）
+  Future<void> deleteEvent(String calendarId, String eventId) async {
+    try {
+      await _call(
+        'DELETE',
+        '${_events(calendarId)}/${Uri.encodeComponent(eventId)}',
+      );
+    } on GoogleApiException catch (e) {
+      if (!e.isGone) rethrow;
+    }
   }
 
   /// 「つづり」カレンダーを作る（ID を返す）
