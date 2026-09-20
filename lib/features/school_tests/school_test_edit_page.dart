@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../goals/goal_repository.dart';
+import '../goals/study_plan.dart';
+import '../goals/study_plan_page.dart';
 import '../goals/test_goal_link.dart';
 import '../grades/last_grade_hint.dart';
 import '../timetable/timetable_models.dart';
@@ -147,6 +150,8 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
 
     await widget.repository.delete(widget.test!.id!);
     await deleteTestGoal(widget.repository.uid, widget.test!.id!);
+    await GoalRepository(uid: widget.repository.uid)
+        .deleteGoal(studyPlanGoalId(widget.test!.id!));
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -324,6 +329,14 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
                   value: _studyTodo,
                   onChanged: (v) => setState(() => _studyTodo = v),
                 ),
+                if (_kind == SchoolTestKind.regularExam)
+                  OutlinedButton.icon(
+                    onPressed: _isEditing
+                        ? () => openStudyPlan(context, widget.test!)
+                        : null,
+                    icon: const Icon(Icons.event_note),
+                    label: Text(_isEditing ? '勉強計画を作る' : '勉強計画は保存したあとに作れます'),
+                  ),
                 const SizedBox(height: 8),
               ],
               TextField(
