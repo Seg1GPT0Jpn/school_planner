@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../notifications/notification_service.dart';
 import '../timetable/subject_colors.dart';
 import '../timetable/timetable_repository.dart';
+import 'pomodoro.dart';
 import 'study.dart';
 import 'study_repository.dart';
 
@@ -26,6 +28,7 @@ class _StudyViewState extends State<StudyView> {
 
   String? _subject;
   bool _month = false;
+  bool _pomodoro = false;
   Timer? _tick;
 
   @override
@@ -41,6 +44,26 @@ class _StudyViewState extends State<StudyView> {
   void dispose() {
     _tick?.cancel();
     super.dispose();
+  }
+
+  Future<void> _start() async {
+    final startedAt = await _repo.startTimer(_subject, pomodoro: _pomodoro);
+    // ポモドーロなら、区切りのお知らせを予約（Pixel のアプリのみ）
+    if (_pomodoro) {
+      await NotificationService.instance.schedulePomodoro(
+        pomodoroNotifications(startedAt),
+      );
+    }
+  }
+
+  Future<void> _stop(RunningTimer running) async {
+    await NotificationService.instance.cancelPomodoro();
+    await _repo.stopTimer(running);
+  }
+
+  Future<void> _cancel() async {
+    await NotificationService.instance.cancelPomodoro();
+    await _repo.cancelTimer();
   }
 
   Future<void> _addManual(List<String> subjects) async {
@@ -165,13 +188,20 @@ class _StudyViewState extends State<StudyView> {
                                 value: _subject,
                                 onChanged: (v) => setState(() => _subject = v),
                               ),
-                              const SizedBox(height: 8),
+                              SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('ポモドーロ'),
+                                subtitle: const Text(
+                                  '$pomodoroFocusMin分集中＋$pomodoroBreakMin分休憩のくり返し（休憩は記録しない）',
+                                ),
+                                value: _pomodoro,
+                                onChanged: (v) => setState(() => _pomodoro = v),
+                              ),
                               Row(
                                 children: [
                                   Expanded(
                                     child: FilledButton.icon(
-                                      onPressed: () =>
-                                          _repo.startTimer(_subject),
+                                      onPressed: _start,
                                       icon: const Icon(Icons.play_arrow),
                                       label: const Text('スタート'),
                                     ),
@@ -186,34 +216,11 @@ class _StudyViewState extends State<StudyView> {
                               ),
                             ],
                           )
-                        : Column(
-                            children: [
-                              Text(
-                                running.subject ?? '（科目なし）',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text(
-                                _elapsed(now.difference(running.startedAt)),
-                                style: Theme.of(context).textTheme.displaySmall,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () => _repo.stopTimer(running),
-                                      icon: const Icon(Icons.stop),
-                                      label: const Text('ストップして記録'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  TextButton(
-                                    onPressed: _repo.cancelTimer,
-                                    child: const Text('取り消し'),
-                                  ),
-                                ],
-                              ),
-                            ],
+                        : _RunningPanel(
+                            running: running,
+                            now: now,
+                            onStop: () => _stop(running),
+                            onCancel: _cancel,
                           ),
                   ),
                 ),
@@ -390,10 +397,81 @@ class _StudyViewState extends State<StudyView> {
       ),
     );
   }
+}
 
-  static String _elapsed(Duration d) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${d.inHours}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
+String _two(int n) => n.toString().padLeft(2, '0');
+
+String _elapsed(Duration d) =>
+    '${d.inHours}:${_two(d.inMinutes % 60)}:${_two(d.inSeconds % 60)}';
+
+String _mmss(Duration d) => '${d.inMinutes}:${_two(d.inSeconds % 60)}';
+
+/// 動いているタイマーの表示（ポモドーロなら「集中／休憩」と残り時間）
+class _RunningPanel extends StatelessWidget {
+  const _RunningPanel({
+    required this.running,
+    required this.now,
+    required this.onStop,
+    required this.onCancel,
+  });
+
+  final RunningTimer running;
+  final DateTime now;
+  final VoidCallback onStop;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final elapsed = now.difference(running.startedAt);
+    final phase = running.pomodoro ? pomodoroPhase(elapsed) : null;
+
+    return Column(
+      children: [
+        Text(running.subject ?? '（科目なし）', style: text.titleMedium),
+        if (phase == null)
+          Text(_elapsed(elapsed), style: text.displaySmall)
+        else ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: phase.focus ? cs.primaryContainer : cs.tertiaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              phase.focus ? '集中 ${phase.round}回目' : '休憩中',
+              style: TextStyle(
+                color: phase.focus
+                    ? cs.onPrimaryContainer
+                    : cs.onTertiaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Text('のこり ${_mmss(phase.remaining)}', style: text.displaySmall),
+          Text(
+            '記録される時間：${formatMinutes(pomodoroFocusMinutes(elapsed))}',
+            style: TextStyle(color: cs.outline, fontSize: 12),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onStop,
+                icon: const Icon(Icons.stop),
+                label: const Text('ストップして記録'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(onPressed: onCancel, child: const Text('取り消し')),
+          ],
+        ),
+      ],
+    );
   }
 }
 

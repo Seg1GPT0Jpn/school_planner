@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../study/pomodoro.dart';
 import 'notification_planner.dart';
 
 class NotificationService {
@@ -21,20 +22,46 @@ class NotificationService {
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
     );
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final AndroidFlutterLocalNotificationsPlugin? android = _plugin
+        .resolvePlatformSpecificImplementation();
     await android?.requestNotificationsPermission();
     _ready = true;
   }
 
-  /// 予約をすべて入れ替える
+  /// 予約をすべて入れ替える（ポモドーロのお知らせは残す）
   Future<void> replaceAll(List<PlannedNotification> plan) async {
     if (kIsWeb) return;
     await init();
-    await _plugin.cancelAll();
+    await _cancelWhere((id) => id < pomodoroIdBase);
+    await _schedule(plan);
+  }
+
+  /// ポモドーロの区切りのお知らせを予約する
+  Future<void> schedulePomodoro(List<PlannedNotification> plan) async {
+    if (kIsWeb) return;
+    await init();
+    await cancelPomodoro();
+    await _schedule(plan);
+  }
+
+  /// ポモドーロのお知らせを取り消す
+  Future<void> cancelPomodoro() async {
+    if (kIsWeb) return;
+    await init();
+    await _cancelWhere((id) => id >= pomodoroIdBase);
+  }
+
+  Future<void> _cancelWhere(bool Function(int id) test) async {
+    final pending = await _plugin.pendingNotificationRequests();
+    for (final p in pending) {
+      if (test(p.id)) await _plugin.cancel(id: p.id);
+    }
+  }
+
+  Future<void> _schedule(List<PlannedNotification> plan) async {
+    final now = DateTime.now();
     for (final n in plan) {
+      if (!n.time.isAfter(now)) continue;
       try {
         await _plugin.zonedSchedule(
           id: n.id,

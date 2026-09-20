@@ -3,13 +3,17 @@ library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'pomodoro.dart';
 import 'study.dart';
 import 'study_goal.dart';
 
 class RunningTimer {
-  const RunningTimer(this.subject, this.startedAt);
+  const RunningTimer(this.subject, this.startedAt, {this.pomodoro = false});
   final String? subject;
   final DateTime startedAt;
+
+  /// ポモドーロ（25分集中＋5分休憩）で動いているか
+  final bool pomodoro;
 }
 
 class StudyRepository {
@@ -62,19 +66,35 @@ class StudyRepository {
     return RunningTimer(
       m['subject'] as String?,
       (m['startedAt'] as Timestamp).toDate(),
+      pomodoro: m['pomodoro'] as bool? ?? false,
     );
   });
 
-  Future<void> startTimer(String? subject) => _timer.set({
-    'subject': subject,
-    'startedAt': Timestamp.fromDate(DateTime.now()),
-  });
+  /// タイマーを始める（始めた時刻を返す）
+  Future<DateTime> startTimer(String? subject, {bool pomodoro = false}) async {
+    final now = DateTime.now();
+    await _timer.set({
+      'subject': subject,
+      'startedAt': Timestamp.fromDate(now),
+      'pomodoro': pomodoro,
+    });
+    return now;
+  }
 
+  /// 止めて記録する（ポモドーロなら休憩の時間は数えない）
   Future<void> stopTimer(RunningTimer t) async {
-    final minutes = DateTime.now().difference(t.startedAt).inMinutes;
+    final elapsed = DateTime.now().difference(t.startedAt);
+    final minutes = t.pomodoro
+        ? pomodoroFocusMinutes(elapsed)
+        : elapsed.inMinutes;
     if (minutes >= 1) {
       await add(
-        StudySession(subject: t.subject, start: t.startedAt, minutes: minutes),
+        StudySession(
+          subject: t.subject,
+          start: t.startedAt,
+          minutes: minutes,
+          memo: t.pomodoro ? 'ポモドーロ' : null,
+        ),
       );
     }
     await _timer.delete();
