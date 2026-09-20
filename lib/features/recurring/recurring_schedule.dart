@@ -18,6 +18,7 @@ class RecurringTestConfig {
     this.baseStart,
     this.step = 50,
     this.withReview = false,
+    this.end,
   });
 
   final String title;
@@ -25,6 +26,9 @@ class RecurringTestConfig {
   final int? baseStart;
   final int step;
   final bool withReview;
+
+  /// 最後の番号（例：2700）。これを超えたらテストはおしまい。null なら終わりなし
+  final int? end;
 
   bool get hasRange => baseDate != null && baseStart != null;
 }

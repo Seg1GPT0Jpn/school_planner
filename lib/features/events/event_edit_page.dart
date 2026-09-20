@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../../core/maps.dart';
 import 'calendar_event.dart';
 import 'category_manage_page.dart';
 import 'event_category.dart';
@@ -319,15 +320,22 @@ class _EventEditPageState extends State<EventEditPage> {
               const SizedBox(height: 16),
               const Divider(),
 
-              // 場所・メモ
+              // 場所（右のボタンで Google マップを開く）
               TextField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.place_outlined),
-                  hintText: '場所',
+                decoration: InputDecoration(
+                  icon: const Icon(Icons.place_outlined),
+                  hintText: '場所（施設名・住所・マップのURL）',
                   border: InputBorder.none,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.map_outlined),
+                    tooltip: 'Google マップで開く',
+                    onPressed: () => openMap(context, _locationController.text),
+                  ),
                 ),
               ),
+
+              // メモ
               TextField(
                 controller: _memoController,
                 minLines: 3,

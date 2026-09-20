@@ -4,10 +4,15 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
 import 'grade.dart';
+import 'grade_chart.dart';
 import 'grade_repository.dart';
 
 GradeRepository _repo() =>
     GradeRepository(uid: FirebaseAuth.instance.currentUser!.uid);
+
+/// 「12位」「12位/240人」
+String rankText(int rank, [int? participants]) =>
+    participants == null ? '$rank位' : '$rank位/$participants人';
 
 /// 目標タブの「成績」
 class GradesView extends StatefulWidget {
@@ -19,7 +24,9 @@ class GradesView extends StatefulWidget {
 
 class _GradesViewState extends State<GradesView> {
   late final _stream = _repo().watch();
+  late final _targets = _repo().watchTargets();
   ExamKind _kind = ExamKind.regular;
+  GradeMetric _metric = GradeMetric.score;
   String? _subject;
 
   void _edit([Exam? e]) {
@@ -31,168 +38,223 @@ class _GradesViewState extends State<GradesView> {
     );
   }
 
+  Future<void> _editTarget(
+    Map<String, GradeTarget> targets,
+    String subject,
+  ) async {
+    final key = targetKey(_kind, subject);
+    final current = targets[key] ?? const GradeTarget();
+    final now = current.valueFor(_metric);
+    final c = TextEditingController(text: now == null ? '' : numText(now));
+    final unit = switch (_metric) {
+      GradeMetric.score => '点（100点満点で）',
+      GradeMetric.deviation => '',
+      GradeMetric.rank => '位',
+    };
+
+    // null = キャンセル、'' = 消す
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$subject の目標${_metric.label}'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: '目標${_metric.label}',
+            suffixText: unit,
+            helperText: '例：志望校の目安の偏差値など',
+          ),
+        ),
+        actions: [
+          if (now != null)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ''),
+              child: const Text('消す'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    final value = result.isEmpty ? null : num.tryParse(result);
+    if (result.isNotEmpty && value == null) return;
+    await _repo().saveTarget(targets, key, current.withValue(_metric, value));
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final small = TextStyle(color: cs.outline, fontSize: 11);
 
-    return StreamBuilder<List<Exam>>(
-      stream: _stream,
-      builder: (context, snap) {
-        final exams = [
-          for (final e in snap.data ?? const <Exam>[])
-            if (e.kind == _kind) e,
-        ];
-        final subjects = {
-          for (final e in exams)
-            for (final x in e.entries) x.subject,
-        }.toList();
-        final subject = subjects.contains(_subject)
-            ? _subject
-            : (subjects.isEmpty ? null : subjects.first);
-        final history = subject == null
-            ? const <(Exam, GradeEntry)>[]
-            : subjectHistory(exams, subject);
+    return StreamBuilder<Map<String, GradeTarget>>(
+      stream: _targets,
+      builder: (context, tsnap) {
+        final targets = tsnap.data ?? const <String, GradeTarget>{};
+        return StreamBuilder<List<Exam>>(
+          stream: _stream,
+          builder: (context, snap) {
+            final exams = [
+              for (final e in snap.data ?? const <Exam>[])
+                if (e.kind == _kind) e,
+            ];
+            final subjects = [
+              if (exams.isNotEmpty) totalSubject,
+              ...{
+                for (final e in exams)
+                  for (final x in e.entries) x.subject,
+              },
+            ];
+            final subject = subjects.contains(_subject)
+                ? _subject
+                : (subjects.isEmpty ? null : subjects.first);
+            final points = subject == null
+                ? const <ChartPoint>[]
+                : chartSeries(exams, subject, _metric);
+            final target = subject == null
+                ? null
+                : targets[targetKey(_kind, subject)]?.valueFor(_metric);
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-          children: [
-            Row(
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               children: [
-                SegmentedButton<ExamKind>(
-                  segments: [
-                    for (final k in ExamKind.values)
-                      ButtonSegment(value: k, label: Text(k.label)),
-                  ],
-                  selected: {_kind},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (s) => setState(() => _kind = s.first),
-                ),
-                const Spacer(),
-                FilledButton.icon(
-                  onPressed: _edit,
-                  icon: const Icon(Icons.add),
-                  label: const Text('追加'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (exams.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  '「追加」から記録しましょう',
-                  style: TextStyle(color: cs.outline),
-                ),
-              ),
-            for (final e in exams)
-              Card(
-                child: ListTile(
-                  title: Text(e.title),
-                  subtitle: Text(
-                    [
-                      formatDateJa(e.date),
-                      '合計 ${numText(e.total)}/${numText(e.maxTotal)}',
-                      if (e.averageTotal != null)
-                        '（平均 ${numText(e.averageTotal!)}）',
-                      if (e.totalRank != null) '総合 ${e.totalRank}位',
-                    ].join('　'),
-                  ),
-                  onTap: () => _edit(e),
-                ),
-              ),
-
-            if (subjects.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Text(
-                    '科目ごとの推移',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: subject,
-                      items: [
-                        for (final s in subjects)
-                          DropdownMenuItem(value: s, child: Text(s)),
+                Row(
+                  children: [
+                    SegmentedButton<ExamKind>(
+                      segments: [
+                        for (final k in ExamKind.values)
+                          ButtonSegment(value: k, label: Text(k.label)),
                       ],
-                      onChanged: (v) => setState(() => _subject = v),
+                      selected: {_kind},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (s) =>
+                          setState(() => _kind = s.first),
+                    ),
+                    const Spacer(),
+                    FilledButton.icon(
+                      onPressed: _edit,
+                      icon: const Icon(Icons.add),
+                      label: const Text('追加'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (exams.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      '「追加」から記録しましょう',
+                      style: TextStyle(color: cs.outline),
                     ),
                   ),
-                ],
-              ),
-              for (final (ex, en) in history)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
+
+                // ---------- 推移のグラフ ----------
+                if (subject != null) ...[
+                  Row(
                     children: [
-                      SizedBox(
-                        width: 110,
-                        child: Text(
-                          '${ex.date.month}/${ex.date.day} ${ex.title}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                      Text(
+                        '推移',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Stack(
-                          children: [
-                            Container(
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: cs.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: en.percent,
-                              child: Container(
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: cs.primary,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                            // 平均点の位置に線
-                            if (en.average != null && en.max > 0)
-                              FractionallySizedBox(
-                                widthFactor: (en.average! / en.max)
-                                    .clamp(0, 1)
-                                    .toDouble(),
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Container(
-                                    width: 2,
-                                    height: 16,
-                                    color: cs.error,
-                                  ),
-                                ),
-                              ),
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: subject,
+                          items: [
+                            for (final s in subjects)
+                              DropdownMenuItem(value: s, child: Text(s)),
                           ],
-                        ),
-                      ),
-                      SizedBox(
-                        width: 84,
-                        child: Text(
-                          '${numText(en.score)}/${numText(en.max)}'
-                          '${en.rank == null ? '' : ' ${en.rank}位'}',
-                          textAlign: TextAlign.right,
+                          onChanged: (v) => setState(() => _subject = v),
                         ),
                       ),
                     ],
                   ),
-                ),
-              if (history.any((h) => h.$2.average != null))
-                Text(
-                  '赤い線：平均点',
-                  style: TextStyle(color: cs.outline, fontSize: 11),
-                ),
-            ],
-          ],
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SegmentedButton<GradeMetric>(
+                        segments: [
+                          for (final m in GradeMetric.values)
+                            ButtonSegment(value: m, label: Text(m.label)),
+                        ],
+                        selected: {_metric},
+                        showSelectedIcon: false,
+                        onSelectionChanged: (s) =>
+                            setState(() => _metric = s.first),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _editTarget(targets, subject),
+                        icon: const Icon(Icons.flag_outlined, size: 18),
+                        label: Text(
+                          target == null ? '目標ライン' : '目標 ${numText(target)}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (points.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        '$subject の${_metric.label}はまだ記録がありません',
+                        style: TextStyle(color: cs.outline),
+                      ),
+                    )
+                  else
+                    GradeLineChart(
+                      points: points,
+                      metric: _metric,
+                      target: target,
+                    ),
+                  Wrap(
+                    spacing: 12,
+                    children: [
+                      Text('━ 自分', style: small.copyWith(color: cs.primary)),
+                      if (points.any((p) => p.average != null))
+                        Text('┅ 平均', style: small),
+                      if (target != null)
+                        Text('┅ 目標', style: small.copyWith(color: cs.error)),
+                      if (_metric == GradeMetric.score)
+                        Text('※ 100点満点に換算', style: small),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // ---------- テストの一覧 ----------
+                for (final e in exams)
+                  Card(
+                    child: ListTile(
+                      title: Text(e.title),
+                      subtitle: Text(
+                        [
+                          formatDateJa(e.date),
+                          if (e.entries.isNotEmpty)
+                            '合計 ${numText(e.total)}/${numText(e.maxTotal)}',
+                          if (e.averageTotal != null)
+                            '（平均 ${numText(e.averageTotal!)}）',
+                          if (e.totalDeviation != null)
+                            '偏差値 ${numText(e.totalDeviation!)}',
+                          if (e.totalRank != null)
+                            '総合 ${rankText(e.totalRank!, e.participants)}',
+                        ].join('　'),
+                      ),
+                      onTap: () => _edit(e),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
@@ -208,13 +270,15 @@ class _Row {
     String max = '100',
     String avg = '',
     String rank = '',
+    String dev = '',
   }) : score = TextEditingController(text: score),
        max = TextEditingController(text: max),
        avg = TextEditingController(text: avg),
-       rank = TextEditingController(text: rank);
+       rank = TextEditingController(text: rank),
+       dev = TextEditingController(text: dev);
 
   String? subject;
-  final TextEditingController score, max, avg, rank;
+  final TextEditingController score, max, avg, rank, dev;
 }
 
 class ExamEditPage extends StatefulWidget {
@@ -233,6 +297,12 @@ class _ExamEditPageState extends State<ExamEditPage> {
   late final _totalRank = TextEditingController(
     text: _e?.totalRank?.toString() ?? '',
   );
+  late final _participants = TextEditingController(
+    text: _e?.participants?.toString() ?? '',
+  );
+  late final _totalDev = TextEditingController(
+    text: _e?.totalDeviation == null ? '' : numText(_e!.totalDeviation!),
+  );
   late ExamKind _kind = _e?.kind ?? widget.kind;
   late DateTime _date = _e?.date ?? DateTime.now();
   late final List<_Row> _rows = [
@@ -243,6 +313,7 @@ class _ExamEditPageState extends State<ExamEditPage> {
         max: numText(x.max),
         avg: x.average == null ? '' : numText(x.average!),
         rank: x.rank?.toString() ?? '',
+        dev: x.deviation == null ? '' : numText(x.deviation!),
       ),
     if (_e == null) _Row(),
   ];
@@ -269,6 +340,7 @@ class _ExamEditPageState extends State<ExamEditPage> {
             max: num.tryParse(r.max.text) ?? 100,
             average: num.tryParse(r.avg.text),
             rank: int.tryParse(r.rank.text),
+            deviation: num.tryParse(r.dev.text),
           ),
     ];
     final nav = Navigator.of(context);
@@ -280,6 +352,8 @@ class _ExamEditPageState extends State<ExamEditPage> {
         date: _date,
         entries: entries,
         totalRank: int.tryParse(_totalRank.text),
+        totalDeviation: num.tryParse(_totalDev.text),
+        participants: int.tryParse(_participants.text),
       ),
     );
     nav.pop();
@@ -295,7 +369,7 @@ class _ExamEditPageState extends State<ExamEditPage> {
     width: width,
     child: TextField(
       controller: c,
-      keyboardType: TextInputType.number,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(labelText: label, isDense: true),
     ),
   );
@@ -375,12 +449,28 @@ class _ExamEditPageState extends State<ExamEditPage> {
                   ),
                 ],
               ),
-              _num(_totalRank, '総合順位（任意）', 160),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _num(_totalRank, '総合順位', 90),
+                  _num(_participants, '受験者数', 90),
+                  _num(_totalDev, '総合偏差値', 100),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'どれも分かるものだけでOK',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.outline,
+                  fontSize: 11,
+                ),
+              ),
               const Divider(height: 32),
 
               for (var i = 0; i < _rows.length; i++)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: Column(
                     children: [
                       Row(
@@ -407,14 +497,15 @@ class _ExamEditPageState extends State<ExamEditPage> {
                           ),
                         ],
                       ),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.end,
                         children: [
-                          _num(_rows[i].score, '点数', 64),
-                          const Text(' / '),
+                          _num(_rows[i].score, '点数', 60),
                           _num(_rows[i].max, '満点', 56),
-                          const SizedBox(width: 12),
-                          _num(_rows[i].avg, '平均点', 64),
-                          const SizedBox(width: 12),
+                          _num(_rows[i].avg, '平均点', 60),
+                          _num(_rows[i].dev, '偏差値', 60),
                           _num(_rows[i].rank, '順位', 56),
                         ],
                       ),

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../../core/maps.dart';
 import '../events/calendar_event.dart';
 import '../events/event_category.dart';
 import '../events/event_category_repository.dart';
@@ -39,7 +40,7 @@ void showRecurringInstanceSheet(BuildContext context, CalendarEvent event) {
             Text(
               '${formatDateJa(date)}  ${_hm(event.start)}〜${_hm(event.end)}',
             ),
-            if (event.location != null) Text(event.location!),
+            if (event.location != null) PlaceLink(event.location!),
             const Divider(),
             TextButton.icon(
               onPressed: () {
@@ -159,7 +160,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
     if (widget.schedule == null) DateTime.monday,
   };
   late ClockTime _start = widget.schedule?.start ?? ClockTime(19, 40);
-  late ClockTime _end = widget.schedule?.end ?? ClockTime(21, 40);
+  late final _testEnd = TextEditingController(text: _t0?.end?.toString() ?? '');
   late DateTime? _from = widget.schedule?.validFrom;
   late DateTime? _until = widget.schedule?.validUntil;
   late String _categoryId =
@@ -175,6 +176,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
   late DateTime _baseDate = _t0?.baseDate ?? DateTime.now();
   late final _baseStart = TextEditingController(text: '${_t0?.baseStart ?? 1}');
   late final _step = TextEditingController(text: '${_t0?.step ?? 50}');
+  late ClockTime _end = widget.schedule?.end ?? ClockTime(21, 40);
   late bool _withReview = _t0?.withReview ?? false;
 
   String? _error;
@@ -204,6 +206,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
       baseDate: _hasRange ? _baseDate : null,
       baseStart: _hasRange ? int.tryParse(_baseStart.text) ?? 1 : null,
       step: int.tryParse(_step.text) ?? 50,
+      end: _hasRange ? int.tryParse(_testEnd.text) : null,
       withReview: _hasRange && _withReview,
     );
   }
@@ -345,7 +348,14 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
           ),
           TextField(
             controller: _location,
-            decoration: const InputDecoration(labelText: '場所'),
+            decoration: InputDecoration(
+              labelText: '場所',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.map_outlined),
+                tooltip: 'Google マップで開く',
+                onPressed: () => openMap(context, _location.text),
+              ),
+            ),
           ),
 
           // ---------------- 毎回のミニテスト ----------------
@@ -400,6 +410,21 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
                       keyboardType: TextInputType.number,
                     ),
                   ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('最後の番号'),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: _testEnd,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(hintText: 'なし'),
+                    ),
+                  ),
+                  const Text('  （空＝終わりなし）'),
                 ],
               ),
               SwitchListTile(

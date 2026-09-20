@@ -1,6 +1,8 @@
 /// 定期の予定で毎回行うミニテストの計算
 library;
 
+import 'dart:math' as math;
+
 import '../events/calendar_event.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/upcoming_tests.dart';
@@ -20,7 +22,9 @@ class RecurringTestOccurrence {
   String get rangeText {
     final s = start;
     if (s == null) return '';
-    final text = '$s〜${s + config.step - 1}';
+    final last = config.end;
+    final e = s + config.step - 1;
+    final text = '$s〜${last == null ? e : math.min(e, last)}';
     if (!config.withReview || s <= config.baseStart!) return text;
     return '$text・前回 ${s - config.step}〜${s - 1}';
   }
@@ -50,7 +54,11 @@ RecurringTestOccurrence? recurringTestOn(RecurringSchedule s, DateTime date) {
     }
     start = config.baseStart! - config.step * count;
   }
-  return start < 1 ? null : RecurringTestOccurrence(config, start);
+  if (start < 1) return null;
+  // 最後の番号を超えたら、もうテストはない
+  final last = config.end;
+  if (last != null && start > last) return null;
+  return RecurringTestOccurrence(config, start);
 }
 
 /// カレンダー用に展開し、ミニテストがある回は名前に付け足す

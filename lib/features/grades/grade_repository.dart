@@ -13,8 +13,15 @@ class GradeRepository {
   final String uid;
   final FirebaseFirestore _db;
 
+  DocumentReference<Map<String, dynamic>> get _user =>
+      _db.collection('users').doc(uid);
+
   CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection('users').doc(uid).collection('exams');
+      _user.collection('exams');
+
+  /// 目標ライン（settings/grade_targets）
+  DocumentReference<Map<String, dynamic>> get _targetsDoc =>
+      _user.collection('settings').doc('grade_targets');
 
   Stream<List<Exam>> watch() => _col.snapshots().map(
     (s) =>
@@ -32,11 +39,35 @@ class GradeRepository {
 
   Future<void> delete(String id) => _col.doc(id).delete();
 
+  // ---------------- 目標ライン ----------------
+
+  Stream<Map<String, GradeTarget>> watchTargets() =>
+      _targetsDoc.snapshots().map((s) => targetsFromMap(s.data()));
+
+  /// ひとつの科目の目標ラインを保存（空なら消す）
+  Future<void> saveTarget(
+    Map<String, GradeTarget> current,
+    String key,
+    GradeTarget target,
+  ) {
+    final next = {...current};
+    if (target.isEmpty) {
+      next.remove(key);
+    } else {
+      next[key] = target;
+    }
+    return _targetsDoc.set(targetsToMap(next));
+  }
+
+  // ---------------- 変換 ----------------
+
   static Map<String, dynamic> toMap(Exam e) => {
     'title': e.title.trim(),
     'kind': e.kind.name,
     'date': dateKey(e.date),
     'totalRank': e.totalRank,
+    'totalDeviation': e.totalDeviation,
+    'participants': e.participants,
     'entries': [
       for (final x in e.entries)
         {
@@ -45,6 +76,7 @@ class GradeRepository {
           'max': x.max,
           'average': x.average,
           'rank': x.rank,
+          'deviation': x.deviation,
         },
     ],
   };
@@ -57,6 +89,8 @@ class GradeRepository {
       kind: ExamKind.values.asNameMap()[m['kind']] ?? ExamKind.regular,
       date: DateTime(p[0], p[1], p[2]),
       totalRank: (m['totalRank'] as num?)?.toInt(),
+      totalDeviation: m['totalDeviation'] as num?,
+      participants: (m['participants'] as num?)?.toInt(),
       entries: [
         for (final x in (m['entries'] as List<dynamic>? ?? const []))
           GradeEntry(
@@ -65,8 +99,32 @@ class GradeRepository {
             max: x['max'] as num? ?? 100,
             average: x['average'] as num?,
             rank: (x['rank'] as num?)?.toInt(),
+            deviation: x['deviation'] as num?,
           ),
       ],
     );
+  }
+
+  static Map<String, dynamic> targetsToMap(Map<String, GradeTarget> t) => {
+    'targets': {
+      for (final e in t.entries)
+        e.key: {
+          'score': e.value.score,
+          'deviation': e.value.deviation,
+          'rank': e.value.rank,
+        },
+    },
+  };
+
+  static Map<String, GradeTarget> targetsFromMap(Map<String, dynamic>? m) {
+    final raw = m?['targets'] as Map<String, dynamic>? ?? const {};
+    return {
+      for (final e in raw.entries)
+        e.key: GradeTarget(
+          score: (e.value as Map)['score'] as num?,
+          deviation: e.value['deviation'] as num?,
+          rank: (e.value['rank'] as num?)?.toInt(),
+        ),
+    };
   }
 }

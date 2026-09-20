@@ -1,6 +1,8 @@
 /// 毎週決まった授業で行うテスト（例：その週の最初の ECⅠ で LEAP 単語テスト）
 library;
 
+import 'dart:math' as math;
+
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/week_cycle.dart';
 
@@ -14,6 +16,8 @@ class WeeklyLessonTestRule {
     required this.baseRangeStart,
     this.rangeStep = 100,
     this.skippedWeeks = const {},
+    this.endNumber,
+    this.startDate,
   });
 
   /// Firestore の ID
@@ -36,6 +40,12 @@ class WeeklyLessonTestRule {
 
   /// 「この週はなし」にした週（その週の月曜日の dateKey）
   final Set<String> skippedWeeks;
+
+  /// 最後の番号（例：2300）。これを超えたらテストはおしまい。null なら終わりなし
+  final int? endNumber;
+
+  /// この日を含む週から始まる（それより前の週はテストなし）。null なら制限なし
+  final DateTime? startDate;
 }
 
 /// 計算結果：その週のテスト
@@ -58,8 +68,12 @@ class LessonTestOccurrence {
   /// 範囲の始まり（例：1201）
   final int rangeStart;
 
-  /// 範囲の終わり（例：1300）
-  int get rangeEnd => rangeStart + rule.rangeStep - 1;
+  /// 範囲の終わり（例：1300）。最後の番号を超えないようにする
+  int get rangeEnd {
+    final end = rangeStart + rule.rangeStep - 1;
+    final last = rule.endNumber;
+    return last == null ? end : math.min(end, last);
+  }
 
   /// 「1201〜1300」の形
   String get rangeLabel => '$rangeStart〜$rangeEnd';
@@ -111,6 +125,10 @@ class WeeklyLessonTestCalculator {
     final monday = mondayOf(anyDateInWeek);
     if (rule.skippedWeeks.contains(dateKey(monday))) return null;
 
+    // 始まる週より前はテストなし
+    final start = rule.startDate;
+    if (start != null && monday.isBefore(mondayOf(start))) return null;
+
     final first = _firstLessonInWeek(monday);
     if (first == null) return null;
 
@@ -138,6 +156,10 @@ class WeeklyLessonTestCalculator {
       }
       rangeStart = rule.baseRangeStart - rule.rangeStep * count;
     }
+
+    // 最後の番号を超えたら、もうテストはない
+    final last = rule.endNumber;
+    if (last != null && rangeStart > last) return null;
 
     return LessonTestOccurrence(
       rule: rule,

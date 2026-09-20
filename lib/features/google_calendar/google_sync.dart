@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../../core/maps.dart';
 import '../events/calendar_event.dart';
 import 'google_calendar_service.dart';
 
@@ -156,7 +157,7 @@ void showGoogleEventSheet(BuildContext context, CalendarEvent e) {
                   ? '${formatDateJa(e.start)}〜${formatDateJa(e.end)}（終日）'
                   : '${formatDateJa(e.start)}  ${hm(e.start)}〜${hm(e.end)}',
             ),
-            if (e.location != null) Text(e.location!),
+            if (e.location != null) PlaceLink(e.location!),
             const SizedBox(height: 12),
             Text(
               'Google カレンダーの予定です',

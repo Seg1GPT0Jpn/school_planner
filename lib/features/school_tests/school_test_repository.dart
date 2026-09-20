@@ -50,12 +50,46 @@ class SchoolTestRepository {
   // 毎週のテストのルール（LEAP など）
   // ------------------------------------------------------------
 
-  /// ルールがまだなければ、LEAP のルールを登録する
+  /// 「LEAP を最初に登録したか」の記録（消したあとに勝手に戻らないように）
+  DocumentReference<Map<String, dynamic>> get _rulesInfo => _db
+      .collection('users')
+      .doc(uid)
+      .collection('settings')
+      .doc('weekly_rules');
+
+  /// 初めてのときだけ、LEAP のルールを登録する
+  /// （前から登録済みで「最後の番号」が未設定なら、初期値だけ足す）
   Future<void> ensureDefaultRules() async {
+    final info = await _rulesInfo.get();
+    if (info.data()?['leapSeeded'] == true) return;
+
     final doc = _rules.doc(leapRule.id);
-    if ((await doc.get()).exists) return;
-    await doc.set(ruleToMap(leapRule));
+    final snap = await doc.get();
+    if (!snap.exists) {
+      await doc.set(ruleToMap(leapRule));
+    } else if (!(snap.data() ?? const {}).containsKey('endNumber')) {
+      await doc.set({'endNumber': leapRule.endNumber}, SetOptions(merge: true));
+    }
+    await _rulesInfo.set({'leapSeeded': true}, SetOptions(merge: true));
   }
+
+  /// ルールの一覧（設定画面用）
+  Stream<List<WeeklyLessonTestRule>> watchRules() => _rules.snapshots().map(
+    (s) => [for (final d in s.docs) ruleFromMap(d.id, d.data())],
+  );
+
+  /// ルールを保存する（id が空なら新しく追加。「なし」にした週はそのまま）
+  Future<void> saveRule(WeeklyLessonTestRule r) async {
+    final data = ruleToMap(r)..remove('skippedWeeks');
+    if (r.id.isEmpty) {
+      await _rules.add({...data, 'skippedWeeks': <String>[]});
+    } else {
+      await _rules.doc(r.id).set(data, SetOptions(merge: true));
+    }
+  }
+
+  /// ルールを削除する
+  Future<void> deleteRule(String id) => _rules.doc(id).delete();
 
   /// その週を「なし」にする／戻す
   Future<void> setWeekSkipped(
@@ -121,6 +155,8 @@ class SchoolTestRepository {
     'baseRangeStart': r.baseRangeStart,
     'rangeStep': r.rangeStep,
     'skippedWeeks': r.skippedWeeks.toList()..sort(),
+    'endNumber': r.endNumber,
+    'startDate': r.startDate == null ? null : dateKey(r.startDate!),
   };
 
   static WeeklyLessonTestRule ruleFromMap(String id, Map<String, dynamic> m) {
@@ -135,6 +171,10 @@ class SchoolTestRepository {
         for (final w in (m['skippedWeeks'] as List<dynamic>? ?? const []))
           w as String,
       },
+      endNumber: (m['endNumber'] as num?)?.toInt(),
+      startDate: m['startDate'] is String
+          ? _parseDate(m['startDate'] as String)
+          : null,
     );
   }
 }

@@ -60,6 +60,7 @@ class RecurringRepository {
           'baseStart': t.baseStart,
           'step': t.step,
           'withReview': t.withReview,
+          'end': t.end,
         };
 
   static RecurringTestConfig? _testFromMap(Object? v) {
@@ -71,6 +72,7 @@ class RecurringRepository {
       baseStart: (m['baseStart'] as num?)?.toInt(),
       step: (m['step'] as num?)?.toInt() ?? 50,
       withReview: m['withReview'] as bool? ?? false,
+      end: (m['end'] as num?)?.toInt(),
     );
   }
 

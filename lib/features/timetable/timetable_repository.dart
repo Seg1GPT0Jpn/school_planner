@@ -6,7 +6,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/japanese_holidays.dart';
-import '../school_tests/initial_rules.dart';
 import '../school_tests/lesson_test_annotation.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_repository.dart';
@@ -54,8 +53,7 @@ class TimetableData {
   bool get hasInitialDataUpdate =>
       isSeeded && dataVersion < TimetableRepository.latestDataVersion;
 
-  List<WeeklyLessonTestRule> get activeRules =>
-      weeklyRules.isEmpty ? [leapRule] : weeklyRules;
+  List<WeeklyLessonTestRule> get activeRules => weeklyRules;
 
   WeeklyLessonTestRule? ruleForSubject(String? subject) {
     for (final rule in activeRules) {
