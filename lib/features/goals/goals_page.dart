@@ -5,6 +5,7 @@ import '../../core/date_format.dart';
 import '../timetable/timetable_repository.dart';
 import '../grades/grades_view.dart';
 import '../study/study_view.dart';
+import '../grades/last_grade_hint.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
 
@@ -363,6 +364,7 @@ class _GoalEditPageState extends State<GoalEditPage> {
             },
           ),
           const SizedBox(height: 8),
+          if (_subject != null) LastGradeHint(subject: _subject!),
           const Text('進み具合'),
           const SizedBox(height: 8),
           SegmentedButton<GoalProgressType>(

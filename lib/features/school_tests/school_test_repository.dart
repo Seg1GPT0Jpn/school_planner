@@ -26,21 +26,22 @@ class SchoolTestRepository {
   // 小テスト・学校イベント
   // ------------------------------------------------------------
 
-  /// 保存する（新しいものなら追加、既存のものなら上書き）
-  Future<void> save(SchoolTest test) async {
+  /// 保存する（新しいものなら追加、既存のものなら上書き）。保存した ID を返す
+  Future<String> save(SchoolTest test) async {
     final data = testToMap(test);
     if (test.id == null) {
-      await _tests.add({
+      final ref = await _tests.add({
         ...data,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-    } else {
-      await _tests.doc(test.id).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      return ref.id;
     }
+    await _tests.doc(test.id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return test.id!;
   }
 
   /// 削除する
@@ -132,6 +133,8 @@ class SchoolTestRepository {
     'startTime': t.startTime?.toString(),
     'scope': _emptyToNull(t.scope),
     'memo': _emptyToNull(t.memo),
+    'targetScore': t.targetScore,
+    'studyTodo': t.studyTodo,
   };
 
   static SchoolTest testFromMap(String id, Map<String, dynamic> m) {
@@ -145,6 +148,8 @@ class SchoolTestRepository {
       startTime: _parseTime(m['startTime']),
       scope: m['scope'] as String?,
       memo: m['memo'] as String?,
+      targetScore: m['targetScore'] as num?,
+      studyTodo: m['studyTodo'] as bool? ?? false,
     );
   }
 

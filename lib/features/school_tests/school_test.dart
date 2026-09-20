@@ -46,6 +46,8 @@ class SchoolTest {
     this.startTime,
     this.scope,
     this.memo,
+    this.targetScore,
+    this.studyTodo = false,
   });
 
   /// Firestore の ID（まだ保存していないものは null）
@@ -72,6 +74,27 @@ class SchoolTest {
   final String? scope;
 
   final String? memo;
+
+  /// 目標点（入れると「目標」に自動で追加される）
+  final num? targetScore;
+
+  /// テスト勉強を ToDo に出すか
+  final bool studyTodo;
+
+  /// ID だけ差し替えたもの（保存したあとに使う）
+  SchoolTest withId(String newId) => SchoolTest(
+    id: newId,
+    kind: kind,
+    title: title,
+    date: date,
+    subject: subject,
+    period: period,
+    startTime: startTime,
+    scope: scope,
+    memo: memo,
+    targetScore: targetScore,
+    studyTodo: studyTodo,
+  );
 
   /// 画面に出す名前（例：現代の国語 漢字テスト）
   String get displayTitle => subject == null ? title : '$subject $title';

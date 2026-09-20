@@ -67,6 +67,12 @@ const Set<SchoolTestKind> todoKinds = {
 
 String linkedTodoId(String testId) => 'test_$testId';
 
+/// テスト勉強の ToDo に最初から入れておく小さな項目
+const List<String> studySubtaskPresets = ['範囲を確認する', '問題を解く', '間違えたところを見直す'];
+
+/// ToDo に出すか（提出物など、または「テスト勉強を ToDo に」にしたテスト）
+bool showsAsTodo(SchoolTest t) => todoKinds.contains(t.kind) || t.studyTodo;
+
 /// 自分で作った ToDo と、提出物などから作る ToDo をまとめる
 List<Todo> mergeTodos(List<Todo> own, List<SchoolTest> tests) {
   final saved = {
@@ -77,17 +83,22 @@ List<Todo> mergeTodos(List<Todo> own, List<SchoolTest> tests) {
     for (final t in own)
       if (!t.isLinked) t,
     for (final test in tests)
-      if (test.id != null && todoKinds.contains(test.kind))
+      if (test.id != null && showsAsTodo(test))
         () {
           final s = saved[linkedTodoId(test.id!)];
+          final isStudy = !todoKinds.contains(test.kind);
           return Todo(
             id: linkedTodoId(test.id!),
-            title: test.displayTitle,
+            title: isStudy ? '${test.displayTitle}の勉強' : test.displayTitle,
             dueDate: test.date,
             subject: test.subject,
             memo: s?.memo ?? test.memo,
             done: s?.done ?? false,
-            subtasks: s?.subtasks ?? const [],
+            subtasks:
+                s?.subtasks ??
+                (isStudy
+                    ? [for (final p in studySubtaskPresets) Subtask(p)]
+                    : const []),
             linkedTestId: test.id,
           );
         }(),

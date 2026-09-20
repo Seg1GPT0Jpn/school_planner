@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../goals/test_goal_link.dart';
+import '../grades/last_grade_hint.dart';
 import '../timetable/timetable_models.dart';
 import 'school_test.dart';
 import 'school_test_repository.dart';
@@ -38,11 +40,13 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _scopeController;
   late final TextEditingController _memoController;
+  late final TextEditingController _targetController;
 
   late SchoolTestKind _kind;
   String? _subject;
   late DateTime _date;
   int? _period;
+  late bool _studyTodo;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -56,6 +60,10 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
     _titleController = TextEditingController(text: t?.title ?? '');
     _scopeController = TextEditingController(text: t?.scope ?? '');
     _memoController = TextEditingController(text: t?.memo ?? '');
+    _targetController = TextEditingController(
+      text: t?.targetScore == null ? '' : '${t!.targetScore}',
+    );
+    _studyTodo = t?.studyTodo ?? false;
     _kind = t?.kind ?? SchoolTestKind.quiz;
     _subject = t?.subject ?? widget.initialSubject;
     _period = t?.period ?? widget.initialPeriod;
@@ -68,6 +76,7 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
     _titleController.dispose();
     _scopeController.dispose();
     _memoController.dispose();
+    _targetController.dispose();
     super.dispose();
   }
 
@@ -91,6 +100,8 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
       period: _period,
       scope: _scopeController.text,
       memo: _memoController.text,
+      targetScore: _kind.isTest ? num.tryParse(_targetController.text) : null,
+      studyTodo: _kind.isTest && _studyTodo,
     );
 
     final error = test.validate();
@@ -104,7 +115,9 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
       _errorMessage = null;
     });
     try {
-      await widget.repository.save(test);
+      final id = await widget.repository.save(test);
+      // 目標点があれば「目標」に自動で追加（消したら目標も消す）
+      await syncTestGoal(widget.repository.uid, test.withId(id));
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = '保存に失敗しました：$e');
@@ -133,6 +146,7 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
     if (shouldDelete != true) return;
 
     await widget.repository.delete(widget.test!.id!);
+    await deleteTestGoal(widget.repository.uid, widget.test!.id!);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -287,6 +301,31 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
                 decoration: const InputDecoration(labelText: '範囲（例：p.20〜35）'),
               ),
               const SizedBox(height: 8),
+
+              // テスト対策（テストの仲間のときだけ）
+              if (_kind.isTest) ...[
+                const SizedBox(height: 8),
+                Text('テスト対策', style: labelStyle),
+                if (_subject != null) LastGradeHint(subject: _subject!),
+                TextField(
+                  controller: _targetController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: '目標点（入れると「目標」に自動で追加）',
+                    suffixText: '点',
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('テスト勉強を ToDo に出す'),
+                  subtitle: const Text('「範囲を確認する」などの小さな項目つき'),
+                  value: _studyTodo,
+                  onChanged: (v) => setState(() => _studyTodo = v),
+                ),
+                const SizedBox(height: 8),
+              ],
               TextField(
                 controller: _memoController,
                 minLines: 2,
