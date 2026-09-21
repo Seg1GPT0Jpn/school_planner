@@ -6,6 +6,7 @@ import '../timetable/timetable_repository.dart';
 import '../grades/grades_view.dart';
 import '../study/study_view.dart';
 import '../grades/last_grade_hint.dart';
+import '../review/review_page.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
 
@@ -36,7 +37,16 @@ class _GoalsPageState extends State<GoalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('目標')),
+      appBar: AppBar(
+        title: const Text('目標'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.insights),
+            tooltip: 'ふり返りレビュー（週・月・学期）',
+            onPressed: () => openReview(context),
+          ),
+        ],
+      ),
       floatingActionButton: _view != 0
           ? null
           : FloatingActionButton(

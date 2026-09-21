@@ -16,6 +16,7 @@ class UpcomingItem {
     this.detail,
     this.period,
     this.source,
+    this.subject,
   });
 
   final DateTime date;
@@ -37,6 +38,9 @@ class UpcomingItem {
 
   /// 手で登録したものなら、その元データ（編集画面を開くのに使う）
   final SchoolTest? source;
+
+  /// 科目（わかるときだけ。テストカルテで勉強時間を数えるのに使う）
+  final String? subject;
 
   /// 今日から何日後か（今日なら 0）
   int daysFrom(DateTime today) {
@@ -80,6 +84,7 @@ List<UpcomingItem> collectUpcoming({
           isTest: true,
           detail: o.rangeLabel,
           period: o.lesson.period,
+          subject: o.lesson.subject ?? o.rule.subject,
         ),
       );
     }
@@ -96,6 +101,7 @@ List<UpcomingItem> collectUpcoming({
             kindLabel: SchoolTestKind.regularExam.label,
             isTest: true,
             period: lesson.period,
+            subject: lesson.subject,
           ),
         );
       }
@@ -115,6 +121,7 @@ List<UpcomingItem> collectUpcoming({
         detail: t.scope,
         period: t.period,
         source: t,
+        subject: t.subject,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/maps.dart';
+import '../review/school_event_page.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
 import 'calendar_event.dart';
@@ -238,6 +239,12 @@ class _EventEditPageState extends State<EventEditPage> {
         ),
         title: Text(_isEditing ? '予定を編集' : '予定を追加'),
         actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.celebration_outlined),
+              tooltip: '関係する予定・ToDo・持ち物をまとめて見る',
+              onPressed: () => openSchoolEventFromEvent(context, widget.event!),
+            ),
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),

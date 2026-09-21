@@ -6,6 +6,8 @@ import '../goals/study_plan.dart';
 import '../goals/study_plan_page.dart';
 import '../goals/test_goal_link.dart';
 import '../grades/last_grade_hint.dart';
+import '../review/school_event_page.dart';
+import '../review/test_karte_page.dart';
 import '../timetable/timetable_models.dart';
 import 'school_test.dart';
 import 'school_test_repository.dart';
@@ -180,6 +182,18 @@ class _SchoolTestEditPageState extends State<SchoolTestEditPage> {
         ),
         title: Text(_isEditing ? '小テスト・学校イベントを編集' : '小テスト・学校イベントを追加'),
         actions: [
+          if (_isEditing && widget.test!.kind.isTest)
+            IconButton(
+              icon: const Icon(Icons.assignment_outlined),
+              tooltip: 'テストカルテ',
+              onPressed: () => openTestKarteForTest(context, widget.test!),
+            ),
+          if (_isEditing && widget.test!.kind == SchoolTestKind.schoolEvent)
+            IconButton(
+              icon: const Icon(Icons.celebration_outlined),
+              tooltip: '関係するものをまとめて見る',
+              onPressed: () => openSchoolEventFromTest(context, widget.test!),
+            ),
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),

@@ -59,9 +59,7 @@ class UpcomingTestsCard extends StatelessWidget {
                 _UpcomingRow(
                   item: item,
                   today: today,
-                  onTap: (onTapItem != null && item.source != null)
-                      ? () => onTapItem!(item)
-                      : null,
+                  onTap: onTapItem == null ? null : () => onTapItem!(item),
                 ),
           ],
         ),
