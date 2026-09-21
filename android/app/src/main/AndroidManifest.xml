@@ -48,10 +48,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- ① 今日の時間割ウィジェット -->
+        <!-- ① 今日の予定 -->
         <receiver
             android:name="com.kazu.school_planner.TsuzuriWidgetProvider"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/tsuzuri_widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -60,10 +61,11 @@
                 android:resource="@xml/tsuzuri_widget_info" />
         </receiver>
 
-        <!-- ② スケジュールウィジェット -->
+        <!-- ② カレンダースケジュール -->
         <receiver
             android:name="com.kazu.school_planner.TsuzuriScheduleWidgetProvider"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/tsuzuri_schedule_widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -77,10 +79,11 @@
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
-        <!-- ③ 月ビューウィジェット -->
+        <!-- ③ カレンダーの［月］ビュー -->
         <receiver
             android:name="com.kazu.school_planner.TsuzuriMonthWidgetProvider"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/tsuzuri_month_widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -91,6 +94,24 @@
 
         <service
             android:name="com.kazu.school_planner.TsuzuriMonthService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <!-- ④ カレンダーの［週］ビュー -->
+        <receiver
+            android:name="com.kazu.school_planner.TsuzuriWeekWidgetProvider"
+            android:exported="true"
+            android:label="@string/tsuzuri_week_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tsuzuri_week_widget_info" />
+        </receiver>
+
+        <service
+            android:name="com.kazu.school_planner.TsuzuriWeekService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>

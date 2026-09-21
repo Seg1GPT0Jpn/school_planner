@@ -3,24 +3,26 @@
     android:id="@+id/cell_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:paddingTop="3dp"
+    android:paddingStart="1dp"
+    android:paddingEnd="1dp"
+    android:paddingTop="2dp"
     android:paddingBottom="3dp">
 
     <TextView
         android:id="@+id/cell_day"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="center_horizontal"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:textColor="@color/tsuzuri_w_text"
         android:textSize="12sp" />
 
-    <TextView
-        android:id="@+id/cell_dots"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:includeFontPadding="false"
-        android:textSize="7sp"
-        android:visibility="invisible" />
+    <TextView android:id="@+id/cell_e1" style="@style/TsuzuriCellChip" />
+    <TextView android:id="@+id/cell_e2" style="@style/TsuzuriCellChip" />
+    <TextView android:id="@+id/cell_e3" style="@style/TsuzuriCellChip" />
+    <TextView android:id="@+id/cell_e4" style="@style/TsuzuriCellChip" />
+    <TextView android:id="@+id/cell_e5" style="@style/TsuzuriCellChip" />
+    <TextView android:id="@+id/cell_e6" style="@style/TsuzuriCellChip" />
 </LinearLayout>

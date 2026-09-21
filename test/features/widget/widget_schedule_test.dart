@@ -2,11 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:school_planner/features/calendar/schedule_items.dart';
 import 'package:school_planner/features/widget/widget_text.dart';
 
-ScheduleItem _item(
-  String title, {
-  ScheduleKind kind = ScheduleKind.event,
-  int? color,
-}) => ScheduleItem(kind: kind, title: title, color: color);
+ScheduleItem _item(String title, {ScheduleKind kind = ScheduleKind.event, int? color}) =>
+    ScheduleItem(kind: kind, title: title, color: color);
 
 void main() {
   final today = DateTime(2026, 9, 21);
@@ -17,8 +14,10 @@ void main() {
       _item('歯医者', color: 0xFF00BCD4),
     ]),
     ScheduleDay(DateTime(2026, 9, 22), const []),
-    ScheduleDay(DateTime(2026, 9, 23), [_item('模試', kind: ScheduleKind.test)]),
+    ScheduleDay(DateTime(2026, 9, 23), [_item('📝 模試', kind: ScheduleKind.test)]),
   ];
+
+  // ───────── カレンダースケジュール ─────────
 
   test('予定がある日だけ、日付の見出しをつけて並べる', () {
     final lines = buildWidgetSchedule(days: days, today: today);
@@ -32,7 +31,7 @@ void main() {
     expect(lines[3].header, isTrue);
     expect(lines[3].left, '9/23(水)');
     expect(lines[3].today, isFalse);
-    expect(lines[4].title, '模試');
+    expect(lines[4].title, '📝 模試');
   });
 
   test('色は、予定の色 → なければ種類ごとの色', () {
@@ -43,10 +42,7 @@ void main() {
   });
 
   test('多すぎるときは途中で止める', () {
-    expect(
-      buildWidgetSchedule(days: days, today: today, maxLines: 3).length,
-      3,
-    );
+    expect(buildWidgetSchedule(days: days, today: today, maxLines: 3).length, 3);
   });
 
   test('ウィジェットに渡す形（タブ区切り・改行区切り）', () {
@@ -54,6 +50,23 @@ void main() {
     expect(lines[0].encode(), 'h\t9/21(月)\t\t0\t1');
     expect(encodeScheduleLines(lines).split('\n').length, 5);
   });
+
+  // ───────── マスの中の帯 ─────────
+
+  test('せまいマスでは、頭の絵文字をとる', () {
+    expect(chipTitle('📝 模試'), '模試');
+    expect(chipTitle('歯医者'), '歯医者');
+  });
+
+  test('入りきらないときは「他◯件」にまとめる', () {
+    final items = [for (var i = 1; i <= 5; i++) _item('予定$i')];
+    final chips = buildChips(items, 3);
+    expect(chips.map((c) => c.title).toList(), ['予定1', '予定2', '他3件']);
+    expect(chips.last.color, 0); // 色なし
+    expect(buildChips(items, 6).length, 5);
+  });
+
+  // ───────── ［月］ビュー ─────────
 
   test('月ビューは6週ぶん・日曜はじまり', () {
     final m = buildWidgetMonth(month: today, today: today, days: days);
@@ -64,17 +77,20 @@ void main() {
     // 2026年9月1日は火曜なので、最初のマスは8/30
     expect(m.cells[0].day, 30);
     expect(m.cells[0].inMonth, isFalse);
+    expect(m.cells[0].chips, isEmpty); // 前の月には予定を出さない
     expect(m.cells[2].day, 1);
     expect(m.cells[2].inMonth, isTrue);
 
     // 8/30 から22日後が9/21
-    expect(m.cells[22].today, isTrue);
-    expect(m.cells[22].marks, 2);
-    expect(m.cells[22].holiday, isTrue);
-    expect(m.cells[22].color, 0xFFD32F2F);
+    final c = m.cells[22];
+    expect(c.today, isTrue);
+    expect(c.holiday, isTrue);
+    expect(c.chips.map((x) => x.title).toList(), ['秋分の日', '歯医者']);
+    expect(c.chips.first.color, 0xFFD32F2F);
+    expect(c.chips.last.color, 0xFF00BCD4);
 
-    expect(m.cells[23].marks, 0); // 9/22 は予定なし
-    expect(m.cells[24].marks, 1); // 9/23
+    expect(m.cells[23].chips, isEmpty); // 9/22
+    expect(m.cells[24].chips.single.title, '模試'); // 9/23（絵文字はとれている）
   });
 
   test('月ビューは月曜はじまりにもできる', () {
@@ -89,13 +105,38 @@ void main() {
     expect(m.cells[1].day, 1);
   });
 
-  test('点は最大3つ', () {
+  test('マスをウィジェットに渡す形', () {
+    const cell = WidgetDayCell(
+      day: 21,
+      today: true,
+      holiday: true,
+      chips: [WidgetChip(0xFF00BCD4, '歯医者')],
+    );
+    expect(cell.encode(), '21\t1\t1\t1\t1\t${0xFF00BCD4}\t歯医者');
+  });
+
+  // ───────── ［週］ビュー ─────────
+
+  test('週ビューは7マス', () {
+    final w = buildWidgetWeek(day: today, today: today, days: days);
+    expect(w.title, '9/20〜9/26');
+    expect(w.cells.length, 7);
+    expect(w.cells.first.day, 20); // 9/20（日）から
+    expect(w.cells[1].day, 21);
+    expect(w.cells[1].today, isTrue);
+    expect(w.cells[1].chips.length, 2);
+    expect(w.cells[3].chips.single.title, '模試'); // 9/23
+    expect(w.cells.last.day, 26);
+  });
+
+  test('週ビューは1マスに6件まで出す', () {
     final many = [
       ScheduleDay(DateTime(2026, 9, 21), [
-        for (var i = 0; i < 5; i++) _item('予定$i'),
+        for (var i = 1; i <= 10; i++) _item('予定$i'),
       ]),
     ];
-    final m = buildWidgetMonth(month: today, today: today, days: many);
-    expect(m.cells[22].marks, 3);
+    final w = buildWidgetWeek(day: today, today: today, days: many);
+    expect(w.cells[1].chips.length, 6);
+    expect(w.cells[1].chips.last.title, '他5件');
   });
 }

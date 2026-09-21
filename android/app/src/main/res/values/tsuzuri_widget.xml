@@ -10,10 +10,17 @@
     <color name="tsuzuri_w_badge">#FFFFF3E0</color>
     <color name="tsuzuri_w_chip">#FFFFE0B2</color>
 
+    <!-- ウィジェットを選ぶ画面に出る名前 -->
+    <string name="tsuzuri_widget_name">今日の予定</string>
+    <string name="tsuzuri_schedule_widget_name">カレンダースケジュール</string>
+    <string name="tsuzuri_month_widget_name">カレンダーの［月］ビュー</string>
+    <string name="tsuzuri_week_widget_name">カレンダーの［週］ビュー</string>
+
     <!-- ウィジェットを選ぶ画面に出る説明 -->
-    <string name="tsuzuri_widget_desc">今日の時間割を表示します</string>
+    <string name="tsuzuri_widget_desc">今日の時間割と予定を表示します</string>
     <string name="tsuzuri_schedule_widget_desc">予定を日付順に表示します</string>
     <string name="tsuzuri_month_widget_desc">1か月のカレンダーを表示します</string>
+    <string name="tsuzuri_week_widget_desc">1週間のカレンダーを表示します</string>
 
     <!-- 時間割の1行 -->
     <style name="TsuzuriRow">
@@ -68,7 +75,7 @@
         <item name="android:visibility">gone</item>
     </style>
 
-    <!-- 月ビューの曜日の見出し -->
+    <!-- 月・週ビューの曜日の見出し -->
     <style name="TsuzuriWeekday">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -76,5 +83,22 @@
         <item name="android:gravity">center</item>
         <item name="android:textColor">@color/tsuzuri_w_sub</item>
         <item name="android:textSize">11sp</item>
+    </style>
+
+    <!-- 月・週ビューのマスに出る予定の帯 -->
+    <style name="TsuzuriCellChip">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">1dp</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:paddingStart">2dp</item>
+        <item name="android:paddingEnd">2dp</item>
+        <item name="android:paddingTop">1dp</item>
+        <item name="android:paddingBottom">1dp</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textSize">8sp</item>
+        <item name="android:visibility">gone</item>
     </style>
 </resources>

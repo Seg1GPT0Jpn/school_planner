@@ -21,10 +21,10 @@ import '../timetable/subject_colors.dart';
 import '../timetable/timetable_repository.dart';
 import 'widget_text.dart';
 
-/// 「今日の時間割」ウィジェットに入れておく日数
+/// 「今日の予定」ウィジェットに入れておく日数
 const int widgetDays = 7;
 
-/// 「スケジュール」ウィジェットに入れておく日数
+/// 「カレンダースケジュール」ウィジェットに入れておく日数
 const int widgetScheduleDays = 45;
 
 /// ウィジェットの種類（Android の受け取り側の名前）
@@ -32,10 +32,10 @@ const _providers = [
   'TsuzuriWidgetProvider',
   'TsuzuriScheduleWidgetProvider',
   'TsuzuriMonthWidgetProvider',
+  'TsuzuriWeekWidgetProvider',
 ];
 
-bool get _isAndroid =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+bool get _isAndroid => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 class WidgetSync extends StatefulWidget {
   const WidgetSync({super.key, required this.child});
@@ -132,31 +132,24 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
       for (final s in data.subjects)
         s.name: _custom[s.category] ?? categoryColor(s.category).toARGB32(),
     };
-    int colorOf(CalendarEvent e) =>
-        (googleEventColor(e) ??
-                Color(findCategory(_categories, e.categoryId).colorValue))
-            .toARGB32();
+    int colorOf(CalendarEvent e) => (googleEventColor(e) ??
+            Color(findCategory(_categories, e.categoryId).colorValue))
+        .toARGB32();
     final resolver = data.resolver;
 
-    // 期間ぜんぶの「日付順の一覧」を作る（月ビューとスケジュールで使い回す）
+    // 期間ぜんぶの「日付順の一覧」を作る（月・週・スケジュールで使い回す）
     final all = <ScheduleDay>[];
-    for (
-      var d = from;
-      d.isBefore(to);
-      d = DateTime(d.year, d.month, d.day + 1)
-    ) {
-      all.add(
-        buildScheduleDay(
-          day: resolver.resolve(d),
-          events: events,
-          tests: data.testsOn(d),
-          colorOf: colorOf,
-        ),
-      );
+    for (var d = from; d.isBefore(to); d = DateTime(d.year, d.month, d.day + 1)) {
+      all.add(buildScheduleDay(
+        day: resolver.resolve(d),
+        events: events,
+        tests: data.testsOn(d),
+        colorOf: colorOf,
+      ));
     }
 
     try {
-      // ① 今日の時間割ウィジェット
+      // ① 今日の予定
       for (var i = 0; i < widgetDays; i++) {
         final d = DateTime(today.year, today.month, today.day + i);
         final w = buildWidgetDay(
@@ -172,7 +165,7 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
         await HomeWidget.saveWidgetData('day${i}_extra', w.extra);
       }
 
-      // ② スケジュールウィジェット（今日から先だけ）
+      // ② カレンダースケジュール（今日から先だけ）
       final lines = buildWidgetSchedule(
         days: [
           for (final s in all)
@@ -183,11 +176,17 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
       await HomeWidget.saveWidgetData('sch_count', lines.length);
       await HomeWidget.saveWidgetData('sch_lines', encodeScheduleLines(lines));
 
-      // ③ 月ビューウィジェット
+      // ③ ［月］ビュー
       final month = buildWidgetMonth(month: today, today: today, days: all);
       await HomeWidget.saveWidgetData('mon_title', month.title);
       await HomeWidget.saveWidgetData('mon_weekdays', month.encodedWeekdays);
       await HomeWidget.saveWidgetData('mon_cells', month.encodedCells);
+
+      // ④ ［週］ビュー
+      final week = buildWidgetWeek(day: today, today: today, days: all);
+      await HomeWidget.saveWidgetData('wk_title', week.title);
+      await HomeWidget.saveWidgetData('wk_weekdays', week.encodedWeekdays);
+      await HomeWidget.saveWidgetData('wk_cells', week.encodedCells);
 
       for (final name in _providers) {
         try {
