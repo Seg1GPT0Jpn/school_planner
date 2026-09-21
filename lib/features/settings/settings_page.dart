@@ -11,6 +11,7 @@ import '../timetable/school_settings_page.dart';
 import '../timetable/subject_color_page.dart';
 import '../timetable/subject_manage_page.dart';
 import 'app_settings.dart';
+import 'import_export_page.dart';
 import 'preferences_pages.dart';
 import 'settings_scope.dart';
 import 'shortcuts_page.dart';
@@ -116,6 +117,12 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('オフライン'),
                 subtitle: Text(s.offlineEnabled ? 'オフラインでも使う' : '使わない'),
                 onTap: () => _push(context, const OfflineSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.import_export),
+                title: const Text('インポート／エクスポート'),
+                subtitle: const Text('.ics ファイルで予定を読み書き'),
+                onTap: () => _push(context, const ImportExportPage()),
               ),
               header('学校'),
               ListTile(

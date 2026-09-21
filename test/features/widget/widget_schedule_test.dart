@@ -2,8 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:school_planner/features/calendar/schedule_items.dart';
 import 'package:school_planner/features/widget/widget_text.dart';
 
-ScheduleItem _item(String title, {ScheduleKind kind = ScheduleKind.event, int? color}) =>
-    ScheduleItem(kind: kind, title: title, color: color);
+ScheduleItem _item(
+  String title, {
+  ScheduleKind kind = ScheduleKind.event,
+  int? color,
+}) => ScheduleItem(kind: kind, title: title, color: color);
 
 void main() {
   final today = DateTime(2026, 9, 21);
@@ -14,7 +17,9 @@ void main() {
       _item('歯医者', color: 0xFF00BCD4),
     ]),
     ScheduleDay(DateTime(2026, 9, 22), const []),
-    ScheduleDay(DateTime(2026, 9, 23), [_item('📝 模試', kind: ScheduleKind.test)]),
+    ScheduleDay(DateTime(2026, 9, 23), [
+      _item('📝 模試', kind: ScheduleKind.test),
+    ]),
   ];
 
   // ───────── カレンダースケジュール ─────────
@@ -42,7 +47,10 @@ void main() {
   });
 
   test('多すぎるときは途中で止める', () {
-    expect(buildWidgetSchedule(days: days, today: today, maxLines: 3).length, 3);
+    expect(
+      buildWidgetSchedule(days: days, today: today, maxLines: 3).length,
+      3,
+    );
   });
 
   test('ウィジェットに渡す形（タブ区切り・改行区切り）', () {
