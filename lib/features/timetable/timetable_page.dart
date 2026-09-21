@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import 'schedule_config_page.dart';
 import 'school_periods.dart';
 import 'school_settings_page.dart';
 import 'subject_color_page.dart';
@@ -118,7 +119,10 @@ class _TimetablePageState extends State<TimetablePage> {
     final picked = await showDialog<String>(
       context: context,
       builder: (c) => SimpleDialog(
-        title: Text('${weekType.label} ${weekdayLabel(weekday)}曜 $period限'),
+        title: Text(
+          '${data.config.useWeekCycle ? '${weekType.label} ' : ''}'
+          '${weekdayLabel(weekday)}曜 $period限',
+        ),
         children: [
           for (final s in data.subjects)
             SimpleDialogOption(
@@ -177,8 +181,13 @@ class _TimetablePageState extends State<TimetablePage> {
         final version = _findVersion(data, _selectedFrom);
         final slots = version?.slots ?? data.slots;
 
+        // Ⅰ・Ⅱ週を使わない設定なら、時間割は1つだけ
+        final weeks = data.config.useWeekCycle
+            ? const [WeekType.one, WeekType.two]
+            : const [WeekType.one];
+
         return DefaultTabController(
-          length: 2,
+          length: weeks.length,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('時間割'),
@@ -187,6 +196,11 @@ class _TimetablePageState extends State<TimetablePage> {
                   icon: const Icon(Icons.menu_book_outlined),
                   tooltip: '科目の管理',
                   onPressed: () => _push(const SubjectManagePage()),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.schedule),
+                  tooltip: '時程の設定（時限の時刻・コマ数・Ⅰ・Ⅱ週）',
+                  onPressed: () => _push(const ScheduleConfigPage()),
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
@@ -200,12 +214,14 @@ class _TimetablePageState extends State<TimetablePage> {
                 ),
                 const SizedBox(width: 8),
               ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Ⅰ週'),
-                  Tab(text: 'Ⅱ週'),
-                ],
-              ),
+              bottom: weeks.length < 2
+                  ? null
+                  : const TabBar(
+                      tabs: [
+                        Tab(text: 'Ⅰ週'),
+                        Tab(text: 'Ⅱ週'),
+                      ],
+                    ),
             ),
             body: Column(
               children: [
@@ -274,7 +290,7 @@ class _TimetablePageState extends State<TimetablePage> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      for (final w in [WeekType.one, WeekType.two])
+                      for (final w in weeks)
                         _WeekTable(
                           data: data,
                           slots: slots,
@@ -321,12 +337,18 @@ class _WeekTable extends StatelessWidget {
   final WeekType weekType;
   final void Function(int weekday, int period) onTapCell;
 
-  static const List<String> _labels = ['月', '火', '水', '木', '金'];
+  static const List<String> _wd = ['月', '火', '水', '木', '金', '土', '日'];
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final small = Theme.of(context).textTheme.bodySmall;
+
+    // 授業がある曜日（月〜土。設定で決まる）
+    final days = [
+      for (var w = DateTime.monday; w <= DateTime.saturday; w++)
+        if (SchoolPeriods.periodCountFor(w) > 0) w,
+    ];
 
     Widget cell(Widget child, {Color? color, VoidCallback? onTap}) => InkWell(
       onTap: onTap,
@@ -388,9 +410,12 @@ class _WeekTable extends StatelessWidget {
             ],
           ),
         ),
-        for (var i = 0; i < 5; i++) slotCell(DateTime.monday + i, p.number),
+        for (final w in days) slotCell(w, p.number),
       ],
     );
+
+    final lunchAfter = SchoolPeriods.lunchAfterPeriod;
+    final hasLunch = lunchAfter > 0 && lunchAfter < SchoolPeriods.all.length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -406,24 +431,23 @@ class _WeekTable extends StatelessWidget {
                 decoration: BoxDecoration(color: cs.surfaceContainerHighest),
                 children: [
                   cell(const SizedBox.shrink()),
-                  for (final l in _labels) cell(Text(l)),
+                  for (final w in days) cell(Text(_wd[w - 1])),
                 ],
               ),
               for (final p in SchoolPeriods.all.take(
-                SchoolPeriods.lunchAfterPeriod,
+                hasLunch ? lunchAfter : SchoolPeriods.all.length,
               ))
                 row(p),
-              TableRow(
-                decoration: BoxDecoration(color: cs.surfaceContainerLow),
-                children: [
-                  cell(Text('昼', style: small)),
-                  for (var i = 0; i < 5; i++) cell(const SizedBox.shrink()),
-                ],
-              ),
-              for (final p in SchoolPeriods.all.skip(
-                SchoolPeriods.lunchAfterPeriod,
-              ))
-                row(p),
+              if (hasLunch) ...[
+                TableRow(
+                  decoration: BoxDecoration(color: cs.surfaceContainerLow),
+                  children: [
+                    cell(Text('昼', style: small)),
+                    for (final _ in days) cell(const SizedBox.shrink()),
+                  ],
+                ),
+                for (final p in SchoolPeriods.all.skip(lunchAfter)) row(p),
+              ],
             ],
           ),
         ),

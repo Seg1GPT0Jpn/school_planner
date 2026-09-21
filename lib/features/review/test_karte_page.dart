@@ -244,7 +244,9 @@ class _ResultCard extends StatelessWidget {
               [
                 '「成績」の記録（${g.$1.title}）から',
                 if (g.$2.average != null) '平均${numText(g.$2.average!)}',
-                if (g.$2.deviation != null) '偏差値${numText(g.$2.deviation!)}',
+                if (g.$2.deviation != null)
+                  '偏差値${g.$2.isDeviationEstimated ? '約' : ''}'
+                      '${numText(g.$2.deviation!)}',
                 if (g.$2.rank != null) '${g.$2.rank}位',
               ].join('・'),
             ),

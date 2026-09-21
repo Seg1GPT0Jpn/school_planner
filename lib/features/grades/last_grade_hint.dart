@@ -18,7 +18,8 @@ String gradeHintText(Exam ex, GradeEntry e) => [
   '前回 ${ex.title}（${ex.date.month}/${ex.date.day}）'
       '${numText(e.score)}/${numText(e.max)}点',
   if (e.average != null) '平均${numText(e.average!)}',
-  if (e.deviation != null) '偏差値${numText(e.deviation!)}',
+  if (e.deviation != null)
+    '偏差値${e.isDeviationEstimated ? '約' : ''}${numText(e.deviation!)}',
   if (e.rank != null) '${e.rank}位',
 ].join('・');
 

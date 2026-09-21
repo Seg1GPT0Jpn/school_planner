@@ -244,7 +244,8 @@ class _GradesViewState extends State<GradesView> {
                           if (e.averageTotal != null)
                             '（平均 ${numText(e.averageTotal!)}）',
                           if (e.totalDeviation != null)
-                            '偏差値 ${numText(e.totalDeviation!)}',
+                            '偏差値 ${e.isTotalDeviationEstimated ? '約' : ''}'
+                                '${numText(e.totalDeviation!)}',
                           if (e.totalRank != null)
                             '総合 ${rankText(e.totalRank!, e.participants)}',
                         ].join('　'),
@@ -271,14 +272,16 @@ class _Row {
     String avg = '',
     String rank = '',
     String dev = '',
+    String sd = '',
   }) : score = TextEditingController(text: score),
        max = TextEditingController(text: max),
        avg = TextEditingController(text: avg),
        rank = TextEditingController(text: rank),
-       dev = TextEditingController(text: dev);
+       dev = TextEditingController(text: dev),
+       sd = TextEditingController(text: sd);
 
   String? subject;
-  final TextEditingController score, max, avg, rank, dev;
+  final TextEditingController score, max, avg, rank, dev, sd;
 }
 
 class ExamEditPage extends StatefulWidget {
@@ -301,7 +304,11 @@ class _ExamEditPageState extends State<ExamEditPage> {
     text: _e?.participants?.toString() ?? '',
   );
   late final _totalDev = TextEditingController(
-    text: _e?.totalDeviation == null ? '' : numText(_e!.totalDeviation!),
+    text:
+        _e?.totalDeviation == null ||
+            _e!.totalDeviationSource != DeviationSource.entered
+        ? ''
+        : numText(_e!.totalDeviation!),
   );
   late ExamKind _kind = _e?.kind ?? widget.kind;
   late DateTime _date = _e?.date ?? DateTime.now();
@@ -313,7 +320,10 @@ class _ExamEditPageState extends State<ExamEditPage> {
         max: numText(x.max),
         avg: x.average == null ? '' : numText(x.average!),
         rank: x.rank?.toString() ?? '',
-        dev: x.deviation == null ? '' : numText(x.deviation!),
+        dev: x.deviation == null || x.deviationSource != DeviationSource.entered
+            ? ''
+            : numText(x.deviation!),
+        sd: x.stdDev == null ? '' : numText(x.stdDev!),
       ),
     if (_e == null) _Row(),
   ];
@@ -341,6 +351,7 @@ class _ExamEditPageState extends State<ExamEditPage> {
             average: num.tryParse(r.avg.text),
             rank: int.tryParse(r.rank.text),
             deviation: num.tryParse(r.dev.text),
+            stdDev: num.tryParse(r.sd.text),
           ),
     ];
     final nav = Navigator.of(context);
@@ -365,14 +376,53 @@ class _ExamEditPageState extends State<ExamEditPage> {
     nav.pop();
   }
 
-  Widget _num(TextEditingController c, String label, double width) => SizedBox(
+  Widget _num(
+    TextEditingController c,
+    String label,
+    double width, {
+    String? auto,
+  }) => SizedBox(
     width: width,
     child: TextField(
       controller: c,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(labelText: label, isDense: true),
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        // 空のとき、自動で入る値をうすく見せる
+        hintText: auto,
+        floatingLabelBehavior: auto == null
+            ? null
+            : FloatingLabelBehavior.always,
+      ),
     ),
   );
+
+  /// 空の偏差値に自動で入る値（なければ null）
+  String? _autoDev(_Row r) {
+    if (r.dev.text.trim().isNotEmpty) return null;
+    final score = num.tryParse(r.score.text);
+    if (score == null) return null;
+    final e = GradeEntry(
+      subject: r.subject ?? '',
+      score: score,
+      average: num.tryParse(r.avg.text),
+      rank: int.tryParse(r.rank.text),
+      stdDev: num.tryParse(r.sd.text),
+    ).withAutoDeviation(participants: int.tryParse(_participants.text));
+    if (e.deviation == null) return null;
+    return '${e.isDeviationEstimated ? '約' : ''}${numText(e.deviation!)}';
+  }
+
+  String? get _autoTotalDev {
+    if (_totalDev.text.trim().isNotEmpty) return null;
+    final v = deviationFromRank(
+      rank: int.tryParse(_totalRank.text),
+      participants: int.tryParse(_participants.text),
+    );
+    return v == null ? null : '約${numText(v)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -455,12 +505,14 @@ class _ExamEditPageState extends State<ExamEditPage> {
                 children: [
                   _num(_totalRank, '総合順位', 90),
                   _num(_participants, '受験者数', 90),
-                  _num(_totalDev, '総合偏差値', 100),
+                  _num(_totalDev, '総合偏差値', 100, auto: _autoTotalDev),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                'どれも分かるものだけでOK',
+                'どれも分かるものだけでOK。偏差値を空にしておくと、'
+                '平均点と標準偏差から自動で計算します'
+                '（標準偏差がなければ、順位と受験者数から推定して「約」をつけます）',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.outline,
                   fontSize: 11,
@@ -505,7 +557,13 @@ class _ExamEditPageState extends State<ExamEditPage> {
                           _num(_rows[i].score, '点数', 60),
                           _num(_rows[i].max, '満点', 56),
                           _num(_rows[i].avg, '平均点', 60),
-                          _num(_rows[i].dev, '偏差値', 60),
+                          _num(_rows[i].sd, '標準偏差', 68),
+                          _num(
+                            _rows[i].dev,
+                            '偏差値',
+                            64,
+                            auto: _autoDev(_rows[i]),
+                          ),
                           _num(_rows[i].rank, '順位', 56),
                         ],
                       ),

@@ -202,9 +202,13 @@ class DayTimetableResolver {
       );
     }
 
-    // ④ Ⅰ週かⅡ週か
-    final dayWeekType = dayOverride?.weekType;
-    final weekType = dayWeekType ?? weekCalculator.weekTypeFor(day);
+    // ④ Ⅰ週かⅡ週か（Ⅰ・Ⅱ週を使わない設定なら、いつも同じ時間割＝Ⅰ週の時間割）
+    final cycle = weekCalculator.enabled;
+    final dayWeekType = cycle ? dayOverride?.weekType : null;
+    final weekType = cycle
+        ? (dayWeekType ?? weekCalculator.weekTypeFor(day))
+        : null;
+    final slotWeek = cycle ? weekType : WeekType.one;
 
     // ⑤ 日課と時限
     final schedule = dayOverride?.schedule ?? DaySchedule.regular;
@@ -213,9 +217,9 @@ class DayTimetableResolver {
 
     final lessons = <int, ResolvedLesson>{};
     for (final period in periods) {
-      final slot = (weekType == null || !schedule.usesRegularTimetable)
+      final slot = (slotWeek == null || !schedule.usesRegularTimetable)
           ? null
-          : slotMap[_slotKey(weekType, weekday, period.number)];
+          : slotMap[_slotKey(slotWeek, weekday, period.number)];
       lessons[period.number] = ResolvedLesson(
         period: period.number,
         start: period.start,
@@ -238,7 +242,10 @@ class DayTimetableResolver {
       ..sort((a, b) => a.period.compareTo(b.period));
 
     final isWeekUnknown =
-        weekType == null && isSchoolWeekday && schedule.usesRegularTimetable;
+        cycle &&
+        weekType == null &&
+        isSchoolWeekday &&
+        schedule.usesRegularTimetable;
 
     return DayTimetable(
       date: day,
@@ -266,7 +273,7 @@ class DayTimetableResolver {
         for (final p in schedulePeriods) {
           if (p.number == change.period) standard = p;
         }
-        if (standard == null && change.period >= 1 && change.period <= 5) {
+        if (standard == null && SchoolPeriods.hasPeriod(change.period)) {
           standard = SchoolPeriods.byNumber(change.period);
         }
         final start = change.start ?? base?.start ?? standard?.start;

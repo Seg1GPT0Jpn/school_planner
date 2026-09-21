@@ -30,6 +30,7 @@ import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/timetable_repository.dart';
 import '../todo/todo.dart';
+import '../travel/travel_card.dart';
 import '../todo/todo_page.dart';
 import '../todo/todo_repository.dart';
 import '../weather/weather_home_card.dart';
@@ -712,12 +713,25 @@ class _EventLine extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Text(
-                [
-                  event.title,
-                  if (event.location != null && event.location!.isNotEmpty)
-                    '（${event.location}）',
-                ].join(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    [
+                      event.title,
+                      if (event.location != null && event.location!.isNotEmpty)
+                        '（${event.location}）',
+                    ].join(),
+                  ),
+                  // まだ始まっていない予定なら、何時に出ればよいか
+                  if (!event.isAllDay &&
+                      (event.location ?? '').trim().isNotEmpty &&
+                      event.start.isAfter(DateTime.now()))
+                    TravelHint(
+                      destination: event.location!,
+                      start: event.start,
+                    ),
+                ],
               ),
             ),
           ],

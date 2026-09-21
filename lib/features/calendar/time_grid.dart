@@ -560,7 +560,7 @@ class _DayColumn extends StatelessWidget {
     final isSchool = day.status == DayStatus.school;
     final isExamDay = isSchool && day.schedule == DaySchedule.exam;
 
-    const lunchAfter = SchoolPeriods.lunchAfterPeriod;
+    final lunchAfter = SchoolPeriods.lunchAfterPeriod;
     final showLunch =
         isSchool &&
         day.schedule.hasLunch &&

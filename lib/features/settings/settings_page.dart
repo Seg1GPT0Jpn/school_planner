@@ -7,9 +7,11 @@ import '../events/event_category_repository.dart';
 import '../google_calendar/google_calendar_page.dart';
 import '../recurring/recurring_pages.dart';
 import '../school_tests/weekly_rules_page.dart';
+import '../timetable/schedule_config_page.dart';
 import '../timetable/school_settings_page.dart';
 import '../timetable/subject_color_page.dart';
 import '../timetable/subject_manage_page.dart';
+import '../travel/places_page.dart';
 import 'app_settings.dart';
 import 'import_export_page.dart';
 import 'preferences_pages.dart';
@@ -125,6 +127,26 @@ class SettingsPage extends StatelessWidget {
                 onTap: () => _push(context, const ImportExportPage()),
               ),
               header('学校'),
+              ListTile(
+                leading: const Icon(Icons.schedule),
+                title: const Text('時程の設定'),
+                subtitle: const Text('時限の時刻・曜日ごとのコマ数・Ⅰ・Ⅱ週'),
+                onTap: () => _push(context, const ScheduleConfigPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.home_work_outlined),
+                title: const Text('自宅・学校の場所と移動'),
+                subtitle: Text(
+                  s.homePoint == null && s.schoolPoint == null
+                      ? '登録すると、予定の出発時刻がわかります'
+                      : [
+                          if (s.homePoint != null) '自宅',
+                          if (s.schoolPoint != null) '学校',
+                          s.travelMode.label,
+                        ].join('・'),
+                ),
+                onTap: () => _push(context, const PlacesPage()),
+              ),
               ListTile(
                 leading: const Icon(Icons.event_busy_outlined),
                 title: const Text('学校の設定'),

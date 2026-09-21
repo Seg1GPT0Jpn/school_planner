@@ -66,7 +66,10 @@ class GradeRepository {
     'kind': e.kind.name,
     'date': dateKey(e.date),
     'totalRank': e.totalRank,
-    'totalDeviation': e.totalDeviation,
+    // 自動で計算した偏差値は保存しない（元の数字からいつでも計算し直す）
+    'totalDeviation': e.totalDeviationSource == DeviationSource.entered
+        ? e.totalDeviation
+        : null,
     'participants': e.participants,
     'entries': [
       for (final x in e.entries)
@@ -76,7 +79,10 @@ class GradeRepository {
           'max': x.max,
           'average': x.average,
           'rank': x.rank,
-          'deviation': x.deviation,
+          'deviation': x.deviationSource == DeviationSource.entered
+              ? x.deviation
+              : null,
+          'stdDev': x.stdDev,
         },
     ],
   };
@@ -100,9 +106,10 @@ class GradeRepository {
             average: x['average'] as num?,
             rank: (x['rank'] as num?)?.toInt(),
             deviation: x['deviation'] as num?,
+            stdDev: x['stdDev'] as num?,
           ),
       ],
-    );
+    ).withAutoDeviations();
   }
 
   static Map<String, dynamic> targetsToMap(Map<String, GradeTarget> t) => {

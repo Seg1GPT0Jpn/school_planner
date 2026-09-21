@@ -51,9 +51,13 @@ class WeekCycleCalculator {
   WeekCycleCalculator({
     required List<WeekAnchor> anchors,
     Map<String, WeekType> weekOverrides = const {},
+    this.enabled = true,
   }) : _anchors = [...anchors]
          ..sort((a, b) => mondayOf(a.date).compareTo(mondayOf(b.date))),
        _weekOverrides = weekOverrides;
+
+  /// Ⅰ週・Ⅱ週を使うか（false なら毎週同じ時間割。週の種類は null になる）
+  final bool enabled;
 
   /// 基準日（古い順に並べ替え済み）
   final List<WeekAnchor> _anchors;
@@ -65,6 +69,7 @@ class WeekCycleCalculator {
   ///
   /// 判定できない場合（基準日が未設定など）は null を返す。
   WeekType? weekTypeFor(DateTime date) {
+    if (!enabled) return null;
     final override = _weekOverrides[dateKey(mondayOf(date))];
     if (override != null) return override;
     return autoWeekTypeFor(date);
@@ -72,6 +77,7 @@ class WeekCycleCalculator {
 
   /// その週に週単位override が設定されているか
   bool isOverridden(DateTime date) {
+    if (!enabled) return false;
     return _weekOverrides.containsKey(dateKey(mondayOf(date)));
   }
 

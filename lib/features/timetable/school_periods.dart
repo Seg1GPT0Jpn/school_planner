@@ -1,7 +1,8 @@
 /// 学校の「時間枠」の定義
 ///
-/// 時限の時刻・5限がある曜日・日課ごとの時程は、
-/// アプリ全体でこのファイルだけを参照する。
+/// 時限の時刻・曜日ごとのコマ数・日課ごとの時程は、アプリ全体でこのファイルだけを参照する。
+/// 中身は「時程の設定」（users/{uid}/settings/school_schedule）で変えられる。
+/// 何も設定していないときは [ScheduleConfig.standard]（今の学校の時程）を使う。
 library;
 
 /// 時刻（時・分）を表すクラス
@@ -13,6 +14,25 @@ class ClockTime implements Comparable<ClockTime> {
 
   /// 0:00 からの経過分数（比較や計算に使う）
   int get totalMinutes => hour * 60 + minute;
+
+  /// 「8:50」「08:50」のどちらでも読む（読めなければ null）
+  static ClockTime? tryParse(Object? v) {
+    if (v is! String) return null;
+    final m = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(v.trim());
+    if (m == null) return null;
+    final h = int.parse(m.group(1)!), min = int.parse(m.group(2)!);
+    if (h > 23 || min > 59) return null;
+    return ClockTime(h, min);
+  }
+
+  /// 分からつくる
+  factory ClockTime.fromMinutes(int minutes) {
+    final m = ((minutes % 1440) + 1440) % 1440;
+    return ClockTime(m ~/ 60, m % 60);
+  }
+
+  ClockTime addMinutes(int minutes) =>
+      ClockTime.fromMinutes(totalMinutes + minutes);
 
   @override
   int compareTo(ClockTime other) => totalMinutes.compareTo(other.totalMinutes);
@@ -51,6 +71,31 @@ class SchoolPeriod {
 
   /// 授業の長さ（分）
   int get durationMinutes => end.totalMinutes - start.totalMinutes;
+
+  Map<String, dynamic> toMap() => {
+    'number': number,
+    'start': '$start',
+    'end': '$end',
+  };
+
+  static SchoolPeriod? fromMap(Object? m) {
+    if (m is! Map) return null;
+    final n = m['number'];
+    final s = ClockTime.tryParse(m['start']);
+    final e = ClockTime.tryParse(m['end']);
+    if (n is! num || s == null || e == null) return null;
+    return SchoolPeriod(number: n.toInt(), start: s, end: e);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SchoolPeriod &&
+      other.number == number &&
+      other.start == start &&
+      other.end == end;
+
+  @override
+  int get hashCode => Object.hash(number, start, end);
 }
 
 /// 日課（その日の時程の種類）
@@ -71,92 +116,282 @@ enum DaySchedule {
   bool get usesRegularTimetable => this != DaySchedule.exam;
 }
 
+/// 時程の設定（学校ごと・人ごとに変えられる）
+class ScheduleConfig {
+  const ScheduleConfig({
+    required this.periods,
+    required this.periodCounts,
+    required this.lunchAfterPeriod,
+    required this.lunchStart,
+    required this.lunchEnd,
+    required this.shortened,
+    required this.examPeriods,
+    this.useWeekCycle = true,
+  });
+
+  /// 通常日課の時限（いちばんコマ数が多い日のぶんまで。番号順）
+  final List<SchoolPeriod> periods;
+
+  /// 曜日（月=1 … 日=7）ごとのコマ数（0 なら授業なし）
+  final Map<int, int> periodCounts;
+
+  /// 昼休みは何時間目のあとか（0 なら昼休みなし）
+  final int lunchAfterPeriod;
+  final ClockTime lunchStart;
+  final ClockTime lunchEnd;
+
+  /// 短縮日課の時程（キー：その曜日の通常のコマ数）
+  final Map<int, List<SchoolPeriod>> shortened;
+
+  /// 試験日課の時程
+  final List<SchoolPeriod> examPeriods;
+
+  /// Ⅰ週・Ⅱ週で時間割が変わるか（false なら毎週同じ）
+  final bool useWeekCycle;
+
+  /// 今の学校の時程（何も設定していないときはこれ）
+  static const standard = ScheduleConfig(
+    // 通常日課（70分授業）
+    periods: [
+      SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(10, 0)),
+      SchoolPeriod(number: 2, start: ClockTime(10, 10), end: ClockTime(11, 20)),
+      SchoolPeriod(number: 3, start: ClockTime(11, 30), end: ClockTime(12, 40)),
+      SchoolPeriod(number: 4, start: ClockTime(13, 30), end: ClockTime(14, 40)),
+      SchoolPeriod(number: 5, start: ClockTime(14, 50), end: ClockTime(16, 0)),
+    ],
+    // 月火木=5、水金=4、土日=0
+    periodCounts: {1: 5, 2: 5, 3: 4, 4: 5, 5: 4, 6: 0, 7: 0},
+    lunchAfterPeriod: 3,
+    lunchStart: ClockTime(12, 40),
+    lunchEnd: ClockTime(13, 25),
+    shortened: {
+      // 通常5コマの曜日（40分 × 5）
+      5: [
+        SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(9, 30)),
+        SchoolPeriod(
+          number: 2,
+          start: ClockTime(9, 40),
+          end: ClockTime(10, 20),
+        ),
+        SchoolPeriod(
+          number: 3,
+          start: ClockTime(10, 30),
+          end: ClockTime(11, 10),
+        ),
+        SchoolPeriod(
+          number: 4,
+          start: ClockTime(11, 20),
+          end: ClockTime(12, 0),
+        ),
+        SchoolPeriod(
+          number: 5,
+          start: ClockTime(12, 10),
+          end: ClockTime(12, 50),
+        ),
+      ],
+      // 通常4コマの曜日（50分 × 4）
+      4: [
+        SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(9, 40)),
+        SchoolPeriod(
+          number: 2,
+          start: ClockTime(9, 50),
+          end: ClockTime(10, 40),
+        ),
+        SchoolPeriod(
+          number: 3,
+          start: ClockTime(10, 50),
+          end: ClockTime(11, 40),
+        ),
+        SchoolPeriod(
+          number: 4,
+          start: ClockTime(11, 50),
+          end: ClockTime(12, 40),
+        ),
+      ],
+    },
+    // 定期試験の日（3コマ）
+    examPeriods: [
+      SchoolPeriod(number: 1, start: ClockTime(9, 0), end: ClockTime(10, 0)),
+      SchoolPeriod(number: 2, start: ClockTime(10, 15), end: ClockTime(11, 15)),
+      SchoolPeriod(number: 3, start: ClockTime(11, 30), end: ClockTime(12, 30)),
+    ],
+  );
+
+  /// 授業がある曜日
+  Set<int> get schoolWeekdays => {
+    for (final e in periodCounts.entries)
+      if (e.value > 0) e.key,
+  };
+
+  int periodCountFor(int weekday) {
+    final n = periodCounts[weekday] ?? 0;
+    return n.clamp(0, periods.length);
+  }
+
+  /// 通常のコマ数ごとの短縮日課（なければ通常日課のまま）
+  List<SchoolPeriod> shortenedFor(int regularCount) {
+    final s = shortened[regularCount];
+    if (s != null && s.isNotEmpty) return s;
+    return periods.take(regularCount).toList();
+  }
+
+  /// 設定画面で必要な「通常のコマ数」の種類（例：[4, 5]）
+  List<int> get distinctCounts => ({
+    for (final w in periodCounts.keys)
+      if (periodCountFor(w) > 0) periodCountFor(w),
+  }.toList()..sort());
+
+  ScheduleConfig copyWith({
+    List<SchoolPeriod>? periods,
+    Map<int, int>? periodCounts,
+    int? lunchAfterPeriod,
+    ClockTime? lunchStart,
+    ClockTime? lunchEnd,
+    Map<int, List<SchoolPeriod>>? shortened,
+    List<SchoolPeriod>? examPeriods,
+    bool? useWeekCycle,
+  }) => ScheduleConfig(
+    periods: periods ?? this.periods,
+    periodCounts: periodCounts ?? this.periodCounts,
+    lunchAfterPeriod: lunchAfterPeriod ?? this.lunchAfterPeriod,
+    lunchStart: lunchStart ?? this.lunchStart,
+    lunchEnd: lunchEnd ?? this.lunchEnd,
+    shortened: shortened ?? this.shortened,
+    examPeriods: examPeriods ?? this.examPeriods,
+    useWeekCycle: useWeekCycle ?? this.useWeekCycle,
+  );
+
+  Map<String, dynamic> toMap() => {
+    'periods': [for (final p in periods) p.toMap()],
+    'periodCounts': {for (final e in periodCounts.entries) '${e.key}': e.value},
+    'lunchAfterPeriod': lunchAfterPeriod,
+    'lunchStart': '$lunchStart',
+    'lunchEnd': '$lunchEnd',
+    'shortened': {
+      for (final e in shortened.entries)
+        '${e.key}': [for (final p in e.value) p.toMap()],
+    },
+    'examPeriods': [for (final p in examPeriods) p.toMap()],
+    'useWeekCycle': useWeekCycle,
+  };
+
+  static List<SchoolPeriod> _periods(Object? v) {
+    if (v is! List) return const [];
+    return [for (final x in v) ?SchoolPeriod.fromMap(x)]
+      ..sort((a, b) => a.number.compareTo(b.number));
+  }
+
+  /// 保存されたものを読む（こわれていたり足りなかったりしたら、今の学校の時程を使う）
+  static ScheduleConfig fromMap(Map<String, dynamic>? m) {
+    const d = standard;
+    if (m == null) return d;
+
+    final periods = _periods(m['periods']);
+    final counts = <int, int>{};
+    final rawCounts = m['periodCounts'];
+    if (rawCounts is Map) {
+      for (final e in rawCounts.entries) {
+        final k = int.tryParse('${e.key}');
+        final v = e.value;
+        if (k != null && k >= 1 && k <= 7 && v is num) counts[k] = v.toInt();
+      }
+    }
+    final shortened = <int, List<SchoolPeriod>>{};
+    final rawShort = m['shortened'];
+    if (rawShort is Map) {
+      for (final e in rawShort.entries) {
+        final k = int.tryParse('${e.key}');
+        final list = _periods(e.value);
+        if (k != null && list.isNotEmpty) shortened[k] = list;
+      }
+    }
+    final exam = _periods(m['examPeriods']);
+
+    return ScheduleConfig(
+      periods: periods.isEmpty ? d.periods : periods,
+      periodCounts: counts.isEmpty ? d.periodCounts : counts,
+      lunchAfterPeriod: m['lunchAfterPeriod'] is num
+          ? (m['lunchAfterPeriod'] as num).toInt()
+          : d.lunchAfterPeriod,
+      lunchStart: ClockTime.tryParse(m['lunchStart']) ?? d.lunchStart,
+      lunchEnd: ClockTime.tryParse(m['lunchEnd']) ?? d.lunchEnd,
+      shortened: rawShort is Map ? shortened : d.shortened,
+      examPeriods: exam.isEmpty ? d.examPeriods : exam,
+      useWeekCycle: m['useWeekCycle'] is bool
+          ? m['useWeekCycle'] as bool
+          : d.useWeekCycle,
+    );
+  }
+
+  /// 設定の中身がおかしくないかを調べる（問題がなければ空）
+  List<String> problems() {
+    final out = <String>[];
+    void check(String name, List<SchoolPeriod> list) {
+      for (var i = 0; i < list.length; i++) {
+        final p = list[i];
+        if (p.number != i + 1) {
+          out.add('$name：時限の番号が1から順になっていません');
+          return;
+        }
+        if (p.end.totalMinutes <= p.start.totalMinutes) {
+          out.add('$name：${p.number}限の終わりが始まりより前です');
+        }
+        if (i > 0 && p.start.totalMinutes < list[i - 1].end.totalMinutes) {
+          out.add('$name：${p.number}限が${list[i - 1].number}限と重なっています');
+        }
+      }
+    }
+
+    if (periods.isEmpty) out.add('通常日課の時限が1つもありません');
+    check('通常日課', periods);
+    for (final e in shortened.entries) {
+      check('短縮日課（${e.key}コマの日）', e.value);
+    }
+    check('試験日課', examPeriods);
+    if (lunchAfterPeriod > 0 &&
+        lunchEnd.totalMinutes <= lunchStart.totalMinutes) {
+      out.add('昼休みの終わりが始まりより前です');
+    }
+    return out;
+  }
+}
+
 /// 学校の時間枠（このクラスはインスタンスを作らずに使う）
+///
+/// 中身は [config]。時間割のデータを読んだときに、設定した時程に入れかわる。
 class SchoolPeriods {
   SchoolPeriods._();
 
-  // ------------------------------------------------------------
-  // 通常日課（70分授業）
-  // ------------------------------------------------------------
+  /// いま使っている時程
+  static ScheduleConfig config = ScheduleConfig.standard;
 
-  /// 全時限の標準時刻（70分授業）
-  static const List<SchoolPeriod> all = [
-    SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(10, 0)),
-    SchoolPeriod(number: 2, start: ClockTime(10, 10), end: ClockTime(11, 20)),
-    SchoolPeriod(number: 3, start: ClockTime(11, 30), end: ClockTime(12, 40)),
-    SchoolPeriod(number: 4, start: ClockTime(13, 30), end: ClockTime(14, 40)),
-    SchoolPeriod(number: 5, start: ClockTime(14, 50), end: ClockTime(16, 0)),
-  ];
+  // ---------------- 通常日課 ----------------
+
+  /// 全時限の標準時刻
+  static List<SchoolPeriod> get all => config.periods;
 
   /// 昼休み（通常日課のみ）
-  static const ClockTime lunchStart = ClockTime(12, 40);
-  static const ClockTime lunchEnd = ClockTime(13, 25);
+  static ClockTime get lunchStart => config.lunchStart;
+  static ClockTime get lunchEnd => config.lunchEnd;
 
-  /// 昼休みは何時間目のあとか
-  static const int lunchAfterPeriod = 3;
+  /// 昼休みは何時間目のあとか（0 なら昼休みなし）
+  static int get lunchAfterPeriod => config.lunchAfterPeriod;
 
-  // ------------------------------------------------------------
-  // 短縮日課
-  // ------------------------------------------------------------
+  // ---------------- 試験日課 ----------------
 
-  /// 通常5コマの曜日の短縮日課（40分 × 5）
-  static const List<SchoolPeriod> shortenedFivePeriodDay = [
-    SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(9, 30)),
-    SchoolPeriod(number: 2, start: ClockTime(9, 40), end: ClockTime(10, 20)),
-    SchoolPeriod(number: 3, start: ClockTime(10, 30), end: ClockTime(11, 10)),
-    SchoolPeriod(number: 4, start: ClockTime(11, 20), end: ClockTime(12, 0)),
-    SchoolPeriod(number: 5, start: ClockTime(12, 10), end: ClockTime(12, 50)),
-  ];
+  static List<SchoolPeriod> get examPeriods => config.examPeriods;
 
-  /// 通常4コマの曜日の短縮日課（50分 × 4）
-  static const List<SchoolPeriod> shortenedFourPeriodDay = [
-    SchoolPeriod(number: 1, start: ClockTime(8, 50), end: ClockTime(9, 40)),
-    SchoolPeriod(number: 2, start: ClockTime(9, 50), end: ClockTime(10, 40)),
-    SchoolPeriod(number: 3, start: ClockTime(10, 50), end: ClockTime(11, 40)),
-    SchoolPeriod(number: 4, start: ClockTime(11, 50), end: ClockTime(12, 40)),
-  ];
+  // ---------------- 曜日 ----------------
 
-  // ------------------------------------------------------------
-  // 試験日課
-  // ------------------------------------------------------------
+  /// 授業がある曜日
+  static Set<int> get schoolWeekdays => config.schoolWeekdays;
 
-  /// 定期試験の日の時程（3コマ）
-  static const List<SchoolPeriod> examPeriods = [
-    SchoolPeriod(number: 1, start: ClockTime(9, 0), end: ClockTime(10, 0)),
-    SchoolPeriod(number: 2, start: ClockTime(10, 15), end: ClockTime(11, 15)),
-    SchoolPeriod(number: 3, start: ClockTime(11, 30), end: ClockTime(12, 30)),
-  ];
-
-  // ------------------------------------------------------------
-  // 曜日
-  // ------------------------------------------------------------
-
-  /// 授業がある曜日（月〜金）
-  static const Set<int> schoolWeekdays = {
-    DateTime.monday,
-    DateTime.tuesday,
-    DateTime.wednesday,
-    DateTime.thursday,
-    DateTime.friday,
-  };
-
-  /// 5限がある曜日（月・火・木）
-  static const Set<int> weekdaysWithFifthPeriod = {
-    DateTime.monday,
-    DateTime.tuesday,
-    DateTime.thursday,
-  };
-
-  /// その曜日の通常の授業数（月火木=5、水金=4、土日=0）
-  static int periodCountFor(int weekday) {
-    if (!schoolWeekdays.contains(weekday)) return 0;
-    return weekdaysWithFifthPeriod.contains(weekday) ? 5 : 4;
-  }
+  /// その曜日の通常の授業数
+  static int periodCountFor(int weekday) => config.periodCountFor(weekday);
 
   /// その曜日の通常日課の時限一覧
-  static List<SchoolPeriod> periodsFor(int weekday) {
-    return all.take(periodCountFor(weekday)).toList();
-  }
+  static List<SchoolPeriod> periodsFor(int weekday) =>
+      all.take(periodCountFor(weekday)).toList();
 
   /// 日課と曜日から、その日の時限一覧を決める
   static List<SchoolPeriod> periodsForSchedule(
@@ -167,23 +402,24 @@ class SchoolPeriods {
       case DaySchedule.regular:
         return periodsFor(weekday);
       case DaySchedule.shortened:
-        // 通常のコマ数によって、40分×5 か 50分×4 かが決まる
         final count = periodCountFor(weekday);
-        if (count == 5) return shortenedFivePeriodDay;
-        if (count == 4) return shortenedFourPeriodDay;
-        return const [];
+        if (count == 0) return const [];
+        return config.shortenedFor(count);
       case DaySchedule.exam:
         return examPeriods;
     }
   }
 
   /// その曜日に、その時限が「通常の授業」として存在するか
-  /// （例：水曜の5限 → false）
   static bool isRegularPeriod(int weekday, int periodNumber) {
     return periodNumber >= 1 && periodNumber <= periodCountFor(weekday);
   }
 
-  /// 時限の番号から通常日課の標準時刻を取り出す（1〜5以外はエラー）
+  /// その番号の時限があるか
+  static bool hasPeriod(int periodNumber) =>
+      all.any((p) => p.number == periodNumber);
+
+  /// 時限の番号から通常日課の標準時刻を取り出す（ない番号はエラー）
   static SchoolPeriod byNumber(int periodNumber) {
     return all.firstWhere(
       (p) => p.number == periodNumber,

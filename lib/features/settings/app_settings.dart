@@ -1,6 +1,8 @@
 /// つづりの設定（Googleカレンダーの「設定」にあたるもの）
 library;
 
+import '../travel/travel.dart';
+
 /// 日付の書き方
 enum DateStyle {
   ymdSlash('2026/9/21'),
@@ -120,6 +122,16 @@ class AppSettings {
     // そのほか
     this.offlineEnabled = true,
     this.keyboardShortcuts = true,
+    // 場所と移動
+    this.homeAddress = '',
+    this.homeLat,
+    this.homeLng,
+    this.schoolAddress = '',
+    this.schoolLat,
+    this.schoolLng,
+    this.travelMode = TravelMode.transit,
+    this.travelBufferMinutes = 10,
+    this.departFromSchool = true,
   });
 
   // ── 表示 ──
@@ -182,6 +194,36 @@ class AppSettings {
   /// キーボードショートカットを使う
   final bool keyboardShortcuts;
 
+  // ── 場所と移動 ──
+
+  /// 自宅の住所（町名までだけでもよい）
+  final String homeAddress;
+  final double? homeLat;
+  final double? homeLng;
+
+  /// 学校（職場）の住所
+  final String schoolAddress;
+  final double? schoolLat;
+  final double? schoolLng;
+
+  /// ふだんの移動のしかた
+  final TravelMode travelMode;
+
+  /// 出発時刻に足す余裕（分）
+  final int travelBufferMinutes;
+
+  /// 学校のある日の放課後の予定は、学校から出発するとみなす
+  final bool departFromSchool;
+
+  /// 自宅の位置（登録していなければ null）
+  LatLng? get homePoint =>
+      homeLat == null || homeLng == null ? null : LatLng(homeLat!, homeLng!);
+
+  /// 学校（職場）の位置（登録していなければ null）
+  LatLng? get schoolPoint => schoolLat == null || schoolLng == null
+      ? null
+      : LatLng(schoolLat!, schoolLng!);
+
   /// 実際に使う長さ（少し早く終わる設定のとき短くする）
   int get eventMinutes {
     if (!speedyEvents) return defaultEventMinutes;
@@ -228,6 +270,15 @@ class AppSettings {
     String? secondTimeZone,
     bool? offlineEnabled,
     bool? keyboardShortcuts,
+    String? homeAddress,
+    LatLng? homePoint,
+    bool clearHome = false,
+    String? schoolAddress,
+    LatLng? schoolPoint,
+    bool clearSchool = false,
+    TravelMode? travelMode,
+    int? travelBufferMinutes,
+    bool? departFromSchool,
   }) => AppSettings(
     weekStart: weekStart ?? this.weekStart,
     showWeekend: showWeekend ?? this.showWeekend,
@@ -247,6 +298,15 @@ class AppSettings {
     secondTimeZone: secondTimeZone ?? this.secondTimeZone,
     offlineEnabled: offlineEnabled ?? this.offlineEnabled,
     keyboardShortcuts: keyboardShortcuts ?? this.keyboardShortcuts,
+    homeAddress: clearHome ? '' : (homeAddress ?? this.homeAddress),
+    homeLat: clearHome ? null : (homePoint?.lat ?? homeLat),
+    homeLng: clearHome ? null : (homePoint?.lng ?? homeLng),
+    schoolAddress: clearSchool ? '' : (schoolAddress ?? this.schoolAddress),
+    schoolLat: clearSchool ? null : (schoolPoint?.lat ?? schoolLat),
+    schoolLng: clearSchool ? null : (schoolPoint?.lng ?? schoolLng),
+    travelMode: travelMode ?? this.travelMode,
+    travelBufferMinutes: travelBufferMinutes ?? this.travelBufferMinutes,
+    departFromSchool: departFromSchool ?? this.departFromSchool,
   );
 
   Map<String, dynamic> toMap() => {
@@ -267,6 +327,15 @@ class AppSettings {
     'secondTimeZone': secondTimeZone,
     'offlineEnabled': offlineEnabled,
     'keyboardShortcuts': keyboardShortcuts,
+    'homeAddress': homeAddress,
+    'homeLat': homeLat,
+    'homeLng': homeLng,
+    'schoolAddress': schoolAddress,
+    'schoolLat': schoolLat,
+    'schoolLng': schoolLng,
+    'travelMode': travelMode.name,
+    'travelBufferMinutes': travelBufferMinutes,
+    'departFromSchool': departFromSchool,
   };
 
   /// 知らない値・足りない値は、はじめの設定にもどす
@@ -293,6 +362,19 @@ class AppSettings {
 
     String text(String key, String fallback) =>
         m[key] is String ? m[key] as String : fallback;
+
+    double? real(String key, double limit) {
+      final v = m[key];
+      if (v is! num) return null;
+      final x = v.toDouble();
+      return x.isFinite && x.abs() <= limit ? x : null;
+    }
+
+    // 緯度と経度は、両方そろっているときだけ使う
+    final hLat = real('homeLat', 90), hLng = real('homeLng', 180);
+    final sLat = real('schoolLat', 90), sLng = real('schoolLng', 180);
+    final hasHome = hLat != null && hLng != null;
+    final hasSchool = sLat != null && sLng != null;
 
     return AppSettings(
       weekStart: pick(WeekStart.values, m['weekStart'], d.weekStart),
@@ -325,6 +407,19 @@ class AppSettings {
       secondTimeZone: text('secondTimeZone', d.secondTimeZone),
       offlineEnabled: flag('offlineEnabled', d.offlineEnabled),
       keyboardShortcuts: flag('keyboardShortcuts', d.keyboardShortcuts),
+      homeAddress: text('homeAddress', d.homeAddress),
+      homeLat: hasHome ? hLat : null,
+      homeLng: hasHome ? hLng : null,
+      schoolAddress: text('schoolAddress', d.schoolAddress),
+      schoolLat: hasSchool ? sLat : null,
+      schoolLng: hasSchool ? sLng : null,
+      travelMode: pick(TravelMode.values, m['travelMode'], d.travelMode),
+      travelBufferMinutes: number(
+        'travelBufferMinutes',
+        d.travelBufferMinutes,
+        max: 120,
+      ),
+      departFromSchool: flag('departFromSchool', d.departFromSchool),
     );
   }
 }

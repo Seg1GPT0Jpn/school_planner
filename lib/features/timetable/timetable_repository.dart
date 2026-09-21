@@ -30,9 +30,13 @@ class TimetableData {
     required this.schoolTests,
     required this.weeklyRules,
     required this.versions,
+    this.config = ScheduleConfig.standard,
   });
 
   final int dataVersion;
+
+  /// 時程の設定（時限の時刻・曜日ごとのコマ数・Ⅰ・Ⅱ週を使うか など）
+  final ScheduleConfig config;
   final List<Subject> subjects;
 
   /// 最初の時間割
@@ -78,6 +82,7 @@ class TimetableData {
     weekCalculator: WeekCycleCalculator(
       anchors: anchors,
       weekOverrides: weekOverrides,
+      enabled: config.useWeekCycle,
     ),
     slots: slots,
     dayOverrides: dayOverrides,
@@ -170,11 +175,17 @@ class TimetableRepository {
         s[name]!.docs.map((d) => d.data()).toList();
 
     var dataVersion = 0;
+    var config = ScheduleConfig.standard;
     for (final d in s['settings']!.docs) {
       if (d.id == 'app') {
         dataVersion = _toInt(d.data()['initialDataVersion'] ?? 1);
       }
+      if (d.id == scheduleDocId) {
+        config = ScheduleConfig.fromMap(d.data());
+      }
     }
+    // アプリ全体の時程を、この人の設定に入れかえる
+    SchoolPeriods.config = config;
 
     final subjectMaps = docs('subjects')
       ..sort((a, b) => _toInt(a['order']).compareTo(_toInt(b['order'])));
@@ -225,8 +236,21 @@ class TimetableRepository {
           SchoolTestRepository.ruleFromMap(d.id, d.data()),
       ],
       versions: versions,
+      config: config,
     );
   }
+
+  // ---------------- 時程の設定 ----------------
+
+  /// 時程の設定を保存する場所（settings/school_schedule）
+  static const scheduleDocId = 'school_schedule';
+
+  Future<void> saveScheduleConfig(ScheduleConfig config) =>
+      _col('settings').doc(scheduleDocId).set(config.toMap());
+
+  /// 今の学校の時程にもどす
+  Future<void> resetScheduleConfig() =>
+      _col('settings').doc(scheduleDocId).delete();
 
   // ---------------- 特定日の時限の変更 ----------------
 

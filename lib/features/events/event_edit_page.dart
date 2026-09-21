@@ -4,6 +4,7 @@ import '../../core/maps.dart';
 import '../review/school_event_page.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
+import '../travel/travel_card.dart';
 import 'calendar_event.dart';
 import 'category_manage_page.dart';
 import 'event_category.dart';
@@ -355,6 +356,16 @@ class _EventEditPageState extends State<EventEditPage> {
                     tooltip: 'Google マップで開く',
                     onPressed: () => openMap(context, _locationController.text),
                   ),
+                ),
+              ),
+
+              // 移動時間と出発時刻の目安（場所が入っているとき）
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _locationController,
+                builder: (context, value, _) => TravelCard(
+                  destination: value.text,
+                  start: _start,
+                  isAllDay: _isAllDay,
                 ),
               ),
 

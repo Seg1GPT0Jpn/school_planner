@@ -98,7 +98,7 @@ class DayTimetableCard extends StatelessWidget {
       case DayStatus.weekUnknown:
         return [const Text('Ⅰ週/Ⅱ週の基準日が設定されていません')];
       case DayStatus.school:
-        const lunchAfter = SchoolPeriods.lunchAfterPeriod;
+        final lunchAfter = SchoolPeriods.lunchAfterPeriod;
         final rows = <Widget>[];
         final hasMorning = day.lessons.any((l) => l.period <= lunchAfter);
         for (final lesson in day.lessons) {
