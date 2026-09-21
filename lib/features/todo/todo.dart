@@ -20,6 +20,7 @@ class Todo {
     this.subject,
     this.memo,
     this.done = false,
+    this.doneAt,
     this.subtasks = const [],
     this.linkedTestId,
   });
@@ -30,6 +31,9 @@ class Todo {
   final String? subject;
   final String? memo;
   final bool done;
+
+  /// 完了にした日時（達成の記録・連続記録の計算に使う。未完了なら null）
+  final DateTime? doneAt;
   final List<Subtask> subtasks;
 
   /// 提出物などから自動で作られたものなら、その元の ID
@@ -41,18 +45,39 @@ class Todo {
   bool isOverdue(DateTime today) =>
       !done && dueDate != null && _day(dueDate!).isBefore(_day(today));
 
+  /// 期限内に完了したか（期限がない ToDo は「期限内」として扱う）
+  bool get completedOnTime {
+    if (!done || doneAt == null) return false;
+    if (dueDate == null) return true;
+    return !_day(doneAt!).isAfter(_day(dueDate!));
+  }
+
   /// 小さなチェック項目の進み具合（例：1/3）。項目がなければ null
   String? get progressText => subtasks.isEmpty
       ? null
       : '${subtasks.where((s) => s.done).length}/${subtasks.length}';
 
-  Todo copyWith({bool? done, List<Subtask>? subtasks, String? memo}) => Todo(
+  /// done を切り替える（完了にしたときは doneAt を今にする。未完了に戻したら消す）
+  Todo toggled(bool value, {DateTime? now}) => copyWith(
+    done: value,
+    doneAt: value ? (now ?? DateTime.now()) : null,
+    clearDoneAt: !value,
+  );
+
+  Todo copyWith({
+    bool? done,
+    DateTime? doneAt,
+    bool clearDoneAt = false,
+    List<Subtask>? subtasks,
+    String? memo,
+  }) => Todo(
     id: id,
     title: title,
     dueDate: dueDate,
     subject: subject,
     memo: memo ?? this.memo,
     done: done ?? this.done,
+    doneAt: clearDoneAt ? null : (doneAt ?? this.doneAt),
     subtasks: subtasks ?? this.subtasks,
     linkedTestId: linkedTestId,
   );
@@ -94,6 +119,7 @@ List<Todo> mergeTodos(List<Todo> own, List<SchoolTest> tests) {
             subject: test.subject,
             memo: s?.memo ?? test.memo,
             done: s?.done ?? false,
+            doneAt: s?.doneAt,
             subtasks:
                 s?.subtasks ??
                 (isStudy

@@ -19,6 +19,9 @@ class AuthStateNotifier extends ChangeNotifier {
   /// 今ログインしているか
   bool get isLoggedIn => FirebaseAuth.instance.currentUser != null;
 
+  /// 今ログインしている人のID（ログインしていなければ null）
+  String? get uid => FirebaseAuth.instance.currentUser?.uid;
+
   @override
   void dispose() {
     _subscription.cancel();

@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/app_links.dart';
 
 /// ログイン画面
 class LoginPage extends StatefulWidget {
@@ -79,6 +82,21 @@ class _LoginPageState extends State<LoginPage> {
                       )
                     : const Icon(Icons.login),
                 label: const Text('Google でログイン'),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'ログインすると、プライバシーポリシーに同意したことになります。',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.outline,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              TextButton(
+                onPressed: () => launchUrl(
+                  privacyPolicyUri,
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Text('プライバシーポリシーを読む'),
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: 16),

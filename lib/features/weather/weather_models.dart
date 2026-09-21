@@ -36,6 +36,9 @@ const String schoolPlaceName = '藤沢市';
       _ => (label: '—', icon: '❔'),
     };
 
+/// 雨・雪などの「ぬれる」天気か（WMOコードが51以上）
+bool isWetWeather(int? code) => code != null && code >= 51;
+
 const _dirs = [
   '北',
   '北北東',

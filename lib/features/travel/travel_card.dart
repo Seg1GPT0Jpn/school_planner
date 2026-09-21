@@ -13,8 +13,10 @@ import '../settings/settings_scope.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/week_cycle.dart';
 import 'geocoder.dart';
+import 'osrm_service.dart';
 import 'places_page.dart';
 import 'travel.dart';
+import 'travel_realtime_service.dart';
 
 /// その日の授業が終わる時刻（分）。授業のない日は null
 int? schoolEndMinutesOn(DateTime day) {
@@ -317,6 +319,62 @@ class _TravelCardState extends State<TravelCard> with _Lookup<TravelCard> {
               ),
             ],
           ),
+          // 渋滞・電車の遅れを考慮した実際の時間（取れなければ何も出さない）
+          if (!plan.walking)
+            FutureBuilder<int?>(
+              future: TravelRealtimeService.instance.fetchMinutes(
+                from: plan.origin == TravelOrigin.home
+                    ? s.homePoint!
+                    : s.schoolPoint!,
+                to: geo.point,
+                mode: plan.mode,
+                arriveBy: plan.arriveBy,
+              ),
+              builder: (context, rtSnap) {
+                final rt = rtSnap.data;
+                if (rt != null) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.traffic_outlined,
+                          size: 14,
+                          color: cs.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '今の渋滞・遅れを考えると：約$rt分',
+                          style: note?.copyWith(color: cs.primary),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                // ここまで取れないときは、車移動だけ「実際の道なり」の時間を
+                // 無料の OSRM から出す（渋滞は含まない・直線距離の目安より正確）
+                if (plan.mode != TravelMode.car) return const SizedBox.shrink();
+                return FutureBuilder<int?>(
+                  future: OsrmService.instance.fetchCarMinutes(
+                    from: plan.origin == TravelOrigin.home
+                        ? s.homePoint!
+                        : s.schoolPoint!,
+                    to: geo.point,
+                  ),
+                  builder: (context, osrmSnap) {
+                    final road = osrmSnap.data;
+                    if (road == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '実際の道なりでは：約$road分（渋滞は含みません）',
+                        style: note,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           if (!widget.isAllDay) ...[
             const SizedBox(height: 4),
             Text(

@@ -70,6 +70,13 @@ class GoogleSyncRepository {
   }
 
   /// 読み込んで保存し直す。読み込んだ件数を返す
+  /// Google カレンダーを使う設定がしてあるか（読むカレンダーか書き込み先がある）
+  Future<bool> isConfigured() async {
+    final s = (await _settings.get()).data();
+    final read = s?['readIds'];
+    return s?['tsuzuriId'] is String || (read is List && read.isNotEmpty);
+  }
+
   Future<int> syncFromGoogle() async {
     final settings = (await _settings.get()).data();
     final tsuzuriId = settings?['tsuzuriId'] as String?;
@@ -199,6 +206,15 @@ Future<void> syncGoogleWithFeedback(BuildContext context) async {
     uid: FirebaseAuth.instance.currentUser!.uid,
   );
   try {
+    // まだつないでいない人には、つなぎ方を案内する（いきなり Google の画面を出さない）
+    if (!await repo.isConfigured()) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Google カレンダーはまだつないでいません。設定 ＞ Google カレンダー から接続できます'),
+        ),
+      );
+      return;
+    }
     messenger.showSnackBar(
       const SnackBar(content: Text('Google カレンダーと同期しています…')),
     );

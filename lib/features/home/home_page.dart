@@ -3,12 +3,28 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ai_advisor/advisor.dart';
+import '../ai_advisor/advisor_card.dart';
+import '../ai_advisor/auto_split.dart';
+import '../ai_advisor/auto_split_card.dart';
+import '../ai_advisor/today_plan.dart';
+import '../ai_advisor/today_plan_card.dart';
 import '../belongings/belongings_pages.dart';
+import '../earthquake/earthquake_page.dart';
 import '../events/calendar_event.dart';
+import '../events/event_category_repository.dart';
 import '../events/event_repository.dart';
+import '../free_time/free_time_page.dart';
+import '../gamification/gamification.dart';
+import '../gamification/gamification_card.dart';
 import '../goals/goal.dart';
 import '../goals/goal_repository.dart';
 import '../goals/goals_page.dart';
+import '../growth_log/growth_log_hub_page.dart';
+import '../growth_log/growth_log_repository.dart';
+import '../pattern_suggest/pattern_suggest.dart';
+import '../pattern_suggest/pattern_suggest_card.dart';
+import '../recovery/recovery_page.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
@@ -30,10 +46,13 @@ import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/timetable_repository.dart';
 import '../todo/todo.dart';
+import '../train_delay/train_delay_card.dart';
 import '../travel/travel_card.dart';
 import '../todo/todo_page.dart';
 import '../todo/todo_repository.dart';
 import '../weather/weather_home_card.dart';
+import '../workload/workload.dart';
+import '../workload/workload_card.dart';
 import 'home_brief.dart';
 
 /// ホーム ― 開いた瞬間に「今日は何をすればいい？」が分かる画面
@@ -208,8 +227,66 @@ class _HomePageState extends State<HomePage> {
         DateTime(today0.year, today0.month, today0.day + 3),
       ),
     ];
+    final weekEvents = [
+      ..._events,
+      ...expandRecurringWithTests(
+        _recurring,
+        today0,
+        DateTime(today0.year, today0.month, today0.day + 7),
+      ),
+    ];
 
     final urgent = buildUrgent(now: now, todos: todos, upcoming: upcoming);
+    final weekLoad = computeWeekLoad(
+      from: today0,
+      events: weekEvents,
+      upcoming: upcoming,
+    );
+
+    // AIアドバイス用：直近7日の気分（記録がある日だけ）と、3日以内のテスト数
+    final recentMoods = <String?>[
+      for (var i = 6; i >= 0; i--)
+        () {
+          final day = today0.subtract(Duration(days: i));
+          CalendarEvent? last;
+          for (final e in _events) {
+            if (e.mood == null || !e.occursOn(day)) continue;
+            if (last == null || e.end.isAfter(last.end)) last = e;
+          }
+          return last?.mood;
+        }(),
+    ].whereType<String>().toList();
+    final testsWithin3Days = upcoming
+        .where(
+          (u) =>
+              u.isTest &&
+              !u.date.isBefore(today0) &&
+              u.date.isBefore(today0.add(const Duration(days: 3))),
+        )
+        .length;
+    final advisorTips = computeAdvisorTips(
+      now: now,
+      todos: todos,
+      weekLoad: weekLoad,
+      gamification: computeGamification(todos, now: now),
+      recentMoods: recentMoods,
+      testsWithin3Days: testsWithin3Days,
+    );
+    final todayPlan = buildTodayPlan(
+      now: now,
+      todos: todos,
+      todayLoad: weekLoad.isNotEmpty ? weekLoad.first : null,
+    );
+    final splitCandidates = findSplitCandidates(todos, now);
+
+    final patternSuggestions = [
+      for (final s in detectPatternSuggestions(
+        events: _events,
+        existingRecurring: _recurring,
+        now: now,
+      ))
+        if (!settings.dismissedPatternKeys.contains(s.key)) s,
+    ];
     final todayBrief = buildDayBrief(
       day: today,
       events: events,
@@ -241,16 +318,40 @@ class _HomePageState extends State<HomePage> {
       WeatherHomeCard(
         isSchoolDay: (d) => resolver.resolve(d).status == DayStatus.school,
       ),
+      if (settings.favoriteLineIds.isNotEmpty) ...[
+        gap,
+        TrainDelayCard(settings: settings),
+      ],
       gap,
       _NowCard(now: lessonNow(today, now), settings: settings),
       gap,
       _UrgentCard(
         items: urgent,
         now: now,
-        onToggle: (t, v) => _todoRepository.save(t.copyWith(done: v)),
+        onToggle: (t, v) => _todoRepository.save(t.toggled(v)),
         onTapTodo: _openTodo,
         onTapTest: _openUpcoming,
       ),
+      if (settings.aiAdvisorEnabled) ...[
+        gap,
+        TodayPlanCard(
+          plan: todayPlan,
+          onToggle: (t, v) => _todoRepository.save(t.toggled(v)),
+          onTap: _openTodo,
+        ),
+        gap,
+        AdvisorCard(tips: advisorTips),
+        if (splitCandidates.isNotEmpty) ...[
+          gap,
+          AutoSplitCard(
+            candidates: splitCandidates,
+            weekLoad: weekLoad,
+            now: now,
+          ),
+        ],
+      ],
+      gap,
+      WorkloadCard(week: weekLoad, settings: settings),
       gap,
       _SectionTitle('今日', date: settings.date(today0, weekday: true)),
       if (today.status == DayStatus.school) ...[
@@ -262,8 +363,50 @@ class _HomePageState extends State<HomePage> {
         events: todayBrief.events,
         settings: settings,
       ),
+      if (todayBrief.events.isNotEmpty) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.restart_alt),
+            title: const Text('リカバリーモード'),
+            subtitle: const Text('急な予定変更のあと、残りの予定をまとめてずらす'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openRecoveryMode(
+              context,
+              repository: EventRepository(uid: _uid),
+              events: _events,
+              day: today0,
+            ),
+          ),
+        ),
+      ],
+      gap,
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.event_available_outlined),
+          title: const Text('空き時間さがし'),
+          subtitle: const Text('授業や予定のすき間を、自動で見つけます'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => openFreeTime(
+            context,
+            repository: EventRepository(uid: _uid),
+            categoryRepository: EventCategoryRepository(uid: _uid),
+            resolver: resolver,
+            events: _events,
+            day: today0,
+          ),
+        ),
+      ),
       gap,
       _StudyCard(today: studyToday, week: studyWeek),
+      if (settings.gamificationEnabled) ...[
+        gap,
+        GamificationCard(stats: computeGamification(todos, now: now)),
+      ],
+      if (settings.moodTrackingEnabled) ...[
+        gap,
+        _MoodWeekCard(weekFrom: weekFrom, events: _events, settings: settings),
+      ],
       gap,
       Card(
         child: ListTile(
@@ -272,6 +415,30 @@ class _HomePageState extends State<HomePage> {
           subtitle: const Text('今週・今月・今学期のまとめ'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => openReview(context),
+        ),
+      ),
+      gap,
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.trending_up),
+          title: const Text('成長ログ'),
+          subtitle: const Text('部活・練習・趣味の記録をつける'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => openGrowthLogHub(
+            context,
+            categoryRepository: EventCategoryRepository(uid: _uid),
+            repository: GrowthLogRepository(uid: _uid),
+          ),
+        ),
+      ),
+      gap,
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.vibration),
+          title: const Text('地震情報'),
+          subtitle: const Text('最新の地震・履歴・リアルタイム震度'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => openEarthquake(context),
         ),
       ),
     ];
@@ -306,6 +473,13 @@ class _HomePageState extends State<HomePage> {
         _GoalCard(
           goals: goals,
           onTap: (g) => _push(GoalEditPage(goal: g)),
+        ),
+      ],
+      if (patternSuggestions.isNotEmpty) ...[
+        gap,
+        PatternSuggestCard(
+          suggestions: patternSuggestions,
+          recurringRepository: RecurringRepository(uid: _uid),
         ),
       ],
     ];
@@ -775,6 +949,93 @@ class _StudyCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 今週の気分（予定につけた気分を、曜日ごとに並べる）
+class _MoodWeekCard extends StatelessWidget {
+  const _MoodWeekCard({
+    required this.weekFrom,
+    required this.events,
+    required this.settings,
+  });
+
+  final DateTime weekFrom;
+  final List<CalendarEvent> events;
+  final AppSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    const weekdayLabels = ['月', '火', '水', '木', '金', '土', '日'];
+
+    String? moodFor(DateTime day) {
+      CalendarEvent? last;
+      for (final e in events) {
+        if (e.mood == null) continue;
+        if (!e.occursOn(day)) continue;
+        if (last == null || e.end.isAfter(last.end)) last = e;
+      }
+      return last?.mood;
+    }
+
+    final hasAny = List.generate(
+      7,
+      (i) => moodFor(weekFrom.add(Duration(days: i))),
+    ).any((m) => m != null);
+
+    if (!hasAny) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('今週の気分', style: tt.titleMedium),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < 7; i++)
+                  Builder(
+                    builder: (context) {
+                      final day = weekFrom.add(Duration(days: i));
+                      final mood = moodFor(day);
+                      final isToday =
+                          _sameDay(day, DateTime.now());
+                      return Column(
+                        children: [
+                          Text(
+                            weekdayLabels[i],
+                            style: tt.bodySmall?.copyWith(
+                              color: isToday ? cs.primary : cs.outline,
+                              fontWeight:
+                                  isToday ? FontWeight.bold : null,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            mood ?? '・',
+                            style: TextStyle(
+                              fontSize: mood == null ? 14 : 20,
+                              color: mood == null ? cs.outlineVariant : null,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 /// 明日のまとめ（時間割・テスト・締切・予定）

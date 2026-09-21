@@ -5,8 +5,8 @@
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#795548",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "時間割・予定・テスト・目標をひとつにまとめる学校生活アプリ",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

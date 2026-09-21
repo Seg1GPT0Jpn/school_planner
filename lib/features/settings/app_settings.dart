@@ -132,6 +132,15 @@ class AppSettings {
     this.travelMode = TravelMode.transit,
     this.travelBufferMinutes = 10,
     this.departFromSchool = true,
+    this.autoAddTravelEvents = false,
+    // 電車の遅延情報
+    this.favoriteLineIds = const [],
+    // がんばり・気分
+    this.gamificationEnabled = true,
+    this.moodTrackingEnabled = true,
+    this.aiAdvisorEnabled = true,
+    // 予定候補の提案
+    this.dismissedPatternKeys = const [],
   });
 
   // ── 表示 ──
@@ -215,6 +224,30 @@ class AppSettings {
   /// 学校のある日の放課後の予定は、学校から出発するとみなす
   final bool departFromSchool;
 
+  /// 予定を保存したとき、移動時間の予定（「〇〇から移動」）を自動で追加する
+  final bool autoAddTravelEvents;
+
+  // ── 電車の遅延情報 ──
+
+  /// よく使う路線（ODPT の路線ID）
+  final List<String> favoriteLineIds;
+
+  // ── がんばり・気分 ──
+
+  /// ホームに「がんばり」（ポイント・バッジ・連続記録）を表示する
+  final bool gamificationEnabled;
+
+  /// 予定に「気分」をつける・ホームに「今週の気分」を表示する
+  final bool moodTrackingEnabled;
+
+  /// ホームに「AIアドバイス」（ToDo・忙しさ・気分などから自動で作る一言）を表示する
+  final bool aiAdvisorEnabled;
+
+  // ── 予定候補の提案 ──
+
+  /// 「却下」した予定候補（もう提案しない）
+  final List<String> dismissedPatternKeys;
+
   /// 自宅の位置（登録していなければ null）
   LatLng? get homePoint =>
       homeLat == null || homeLng == null ? null : LatLng(homeLat!, homeLng!);
@@ -279,6 +312,12 @@ class AppSettings {
     TravelMode? travelMode,
     int? travelBufferMinutes,
     bool? departFromSchool,
+    bool? autoAddTravelEvents,
+    List<String>? favoriteLineIds,
+    bool? gamificationEnabled,
+    bool? moodTrackingEnabled,
+    bool? aiAdvisorEnabled,
+    List<String>? dismissedPatternKeys,
   }) => AppSettings(
     weekStart: weekStart ?? this.weekStart,
     showWeekend: showWeekend ?? this.showWeekend,
@@ -307,6 +346,12 @@ class AppSettings {
     travelMode: travelMode ?? this.travelMode,
     travelBufferMinutes: travelBufferMinutes ?? this.travelBufferMinutes,
     departFromSchool: departFromSchool ?? this.departFromSchool,
+    autoAddTravelEvents: autoAddTravelEvents ?? this.autoAddTravelEvents,
+    favoriteLineIds: favoriteLineIds ?? this.favoriteLineIds,
+    gamificationEnabled: gamificationEnabled ?? this.gamificationEnabled,
+    moodTrackingEnabled: moodTrackingEnabled ?? this.moodTrackingEnabled,
+    aiAdvisorEnabled: aiAdvisorEnabled ?? this.aiAdvisorEnabled,
+    dismissedPatternKeys: dismissedPatternKeys ?? this.dismissedPatternKeys,
   );
 
   Map<String, dynamic> toMap() => {
@@ -336,6 +381,12 @@ class AppSettings {
     'travelMode': travelMode.name,
     'travelBufferMinutes': travelBufferMinutes,
     'departFromSchool': departFromSchool,
+    'autoAddTravelEvents': autoAddTravelEvents,
+    'favoriteLineIds': favoriteLineIds,
+    'gamificationEnabled': gamificationEnabled,
+    'moodTrackingEnabled': moodTrackingEnabled,
+    'aiAdvisorEnabled': aiAdvisorEnabled,
+    'dismissedPatternKeys': dismissedPatternKeys,
   };
 
   /// 知らない値・足りない値は、はじめの設定にもどす
@@ -420,6 +471,25 @@ class AppSettings {
         max: 120,
       ),
       departFromSchool: flag('departFromSchool', d.departFromSchool),
+      autoAddTravelEvents: flag(
+        'autoAddTravelEvents',
+        d.autoAddTravelEvents,
+      ),
+      favoriteLineIds: [
+        for (final x in (m['favoriteLineIds'] as List<dynamic>? ?? const []))
+          if (x is String) x,
+      ],
+      gamificationEnabled: flag('gamificationEnabled', d.gamificationEnabled),
+      moodTrackingEnabled: flag(
+        'moodTrackingEnabled',
+        d.moodTrackingEnabled,
+      ),
+      aiAdvisorEnabled: flag('aiAdvisorEnabled', d.aiAdvisorEnabled),
+      dismissedPatternKeys: [
+        for (final x
+            in (m['dismissedPatternKeys'] as List<dynamic>? ?? const []))
+          if (x is String) x,
+      ],
     );
   }
 }

@@ -1,9 +1,16 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/maps.dart';
+import '../growth_log/growth_log_entry_page.dart';
+import '../growth_log/growth_log_repository.dart';
 import '../review/school_event_page.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
+import '../timetable/school_periods.dart';
+import '../travel/geocoder.dart';
+import '../travel/travel.dart';
 import '../travel/travel_card.dart';
 import 'calendar_event.dart';
 import 'category_manage_page.dart';
@@ -42,17 +49,31 @@ class _EventEditPageState extends State<EventEditPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _locationController;
   late final TextEditingController _memoController;
+  late final TextEditingController _belongingInputController;
   late final Stream<List<EventCategory>> _categoryStream;
 
   late DateTime _start;
   late DateTime _end;
   late bool _isAllDay;
   late String _categoryId;
+  late List<String> _belongings;
+  String? _mood;
+  late final GrowthLogRepository _growthLogRepository;
+  StreamSubscription<List<EventCategory>>? _categorySub;
+  List<EventCategory> _categories = const [];
 
   bool _isSaving = false;
   String? _errorMessage;
 
   bool get _isEditing => widget.event != null;
+
+  /// いま選んでいるカテゴリで成長ログを使えるか
+  bool get _growthLogAvailable {
+    for (final c in _categories) {
+      if (c.id == _categoryId) return c.growthLogEnabled;
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -61,9 +82,18 @@ class _EventEditPageState extends State<EventEditPage> {
     _titleController = TextEditingController(text: e?.title ?? '');
     _locationController = TextEditingController(text: e?.location ?? '');
     _memoController = TextEditingController(text: e?.memo ?? '');
+    _belongingInputController = TextEditingController();
     _isAllDay = e?.isAllDay ?? widget.initialAllDay;
     _categoryId = e?.categoryId ?? EventCategory.otherId;
+    _belongings = List<String>.from(e?.belongings ?? const []);
+    _mood = e?.mood;
     _categoryStream = widget.categoryRepository.watch();
+    _growthLogRepository = GrowthLogRepository(
+      uid: widget.repository.uid,
+    );
+    _categorySub = _categoryStream.listen((v) {
+      if (mounted) setState(() => _categories = v);
+    });
 
     if (e != null) {
       _start = e.start;
@@ -93,10 +123,28 @@ class _EventEditPageState extends State<EventEditPage> {
 
   @override
   void dispose() {
+    _categorySub?.cancel();
     _titleController.dispose();
     _locationController.dispose();
     _memoController.dispose();
+    _belongingInputController.dispose();
     super.dispose();
+  }
+
+  void _openGrowthLog() {
+    final e = widget.event;
+    if (e == null) return;
+    openGrowthLogEntry(
+      context,
+      repository: _growthLogRepository,
+      categoryId: _categoryId,
+      eventId: e.id,
+      title: _titleController.text.trim().isEmpty
+          ? e.title
+          : _titleController.text.trim(),
+      date: _start,
+      minutes: _end.difference(_start).inMinutes,
+    );
   }
 
   String _timeText(DateTime d) => _settings.timeOf(d);
@@ -157,6 +205,58 @@ class _EventEditPageState extends State<EventEditPage> {
     });
   }
 
+  /// その日の授業が終わる時刻（時程が無い日は null）
+  ClockTime? _schoolEndTime(DateTime day) {
+    final periods = SchoolPeriods.periodsFor(day.weekday);
+    if (periods.isEmpty) return null;
+    return periods.last.end;
+  }
+
+  /// 「放課後◯分後」を開始時刻に設定する
+  Future<void> _pickAfterSchool() async {
+    final end = _schoolEndTime(_start);
+    if (end == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('この日は授業の時程が設定されていません')));
+      return;
+    }
+    final minutes = await showDialog<int>(
+      context: context,
+      builder: (context) => const _AfterSchoolDialog(),
+    );
+    if (minutes == null) return;
+
+    setState(() {
+      final length = _end.difference(_start);
+      final newStart = DateTime(
+        _start.year,
+        _start.month,
+        _start.day,
+        end.hour,
+        end.minute,
+      ).add(Duration(minutes: minutes));
+      _isAllDay = false;
+      _start = newStart;
+      _end = newStart.add(
+        length.isNegative ? const Duration(hours: 1) : length,
+      );
+    });
+  }
+
+  void _addBelonging() {
+    final text = _belongingInputController.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      if (!_belongings.contains(text)) _belongings.add(text);
+      _belongingInputController.clear();
+    });
+  }
+
+  void _removeBelonging(String item) {
+    setState(() => _belongings.remove(item));
+  }
+
   void _openCategoryManager() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -182,6 +282,8 @@ class _EventEditPageState extends State<EventEditPage> {
       location: _locationController.text,
       memo: _memoController.text,
       categoryId: _categoryId,
+      belongings: _belongings,
+      mood: _mood,
     );
 
     final error = event.validate();
@@ -195,13 +297,51 @@ class _EventEditPageState extends State<EventEditPage> {
       _errorMessage = null;
     });
     try {
-      await widget.repository.save(event);
+      final savedId = await widget.repository.save(event);
+      await _syncTravelEvent(savedId, event);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _errorMessage = '保存に失敗しました：$e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  /// 設定がONなら、この予定の分の「移動」の予定を作り直す。OFFや対象外なら消す。
+  Future<void> _syncTravelEvent(String savedId, CalendarEvent saved) async {
+    if (saved.isTravelEvent) return; // 「移動」の予定自体は対象外
+    Future<void> clear() =>
+        widget.repository.deleteTravelFor(savedId).catchError((_) {});
+
+    if (!_settings.autoAddTravelEvents) return clear();
+    final destText = saved.location?.trim() ?? '';
+    if (destText.isEmpty || saved.isAllDay) return clear();
+
+    final geo = await Geocoder.lookup(destText);
+    if (geo == null) return clear();
+
+    final plan = travelPlanFor(
+      s: _settings,
+      destination: geo.point,
+      start: saved.start,
+    );
+    if (plan == null) return clear();
+
+    final existing = await widget.repository.findTravelFor(savedId);
+    await widget.repository.save(
+      CalendarEvent(
+        id: existing?.id,
+        title: '${plan.origin.label}から移動（${plan.modeLabel}）',
+        start: plan.departAt,
+        end: saved.start,
+        location: saved.location,
+        memo:
+            '「${saved.title}」のために自動で追加した移動の予定です。'
+            '消しても、次に保存すればまた作られます。',
+        categoryId: saved.categoryId,
+        travelForEventId: savedId,
+      ),
+    );
   }
 
   Future<void> _delete() async {
@@ -223,7 +363,11 @@ class _EventEditPageState extends State<EventEditPage> {
     );
     if (shouldDelete != true) return;
 
-    await widget.repository.delete(widget.event!.id!);
+    final id = widget.event!.id!;
+    if (!widget.event!.isTravelEvent) {
+      await widget.repository.deleteTravelFor(id).catchError((_) {});
+    }
+    await widget.repository.delete(id);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -240,6 +384,12 @@ class _EventEditPageState extends State<EventEditPage> {
         ),
         title: Text(_isEditing ? '予定を編集' : '予定を追加'),
         actions: [
+          if (_isEditing && _growthLogAvailable)
+            IconButton(
+              icon: const Icon(Icons.trending_up),
+              tooltip: '成長ログに記録する',
+              onPressed: _openGrowthLog,
+            ),
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.celebration_outlined),
@@ -302,6 +452,14 @@ class _EventEditPageState extends State<EventEditPage> {
                 onTapDate: () => _pickDate(isStart: false),
                 onTapTime: () => _pickTime(isStart: false),
               ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _pickAfterSchool,
+                  icon: const Icon(Icons.directions_run, size: 18),
+                  label: const Text('放課後◯分後に設定'),
+                ),
+              ),
               const Divider(),
 
               // カテゴリ
@@ -344,6 +502,35 @@ class _EventEditPageState extends State<EventEditPage> {
               const SizedBox(height: 16),
               const Divider(),
 
+              // 気分（任意・選ぶだけ。設定でOFFにできる）
+              if (_settings.moodTrackingEnabled) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text('気分', style: Theme.of(context).textTheme.labelLarge),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      for (final m in eventMoods)
+                        IconButton(
+                          isSelected: _mood == m,
+                          style: IconButton.styleFrom(
+                            backgroundColor: _mood == m
+                                ? colorScheme.secondaryContainer
+                                : null,
+                          ),
+                          onPressed: () => setState(
+                            () => _mood = _mood == m ? null : m,
+                          ),
+                          icon: Text(m, style: const TextStyle(fontSize: 18)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(),
+              ],
+
               // 場所（右のボタンで Google マップを開く）
               TextField(
                 controller: _locationController,
@@ -379,6 +566,52 @@ class _EventEditPageState extends State<EventEditPage> {
                   hintText: 'メモ',
                   border: InputBorder.none,
                 ),
+              ),
+
+              const Divider(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.checklist_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'この予定の持ち物',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_belongings.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final item in _belongings)
+                      InputChip(
+                        label: Text(item),
+                        onDeleted: () => _removeBelonging(item),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _belongingInputController,
+                      decoration: const InputDecoration(
+                        hintText: '持ち物を追加（例：傘）',
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _addBelonging(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    tooltip: '追加',
+                    onPressed: _addBelonging,
+                  ),
+                ],
               ),
 
               if (_errorMessage != null) ...[
@@ -424,6 +657,53 @@ class _DateTimeRow extends StatelessWidget {
         TextButton(onPressed: onTapDate, child: Text(dateText)),
         if (timeText != null)
           TextButton(onPressed: onTapTime, child: Text(timeText!)),
+      ],
+    );
+  }
+}
+
+/// 「放課後◯分後」の分数を入力するダイアログ
+class _AfterSchoolDialog extends StatefulWidget {
+  const _AfterSchoolDialog();
+
+  @override
+  State<_AfterSchoolDialog> createState() => _AfterSchoolDialogState();
+}
+
+class _AfterSchoolDialogState extends State<_AfterSchoolDialog> {
+  final _controller = TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final minutes = int.tryParse(_controller.text.trim()) ?? 0;
+    Navigator.of(context).pop(minutes);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('放課後◯分後'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: '放課後から何分後か',
+          suffixText: '分後',
+        ),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('設定')),
       ],
     );
   }

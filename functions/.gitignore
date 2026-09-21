@@ -1,0 +1,5 @@
+# Cloud Functions
+node_modules/
+.env
+.env.*
+*.log

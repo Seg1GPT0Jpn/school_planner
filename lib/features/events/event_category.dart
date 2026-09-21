@@ -7,6 +7,7 @@ class EventCategory {
     required this.name,
     required this.colorValue,
     this.order = 0,
+    this.growthLogEnabled = false,
   });
 
   /// Firestore の ID
@@ -21,18 +22,27 @@ class EventCategory {
   /// 並び順（小さいほど前）
   final int order;
 
+  /// このカテゴリの予定で「成長ログ」（練習記録など）を使うか
+  final bool growthLogEnabled;
+
   /// 「その他」の ID（削除できない）
   static const String otherId = 'other';
 
   /// 削除してよいカテゴリか
   bool get isDeletable => id != otherId;
 
-  EventCategory copyWith({String? name, int? colorValue, int? order}) {
+  EventCategory copyWith({
+    String? name,
+    int? colorValue,
+    int? order,
+    bool? growthLogEnabled,
+  }) {
     return EventCategory(
       id: id,
       name: name ?? this.name,
       colorValue: colorValue ?? this.colorValue,
       order: order ?? this.order,
+      growthLogEnabled: growthLogEnabled ?? this.growthLogEnabled,
     );
   }
 }

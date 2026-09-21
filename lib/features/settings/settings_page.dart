@@ -1,9 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/app_links.dart';
 
 import '../belongings/belongings_pages.dart';
 import '../events/category_manage_page.dart';
 import '../events/event_category_repository.dart';
+import '../google_calendar/google_access.dart';
 import '../google_calendar/google_calendar_page.dart';
 import '../recurring/recurring_pages.dart';
 import '../school_tests/weekly_rules_page.dart';
@@ -11,6 +16,7 @@ import '../timetable/schedule_config_page.dart';
 import '../timetable/school_settings_page.dart';
 import '../timetable/subject_color_page.dart';
 import '../timetable/subject_manage_page.dart';
+import '../train_delay/line_picker_page.dart';
 import '../travel/places_page.dart';
 import 'app_settings.dart';
 import 'import_export_page.dart';
@@ -126,12 +132,35 @@ class SettingsPage extends StatelessWidget {
                 subtitle: const Text('.ics ファイルで予定を読み書き'),
                 onTap: () => _push(context, const ImportExportPage()),
               ),
+              ListTile(
+                leading: const Icon(Icons.emoji_events_outlined),
+                title: const Text('がんばり・気分'),
+                subtitle: Text(() {
+                  final on = [
+                    if (s.gamificationEnabled) 'がんばり',
+                    if (s.moodTrackingEnabled) '気分記録',
+                    if (s.aiAdvisorEnabled) 'AIアドバイス',
+                  ];
+                  return on.isEmpty ? 'すべてOFF' : on.join('・');
+                }()),
+                onTap: () => _push(context, const MotivationSettingsPage()),
+              ),
               header('学校'),
               ListTile(
                 leading: const Icon(Icons.schedule),
                 title: const Text('時程の設定'),
                 subtitle: const Text('時限の時刻・曜日ごとのコマ数・Ⅰ・Ⅱ週'),
                 onTap: () => _push(context, const ScheduleConfigPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.train_outlined),
+                title: const Text('よく使う路線'),
+                subtitle: Text(
+                  s.favoriteLineIds.isEmpty
+                      ? '登録すると、ホームで運行情報が見られます'
+                      : '${s.favoriteLineIds.length}路線を登録中',
+                ),
+                onTap: () => _push(context, const LinePickerPage()),
               ),
               ListTile(
                 leading: const Icon(Icons.home_work_outlined),
@@ -190,16 +219,29 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('塾・部活などの定期の予定'),
                 onTap: () => openRecurringList(context),
               ),
-              ListTile(
-                leading: const Icon(Icons.sync),
-                title: const Text('Google カレンダー'),
-                subtitle: const Text('読み込み・書き込みの設定'),
-                onTap: () => _push(context, const GoogleCalendarPage()),
-              ),
+              // Google の審査が終わる（googleCalendarPublished = true）までは、
+              // Web 版（ほかの人も使う Ver.2）では表示しない。
+              // アプリ版（Pixel など）は、かず本人しか入れていないのでそのまま出す。
+              if (googleCalendarPublished || !kIsWeb)
+                ListTile(
+                  leading: const Icon(Icons.sync),
+                  title: const Text('Google カレンダー'),
+                  subtitle: const Text('読み込み・書き込みの設定'),
+                  onTap: () => _push(context, const GoogleCalendarPage()),
+                ),
               header('アカウント'),
               ListTile(
                 leading: const Icon(Icons.account_circle_outlined),
                 title: Text(email),
+              ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('プライバシーポリシー'),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => launchUrl(
+                  privacyPolicyUri,
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.logout),

@@ -60,6 +60,16 @@ class _WeatherHomeCardState extends State<WeatherHomeCard> {
                   .precipitationNext(now, hours: 2)
                   .fold<double>(0, (s, x) => s + (x.precipitation ?? 0));
         final maxLevel = b.warnings?.maxLevel ?? 0;
+        // 「自宅待機かも」のカードは、雨・雪などぬれる天気か、
+        // すでにリスクが高いとき（警報が出ているなど）だけ出す
+        final wetWeather =
+            isWetWeather(c?.code) || isWetWeather(today?.code) || rainSoon > 0;
+        final showClosure =
+            prediction != null &&
+            prediction.risk.index >= ClosureRisk.low.index &&
+            (wetWeather ||
+                b.typhoons.isNotEmpty ||
+                prediction.risk.index >= ClosureRisk.medium.index);
 
         return Column(
           children: [
@@ -123,9 +133,8 @@ class _WeatherHomeCardState extends State<WeatherHomeCard> {
                 ),
               ),
             ),
-            // 自宅待機がありうるときだけ、大きく出す
-            if (prediction != null &&
-                prediction.risk.index >= ClosureRisk.low.index) ...[
+            // 自宅待機がありうる・雨や雪などの天気のときだけ、大きく出す
+            if (showClosure) ...[
               const SizedBox(height: 12),
               ClosureCard(prediction: prediction, onTap: _open),
             ],

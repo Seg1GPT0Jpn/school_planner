@@ -151,6 +151,17 @@ class _PlacesPageState extends State<PlacesPage> {
                 onChanged: (v) =>
                     saveSettings(context, s.copyWith(departFromSchool: v)),
               ),
+              SwitchListTile(
+                title: const Text('移動の予定を自動で追加する'),
+                subtitle: const Text(
+                  '場所が入っている予定を保存すると、「〇〇から移動」という予定を'
+                  'カレンダーに自動で足します（時刻を変えたり消したりすると、'
+                  '次に保存したときに作り直されます）',
+                ),
+                value: s.autoAddTravelEvents,
+                onChanged: (v) =>
+                    saveSettings(context, s.copyWith(autoAddTravelEvents: v)),
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Text(

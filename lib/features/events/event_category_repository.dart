@@ -79,6 +79,7 @@ class EventCategoryRepository {
     'name': c.name,
     'color': c.colorValue,
     'order': c.order,
+    'growthLogEnabled': c.growthLogEnabled,
   };
 
   static EventCategory _fromMap(String id, Map<String, dynamic> m) {
@@ -87,6 +88,7 @@ class EventCategoryRepository {
       name: m['name'] as String? ?? '',
       colorValue: (m['color'] as num?)?.toInt() ?? 0xFF78909C,
       order: (m['order'] as num?)?.toInt() ?? 0,
+      growthLogEnabled: m['growthLogEnabled'] as bool? ?? false,
     );
   }
 }

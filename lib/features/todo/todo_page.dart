@@ -117,7 +117,7 @@ class _TodoPageState extends State<TodoPage> {
                                   leading: Checkbox(
                                     value: t.done,
                                     onChanged: (v) => _repo().save(
-                                      t.copyWith(done: v ?? false),
+                                      t.toggled(v ?? false),
                                     ),
                                   ),
                                   title: Text(

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'google_access.dart';
 import 'google_calendar_service.dart';
 import 'google_calendar_settings.dart';
 
@@ -29,11 +30,28 @@ class _GoogleCalendarPageState extends State<GoogleCalendarPage> {
     });
     try {
       await task();
+    } on FirebaseAuthException catch (e) {
+      setState(() => _error = _authMessage(e));
     } catch (e) {
       setState(() => _error = '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Google の画面で止まったときの言い方
+  static String? _authMessage(FirebaseAuthException e) {
+    const closed = {
+      'popup-closed-by-user',
+      'cancelled-popup-request',
+      'web-context-canceled',
+      'canceled',
+    };
+    if (closed.contains(e.code)) return null; // 自分で閉じたときは何も言わない
+    if (!googleCalendarPublished) {
+      return '接続できませんでした（${e.code}）。\n$googleCalendarTestingNote';
+    }
+    return '接続できませんでした（${e.code}）';
   }
 
   Future<void> _connect() => _run(() async {
@@ -62,6 +80,31 @@ class _GoogleCalendarPageState extends State<GoogleCalendarPage> {
                 '許可は1時間ごとに切れるので、切れたら「接続」を押し直してください。',
                 style: TextStyle(color: cs.outline),
               ),
+              if (!googleCalendarPublished) ...[
+                const SizedBox(height: 12),
+                Card(
+                  color: cs.secondaryContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: cs.onSecondaryContainer,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            googleCalendarTestingNote,
+                            style: TextStyle(color: cs.onSecondaryContainer),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: _busy ? null : _connect,

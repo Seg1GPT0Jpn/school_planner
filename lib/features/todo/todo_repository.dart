@@ -36,6 +36,7 @@ class TodoRepository {
     'subject': t.subject,
     'memo': (t.memo?.trim().isEmpty ?? true) ? null : t.memo!.trim(),
     'done': t.done,
+    'doneAt': t.doneAt == null ? null : Timestamp.fromDate(t.doneAt!),
     'subtasks': [
       for (final s in t.subtasks) {'title': s.title, 'done': s.done},
     ],
@@ -55,6 +56,7 @@ class TodoRepository {
       subject: m['subject'] as String?,
       memo: m['memo'] as String?,
       done: m['done'] as bool? ?? false,
+      doneAt: (m['doneAt'] as Timestamp?)?.toDate(),
       subtasks: [
         for (final s in (m['subtasks'] as List<dynamic>? ?? const []))
           Subtask(

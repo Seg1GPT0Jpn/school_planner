@@ -59,23 +59,46 @@ class EventRepository {
     return controller.stream;
   }
 
-  Future<void> save(CalendarEvent event) async {
+  /// 保存して、保存した予定の ID を返す（新規でも既存でも）
+  Future<String> save(CalendarEvent event) async {
     final data = _toMap(event);
     if (event.id == null) {
-      await _events.add({
+      final ref = await _events.add({
         ...data,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      return ref.id;
     } else {
       await _events.doc(event.id).update({
         ...data,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      return event.id!;
     }
   }
 
   Future<void> delete(String id) => _events.doc(id).delete();
+
+  /// もとの予定に自動で付いている「移動」の予定（無ければ null）
+  Future<CalendarEvent?> findTravelFor(String parentEventId) async {
+    final snap = await _events
+        .where('travelForEventId', isEqualTo: parentEventId)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return _fromMap(snap.docs.first.id, snap.docs.first.data());
+  }
+
+  /// もとの予定に自動で付いている「移動」の予定を消す
+  Future<void> deleteTravelFor(String parentEventId) async {
+    final snap = await _events
+        .where('travelForEventId', isEqualTo: parentEventId)
+        .get();
+    for (final d in snap.docs) {
+      await d.reference.delete();
+    }
+  }
 
   static String? _emptyToNull(String? s) =>
       (s == null || s.trim().isEmpty) ? null : s.trim();
@@ -88,6 +111,9 @@ class EventRepository {
     'location': _emptyToNull(e.location),
     'memo': _emptyToNull(e.memo),
     'categoryId': e.categoryId,
+    'belongings': e.belongings,
+    'travelForEventId': e.travelForEventId,
+    'mood': e.mood,
   };
 
   static CalendarEvent _fromMap(String id, Map<String, dynamic> m) {
@@ -103,6 +129,12 @@ class EventRepository {
           m['categoryId'] as String? ??
           m['category'] as String? ??
           EventCategory.otherId,
+      belongings: [
+        for (final x in (m['belongings'] as List<dynamic>? ?? const []))
+          if (x is String) x,
+      ],
+      travelForEventId: m['travelForEventId'] as String?,
+      mood: m['mood'] as String?,
     );
   }
 }

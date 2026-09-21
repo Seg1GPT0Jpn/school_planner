@@ -146,6 +146,7 @@ class _CategoryEditDialog extends StatefulWidget {
 class _CategoryEditDialogState extends State<_CategoryEditDialog> {
   late final TextEditingController _nameController;
   late int _colorValue;
+  late bool _growthLogEnabled;
   String? _errorMessage;
 
   @override
@@ -153,6 +154,7 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.initial.name);
     _colorValue = widget.initial.colorValue;
+    _growthLogEnabled = widget.initial.growthLogEnabled;
   }
 
   @override
@@ -175,8 +177,13 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
       setState(() => _errorMessage = '名前を入力してください');
       return;
     }
-    Navigator.of(context)
-        .pop(widget.initial.copyWith(name: name, colorValue: _colorValue));
+    Navigator.of(context).pop(
+      widget.initial.copyWith(
+        name: name,
+        colorValue: _colorValue,
+        growthLogEnabled: _growthLogEnabled,
+      ),
+    );
   }
 
   @override
@@ -220,6 +227,14 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('成長ログを使う'),
+            subtitle: const Text('部活・練習・趣味など。予定を記録として残せます'),
+            value: _growthLogEnabled,
+            onChanged: (v) => setState(() => _growthLogEnabled = v),
           ),
         ],
       ),

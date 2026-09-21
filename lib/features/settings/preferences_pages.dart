@@ -338,3 +338,47 @@ class OfflineSettingsPage extends StatelessWidget {
     );
   }
 }
+
+// ───────────────────────── がんばり・気分 ─────────────────────────
+
+class MotivationSettingsPage extends StatelessWidget {
+  const MotivationSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context);
+    return _SettingsScaffold(
+      title: 'がんばり・気分',
+      children: [
+        SwitchListTile(
+          secondary: const Icon(Icons.emoji_events_outlined),
+          title: const Text('がんばり（ポイント・バッジ・連続記録）'),
+          subtitle: const Text('ホームに、ToDo達成の記録をカードで表示します'),
+          value: s.gamificationEnabled,
+          onChanged: (v) =>
+              saveSettings(context, s.copyWith(gamificationEnabled: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.mood_outlined),
+          title: const Text('予定の気分記録'),
+          subtitle: const Text('予定の編集画面で気分を選べるようにし、ホームに週の気分を表示します'),
+          value: s.moodTrackingEnabled,
+          onChanged: (v) =>
+              saveSettings(context, s.copyWith(moodTrackingEnabled: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.auto_awesome),
+          title: const Text('AIアドバイス'),
+          subtitle: const Text(
+            'ToDo・忙しさ・気分などの記録から、ホームに一言アドバイスを表示します'
+            '（外部のAIは使わず、このアプリの中だけで計算しています）',
+          ),
+          value: s.aiAdvisorEnabled,
+          onChanged: (v) =>
+              saveSettings(context, s.copyWith(aiAdvisorEnabled: v)),
+        ),
+        const _Note('OFF にしても、これまでに記録したデータは消えません。表示だけ隠します。'),
+      ],
+    );
+  }
+}

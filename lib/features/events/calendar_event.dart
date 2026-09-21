@@ -6,6 +6,9 @@ import 'event_category.dart';
 /// 日付だけにする（時刻を切り捨てる）
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// 予定の「気分」の選択肢（選ぶだけ・自由記述はメモへ）
+const List<String> eventMoods = ['😄', '🙂', '😐', '😣', '😫'];
+
 /// 予定1件
 class CalendarEvent {
   const CalendarEvent({
@@ -17,6 +20,9 @@ class CalendarEvent {
     this.location,
     this.memo,
     this.categoryId = EventCategory.otherId,
+    this.belongings = const [],
+    this.travelForEventId,
+    this.mood,
   });
 
   /// Firestore の ID（まだ保存していない予定は null）
@@ -36,6 +42,19 @@ class CalendarEvent {
 
   /// カテゴリの ID
   final String categoryId;
+
+  /// この予定だけの持ち物（毎日の持ち物とは別に、この予定用に追加するもの）
+  final List<String> belongings;
+
+  /// これが自動で追加された「移動」の予定のとき、もとの予定のID
+  /// （ふつうの予定なら null）
+  final String? travelForEventId;
+
+  /// 自動で追加された「移動」の予定か
+  bool get isTravelEvent => travelForEventId != null;
+
+  /// この予定の「気分」。自分で選んだ絵文字1つだけを入れる（未選択は null）
+  final String? mood;
 
   /// その日に表示する予定か
   bool occursOn(DateTime date) {
