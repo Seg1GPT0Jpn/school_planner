@@ -1,6 +1,7 @@
 /// ホーム画面ウィジェットに出す内容を作る（アプリの中で計算して、ウィジェットは表示するだけ）
 library;
 
+import '../calendar/schedule_items.dart';
 import '../events/calendar_event.dart';
 import '../school_tests/school_test.dart';
 import '../timetable/day_timetable_resolver.dart';
@@ -9,6 +10,10 @@ import '../timetable/week_cycle.dart';
 const _wd = ['月', '火', '水', '木', '金', '土', '日'];
 
 String _hmOf(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+
+String _clean(String s) => s.replaceAll('\t', ' ').replaceAll('\n', ' ');
+
+// ───────────────────── 今日の時間割ウィジェット ─────────────────────
 
 /// ウィジェットの時間割1行
 class WidgetLesson {
@@ -31,8 +36,8 @@ class WidgetLesson {
   /// ウィジェットに渡す形（タブ区切り）
   String encode() => [
     period,
-    subject.replaceAll('\t', ' '),
-    test.replaceAll('\t', ' '),
+    _clean(subject),
+    _clean(test),
     color,
     cancelled ? 1 : 0,
   ].join('\t');
@@ -126,5 +131,189 @@ WidgetDay buildWidgetDay({
     message: message,
     lessons: lessons,
     extra: lines.join('\n'),
+  );
+}
+
+// ───────────────────────────── 色 ─────────────────────────────
+
+/// 一覧の印の色（予定に色がないときは種類ごとの色）
+int scheduleItemColor(ScheduleItem item) =>
+    item.color ??
+    switch (item.kind) {
+      ScheduleKind.holiday => 0xFFD32F2F,
+      ScheduleKind.test => 0xFFE65100,
+      ScheduleKind.lesson => 0xFF9E9E9E,
+      ScheduleKind.event => 0xFF3F51B5,
+    };
+
+// ──────────────── スケジュールウィジェット（2×2〜） ────────────────
+
+/// スケジュールウィジェットの1行（日付の見出し、または予定1件）
+class WidgetScheduleLine {
+  const WidgetScheduleLine({
+    required this.header,
+    required this.left,
+    this.title = '',
+    this.color = 0,
+    this.today = false,
+  });
+
+  /// true なら日付の見出し
+  final bool header;
+
+  /// 見出しなら「9/21(月)」、予定なら「9:00〜10:00」「終日」
+  final String left;
+
+  /// 予定の名前（見出しのときは空）
+  final String title;
+
+  /// 印の色（0xAARRGGBB。0 なら色なし）
+  final int color;
+
+  /// 今日の見出しか
+  final bool today;
+
+  String encode() => [
+    header ? 'h' : 'i',
+    _clean(left),
+    _clean(title),
+    color,
+    today ? 1 : 0,
+  ].join('\t');
+}
+
+/// 日付順の一覧を作る（予定が何もない日は飛ばす）
+List<WidgetScheduleLine> buildWidgetSchedule({
+  required List<ScheduleDay> days,
+  required DateTime today,
+  int maxLines = 200,
+}) {
+  final out = <WidgetScheduleLine>[];
+  final t = DateTime(today.year, today.month, today.day);
+  for (final day in days) {
+    if (day.items.isEmpty) continue;
+    if (out.length >= maxLines) break;
+    final d = day.date;
+    out.add(
+      WidgetScheduleLine(
+        header: true,
+        left: '${d.month}/${d.day}(${_wd[d.weekday - 1]})',
+        today: d.year == t.year && d.month == t.month && d.day == t.day,
+      ),
+    );
+    for (final item in day.items) {
+      if (out.length >= maxLines) break;
+      out.add(
+        WidgetScheduleLine(
+          header: false,
+          left: item.timeText,
+          title: item.title,
+          color: scheduleItemColor(item),
+        ),
+      );
+    }
+  }
+  return out;
+}
+
+String encodeScheduleLines(List<WidgetScheduleLine> lines) =>
+    lines.map((l) => l.encode()).join('\n');
+
+// ───────────────── 月ビューウィジェット（4×4） ─────────────────
+
+/// 月ビューウィジェットのマス1つ
+class WidgetMonthCell {
+  const WidgetMonthCell({
+    required this.day,
+    required this.inMonth,
+    this.today = false,
+    this.marks = 0,
+    this.color = 0,
+    this.holiday = false,
+  });
+
+  /// 表示する日にち
+  final int day;
+
+  /// その月の日か（前後の月なら false → うすく出す）
+  final bool inMonth;
+
+  final bool today;
+
+  /// 下に出す点の数（0〜3）
+  final int marks;
+
+  /// 点の色（0 なら点なし）
+  final int color;
+
+  /// 祝日・休業日
+  final bool holiday;
+
+  String encode() => [
+    day,
+    inMonth ? 1 : 0,
+    today ? 1 : 0,
+    marks,
+    color,
+    holiday ? 1 : 0,
+  ].join('\t');
+}
+
+/// 月ビューウィジェットの中身（6週ぶん＝42マス）
+class WidgetMonth {
+  const WidgetMonth({
+    required this.title,
+    required this.weekdays,
+    required this.cells,
+  });
+
+  /// 例：2026年9月
+  final String title;
+
+  /// 曜日の見出し（週の始まりから7つ）
+  final List<String> weekdays;
+
+  final List<WidgetMonthCell> cells;
+
+  String get encodedWeekdays => weekdays.join('\t');
+  String get encodedCells => cells.map((c) => c.encode()).join('\n');
+}
+
+/// 月ビューを作る
+///
+/// [weekStart] は週の始まり（DateTime.sunday なら日曜はじまり）。
+WidgetMonth buildWidgetMonth({
+  required DateTime month,
+  required DateTime today,
+  List<ScheduleDay> days = const [],
+  int weekStart = DateTime.sunday,
+}) {
+  final first = DateTime(month.year, month.month, 1);
+  // 1日が、その週の何番目か
+  final offset = (first.weekday - weekStart + 7) % 7;
+  final start = DateTime(first.year, first.month, 1 - offset);
+  final byDate = {for (final d in days) dateKey(d.date): d};
+  final t = DateTime(today.year, today.month, today.day);
+
+  final cells = <WidgetMonthCell>[];
+  for (var i = 0; i < 42; i++) {
+    final d = DateTime(start.year, start.month, start.day + i);
+    final items = byDate[dateKey(d)]?.items ?? const <ScheduleItem>[];
+    cells.add(
+      WidgetMonthCell(
+        day: d.day,
+        inMonth: d.year == first.year && d.month == first.month,
+        today: d.year == t.year && d.month == t.month && d.day == t.day,
+        marks: items.length > 3 ? 3 : items.length,
+        color: items.isEmpty ? 0 : scheduleItemColor(items.first),
+        holiday: items.any((x) => x.kind == ScheduleKind.holiday),
+      ),
+    );
+  }
+
+  return WidgetMonth(
+    title: '${first.year}年${first.month}月',
+    weekdays: [for (var i = 0; i < 7; i++) _wd[(weekStart - 1 + i) % 7]],
+    cells: cells,
   );
 }

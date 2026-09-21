@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/month_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/tsuzuri_widget_bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/month_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/tsuzuri_widget_header"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/month_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="つづり"
+            android:textColor="#CCFFFFFF"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp">
+
+        <TextView android:id="@+id/wd0" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd1" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd2" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd3" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd4" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd5" style="@style/TsuzuriWeekday" />
+        <TextView android:id="@+id/wd6" style="@style/TsuzuriWeekday" />
+    </LinearLayout>
+
+    <GridView
+        android:id="@+id/month_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:horizontalSpacing="0dp"
+        android:numColumns="7"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="0dp" />
+</LinearLayout>

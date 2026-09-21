@@ -10,6 +10,11 @@
     <color name="tsuzuri_w_badge">#FFFFF3E0</color>
     <color name="tsuzuri_w_chip">#FFFFE0B2</color>
 
+    <!-- ウィジェットを選ぶ画面に出る説明 -->
+    <string name="tsuzuri_widget_desc">今日の時間割を表示します</string>
+    <string name="tsuzuri_schedule_widget_desc">予定を日付順に表示します</string>
+    <string name="tsuzuri_month_widget_desc">1か月のカレンダーを表示します</string>
+
     <!-- 時間割の1行 -->
     <style name="TsuzuriRow">
         <item name="android:layout_width">match_parent</item>
@@ -61,5 +66,15 @@
         <item name="android:textColor">@color/tsuzuri_w_accent</item>
         <item name="android:textSize">11sp</item>
         <item name="android:visibility">gone</item>
+    </style>
+
+    <!-- 月ビューの曜日の見出し -->
+    <style name="TsuzuriWeekday">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/tsuzuri_w_sub</item>
+        <item name="android:textSize">11sp</item>
     </style>
 </resources>
