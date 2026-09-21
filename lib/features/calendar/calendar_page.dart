@@ -21,12 +21,14 @@ import '../timetable/lesson_change_dialog.dart';
 import '../timetable/timetable_models.dart';
 import '../timetable/timetable_repository.dart';
 import 'month_view.dart';
+import 'schedule_view.dart';
 import 'time_grid.dart';
 
 enum CalendarMode {
   month('月'),
   week('週'),
-  day('日');
+  day('日'),
+  schedule('スケジュール');
 
   const CalendarMode(this.label);
   final String label;
@@ -59,6 +61,9 @@ class _CalendarPageState extends State<CalendarPage> {
   TimetableData? _latestData;
 
   CalendarMode _mode = CalendarMode.month;
+
+  /// 予定リストに授業も出すか
+  bool _showLessons = false;
   DateTime _focused = _today();
 
   final List<_ViewState> _backHistory = [];
@@ -131,6 +136,7 @@ class _CalendarPageState extends State<CalendarPage> {
       CalendarMode.month => DateTime(f.year, f.month + delta, 1),
       CalendarMode.week => DateTime(f.year, f.month, f.day + 7 * delta),
       CalendarMode.day => DateTime(f.year, f.month, f.day + delta),
+      CalendarMode.schedule => DateTime(f.year, f.month + delta, 1),
     });
   }
 
@@ -293,10 +299,12 @@ class _CalendarPageState extends State<CalendarPage> {
         return '${d.first.month}/${d.first.day} 〜 ${d.last.month}/${d.last.day}';
       case CalendarMode.day:
         return formatDateJa(f);
+      case CalendarMode.schedule:
+        return '${f.year}年${f.month}月${f.day}日から';
     }
   }
 
-  String get _unitLabel => _mode.label;
+  String get _unitLabel => _mode == CalendarMode.schedule ? '月' : _mode.label;
 
   void _onHorizontalSwipe(DragEndDetails details) {
     final v = details.primaryVelocity ?? 0;
@@ -379,13 +387,30 @@ class _CalendarPageState extends State<CalendarPage> {
                                 ).colorValue,
                               );
 
-                          // 予定＋定期の予定（表示している月の前後を展開）
+                          // 予定＋定期の予定（表示している範囲を展開）
+                          final isSchedule = _mode == CalendarMode.schedule;
                           final events = [
                             ...?es.data,
                             ...expandRecurringWithTests(
                               rs.data ?? const [],
-                              DateTime(_focused.year, _focused.month - 1, 1),
-                              DateTime(_focused.year, _focused.month + 2, 1),
+                              isSchedule
+                                  ? _focused
+                                  : DateTime(
+                                      _focused.year,
+                                      _focused.month - 1,
+                                      1,
+                                    ),
+                              isSchedule
+                                  ? DateTime(
+                                      _focused.year,
+                                      _focused.month,
+                                      _focused.day + scheduleDays,
+                                    )
+                                  : DateTime(
+                                      _focused.year,
+                                      _focused.month + 2,
+                                      1,
+                                    ),
                             ),
                           ];
 
@@ -470,6 +495,17 @@ class _CalendarPageState extends State<CalendarPage> {
                 onCreateAt: (start) => _openEditor(start: start),
                 onEventTap: (event) => _openEditor(event: event),
                 testActions: _testActions,
+              ),
+              CalendarMode.schedule => ScheduleView(
+                data: data,
+                from: _focused,
+                today: today,
+                events: events,
+                colorOf: colorOf,
+                showLessons: _showLessons,
+                onToggleLessons: (v) => setState(() => _showLessons = v),
+                onEventTap: (event) => _openEditor(event: event),
+                onDayTap: _openDay,
               ),
             },
           ),
