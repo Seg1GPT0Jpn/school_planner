@@ -12,6 +12,8 @@ import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
 import '../school_tests/upcoming_tests.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import '../timetable/timetable_repository.dart';
 import '../todo/todo.dart';
 import '../todo/todo_repository.dart';
@@ -36,12 +38,26 @@ class _NotificationSyncState extends State<NotificationSync> {
   List<RecurringSchedule> _recurring = const [];
   List<Todo> _todos = const [];
   BelongingSettings _belongings = const BelongingSettings();
+  AppSettings _settings = const AppSettings();
 
   @override
   void initState() {
     super.initState();
     if (kIsWeb) return;
     _auth = FirebaseAuth.instance.authStateChanges().listen(_onUser);
+  }
+
+  /// 設定が変わったら、通知も予約し直す
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (kIsWeb) return;
+    final next = SettingsScope.of(context);
+    if (!mapEquals(next.toMap(), _settings.toMap())) {
+      _settings = next;
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(seconds: 2), _reschedule);
+    }
   }
 
   Future<void> _onUser(User? user) async {
@@ -78,7 +94,7 @@ class _NotificationSyncState extends State<NotificationSync> {
     _debounce = Timer(const Duration(seconds: 2), _reschedule);
   }
 
-  void _reschedule() {
+  Future<void> _reschedule() async {
     final data = _data;
     if (data == null || !data.isSeeded) return;
     final now = DateTime.now();
@@ -105,6 +121,7 @@ class _NotificationSyncState extends State<NotificationSync> {
           DateTime(now.year, now.month, now.day + days + 1),
         ),
       ],
+      settings: _settings,
       todos: mergeTodos(_todos, data.schoolTests),
       belongingsOn: (d) => belongingsFor(
         day: data.resolver.resolve(d),
@@ -112,7 +129,11 @@ class _NotificationSyncState extends State<NotificationSync> {
         settings: _belongings,
       ),
     );
-    NotificationService.instance.replaceAll(plan);
+    await NotificationService.instance.setTimeZone(_settings.timeZone);
+    await NotificationService.instance.replaceAll(
+      plan,
+      sound: _settings.notificationSound,
+    );
   }
 
   @override

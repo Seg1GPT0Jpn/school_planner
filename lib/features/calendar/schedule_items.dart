@@ -3,6 +3,7 @@ library;
 
 import '../events/calendar_event.dart';
 import '../school_tests/school_test.dart';
+import '../settings/app_settings.dart';
 import '../timetable/day_timetable_resolver.dart';
 
 /// 一覧の1行の種類
@@ -42,19 +43,21 @@ class ScheduleDay {
   final List<ScheduleItem> items;
 }
 
-String _hm(int m) => '${m ~/ 60}:${(m % 60).toString().padLeft(2, '0')}';
+String _hm(int m, bool use24) => formatMinutesWith(m, use24Hour: use24);
 
-String _hmOf(DateTime d) => _hm(d.hour * 60 + d.minute);
+String _hmOf(DateTime d, bool use24) => _hm(d.hour * 60 + d.minute, use24);
 
 /// 予定の時刻の文字（何日かにまたがる予定にも対応）
-String eventTimeText(CalendarEvent e, DateTime day) {
+String eventTimeText(CalendarEvent e, DateTime day, {bool use24Hour = true}) {
   if (e.isAllDay) return '終日';
   final d = DateTime(day.year, day.month, day.day);
   final startsToday = !e.start.isBefore(d);
   final endsToday = e.end.isBefore(DateTime(d.year, d.month, d.day + 1));
-  if (startsToday && endsToday) return '${_hmOf(e.start)}〜${_hmOf(e.end)}';
-  if (startsToday) return '${_hmOf(e.start)}〜';
-  if (endsToday) return '〜${_hmOf(e.end)}';
+  if (startsToday && endsToday) {
+    return '${_hmOf(e.start, use24Hour)}〜${_hmOf(e.end, use24Hour)}';
+  }
+  if (startsToday) return '${_hmOf(e.start, use24Hour)}〜';
+  if (endsToday) return '〜${_hmOf(e.end, use24Hour)}';
   return '終日';
 }
 
@@ -64,6 +67,7 @@ ScheduleDay buildScheduleDay({
   List<CalendarEvent> events = const [],
   List<SchoolTest> tests = const [],
   bool showLessons = false,
+  bool use24Hour = true,
   int? Function(CalendarEvent e)? colorOf,
 }) {
   final d = day.date;
@@ -76,7 +80,9 @@ ScheduleDay buildScheduleDay({
 
   // 授業のテスト（LEAP・時限つきの小テスト）と授業
   for (final l in day.lessons) {
-    final time = '${_hm(l.start.totalMinutes)}〜${_hm(l.end.totalMinutes)}';
+    final time =
+        '${_hm(l.start.totalMinutes, use24Hour)}'
+        '〜${_hm(l.end.totalMinutes, use24Hour)}';
     if (l.testLabel != null) {
       items.add(
         ScheduleItem(
@@ -110,7 +116,7 @@ ScheduleDay buildScheduleDay({
       ScheduleItem(
         kind: ScheduleKind.test,
         title: '${t.kind.isTest ? '📝' : '📌'} ${t.displayTitle}',
-        timeText: m == null ? '終日' : '${_hm(m)}〜',
+        timeText: m == null ? '終日' : '${_hm(m, use24Hour)}〜',
         sortMinutes: m ?? -1,
       ),
     );
@@ -119,7 +125,7 @@ ScheduleDay buildScheduleDay({
   // 予定
   for (final e in events) {
     if (!e.occursOn(d)) continue;
-    final text = eventTimeText(e, d);
+    final text = eventTimeText(e, d, use24Hour: use24Hour);
     items.add(
       ScheduleItem(
         kind: ScheduleKind.event,

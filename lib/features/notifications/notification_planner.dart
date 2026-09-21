@@ -3,6 +3,7 @@ library;
 
 import '../events/calendar_event.dart';
 import '../school_tests/upcoming_tests.dart';
+import '../settings/app_settings.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../todo/todo.dart';
@@ -15,14 +16,13 @@ class PlannedNotification {
   final String body;
 }
 
-/// 通知の時刻の設定
+/// 前日の夜のお知らせの時刻
 const int eveningHour = 21, eveningMinute = 30;
-const int morningHour = 7, morningMinute = 0;
-const Duration eventReminder = Duration(minutes: 30);
 
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 bool _same(DateTime a, DateTime b) => _day(a) == _day(b);
-String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+
+String _hm(DateTime d, AppSettings settings) => settings.timeOf(d);
 
 /// その日の内容（学校・テスト・予定・ToDo）を行の一覧にする
 List<String> _dayLines(
@@ -31,6 +31,7 @@ List<String> _dayLines(
   List<UpcomingItem> upcoming,
   List<CalendarEvent> events,
   List<Todo> todos,
+  AppSettings settings,
 ) {
   final lines = <String>[];
   final day = resolver.resolve(d);
@@ -57,7 +58,9 @@ List<String> _dayLines(
       if (e.occursOn(d)) e,
   ]..sort((a, b) => a.start.compareTo(b.start));
   for (final e in dayEvents) {
-    lines.add(e.isAllDay ? '🗓 ${e.title}' : '🕒 ${_hm(e.start)} ${e.title}');
+    lines.add(
+      e.isAllDay ? '🗓 ${e.title}' : '🕒 ${_hm(e.start, settings)} ${e.title}',
+    );
   }
   for (final t in todos) {
     if (!t.done && t.dueDate != null && _same(t.dueDate!, d)) {
@@ -76,13 +79,18 @@ List<PlannedNotification> planNotifications({
   required List<CalendarEvent> events,
   required List<Todo> todos,
   List<String> Function(DateTime date)? belongingsOn,
+  AppSettings settings = const AppSettings(),
 }) {
   final result = <PlannedNotification>[];
   var id = 1;
 
+  // 朝のお知らせ（＝終日の予定を知らせる時刻）
+  final morningHour = settings.allDayReminderMinutes ~/ 60;
+  final morningMinute = settings.allDayReminderMinutes % 60;
+
   for (var i = 0; i <= days; i++) {
     final d = DateTime(now.year, now.month, now.day + i);
-    final lines = _dayLines(d, resolver, upcoming, events, todos);
+    final lines = _dayLines(d, resolver, upcoming, events, todos, settings);
     final hasItems = lines.any(
       (l) => !l.startsWith('🏫') && !l.startsWith('🎌') && !l.startsWith('🏠'),
     );
@@ -133,18 +141,22 @@ List<PlannedNotification> planNotifications({
     }
   }
 
-  // 予定の30分前
+  // 予定の「◯分前」
+  final reminder = Duration(minutes: settings.defaultReminderMinutes);
+  final when = reminder.inMinutes == 0
+      ? 'まもなく始まります'
+      : '${reminderLabel(reminder.inMinutes).replaceAll('前', '後')}に始まります';
   final limit = DateTime(now.year, now.month, now.day + days + 1);
   for (final e in events) {
     if (e.isAllDay) continue;
-    final t = e.start.subtract(eventReminder);
+    final t = e.start.subtract(reminder);
     if (t.isAfter(now) && t.isBefore(limit)) {
       result.add(
         PlannedNotification(
           id++,
           t,
-          '${_hm(e.start)} ${e.title}',
-          '${eventReminder.inMinutes}分後に始まります${e.location == null ? '' : '（${e.location}）'}',
+          '${_hm(e.start, settings)} ${e.title}',
+          '$when${e.location == null ? '' : '（${e.location}）'}',
         ),
       );
     }

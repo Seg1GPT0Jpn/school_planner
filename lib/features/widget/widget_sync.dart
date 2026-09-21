@@ -17,6 +17,8 @@ import '../google_calendar/google_sync.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../recurring/recurring_test_rule.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import '../timetable/subject_colors.dart';
 import '../timetable/timetable_repository.dart';
 import 'widget_text.dart';
@@ -35,7 +37,8 @@ const _providers = [
   'TsuzuriWeekWidgetProvider',
 ];
 
-bool get _isAndroid => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+bool get _isAndroid =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 class WidgetSync extends StatefulWidget {
   const WidgetSync({super.key, required this.child});
@@ -59,6 +62,8 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
   /// 自分で選んだ教科の色（教科 → 色）
   Map<String, int> _custom = const {};
 
+  AppSettings _settings = const AppSettings();
+
   @override
   void initState() {
     super.initState();
@@ -73,8 +78,11 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
     super.didChangeDependencies();
     if (!_isAndroid) return;
     final custom = SubjectColorScope.customColorsOf(context);
-    if (!mapEquals(custom, _custom)) {
+    final settings = SettingsScope.of(context);
+    if (!mapEquals(custom, _custom) ||
+        !mapEquals(settings.toMap(), _settings.toMap())) {
       _custom = custom;
+      _settings = settings;
       _schedule();
     }
   }
@@ -132,20 +140,28 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
       for (final s in data.subjects)
         s.name: _custom[s.category] ?? categoryColor(s.category).toARGB32(),
     };
-    int colorOf(CalendarEvent e) => (googleEventColor(e) ??
-            Color(findCategory(_categories, e.categoryId).colorValue))
-        .toARGB32();
+    int colorOf(CalendarEvent e) =>
+        (googleEventColor(e) ??
+                Color(findCategory(_categories, e.categoryId).colorValue))
+            .toARGB32();
     final resolver = data.resolver;
 
     // 期間ぜんぶの「日付順の一覧」を作る（月・週・スケジュールで使い回す）
     final all = <ScheduleDay>[];
-    for (var d = from; d.isBefore(to); d = DateTime(d.year, d.month, d.day + 1)) {
-      all.add(buildScheduleDay(
-        day: resolver.resolve(d),
-        events: events,
-        tests: data.testsOn(d),
-        colorOf: colorOf,
-      ));
+    for (
+      var d = from;
+      d.isBefore(to);
+      d = DateTime(d.year, d.month, d.day + 1)
+    ) {
+      all.add(
+        buildScheduleDay(
+          day: resolver.resolve(d),
+          events: events,
+          tests: data.testsOn(d),
+          use24Hour: _settings.use24Hour,
+          colorOf: colorOf,
+        ),
+      );
     }
 
     try {
@@ -177,13 +193,23 @@ class _WidgetSyncState extends State<WidgetSync> with WidgetsBindingObserver {
       await HomeWidget.saveWidgetData('sch_lines', encodeScheduleLines(lines));
 
       // ③ ［月］ビュー
-      final month = buildWidgetMonth(month: today, today: today, days: all);
+      final month = buildWidgetMonth(
+        month: today,
+        today: today,
+        days: all,
+        weekStart: _settings.weekStart.weekday,
+      );
       await HomeWidget.saveWidgetData('mon_title', month.title);
       await HomeWidget.saveWidgetData('mon_weekdays', month.encodedWeekdays);
       await HomeWidget.saveWidgetData('mon_cells', month.encodedCells);
 
       // ④ ［週］ビュー
-      final week = buildWidgetWeek(day: today, today: today, days: all);
+      final week = buildWidgetWeek(
+        day: today,
+        today: today,
+        days: all,
+        weekStart: _settings.weekStart.weekday,
+      );
       await HomeWidget.saveWidgetData('wk_title', week.title);
       await HomeWidget.saveWidgetData('wk_weekdays', week.encodedWeekdays);
       await HomeWidget.saveWidgetData('wk_cells', week.encodedCells);

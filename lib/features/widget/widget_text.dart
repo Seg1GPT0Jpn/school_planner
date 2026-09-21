@@ -35,12 +35,12 @@ class WidgetLesson {
 
   /// ウィジェットに渡す形（タブ区切り）
   String encode() => [
-        period,
-        _clean(subject),
-        _clean(test),
-        color,
-        cancelled ? 1 : 0,
-      ].join('\t');
+    period,
+    _clean(subject),
+    _clean(test),
+    color,
+    cancelled ? 1 : 0,
+  ].join('\t');
 }
 
 /// ウィジェットの1日分
@@ -92,13 +92,17 @@ WidgetDay buildWidgetDay({
     for (final l in day.lessons) {
       if (l.status == LessonStatus.empty) continue;
       final cancelled = l.status == LessonStatus.cancelled;
-      lessons.add(WidgetLesson(
-        period: l.period,
-        subject: cancelled ? '休講' : (l.subject ?? ''),
-        test: cancelled ? '' : (l.testLabel ?? ''),
-        color: cancelled ? 0xFFBDBDBD : (subjectColors[l.subject] ?? 0xFF9E9E9E),
-        cancelled: cancelled,
-      ));
+      lessons.add(
+        WidgetLesson(
+          period: l.period,
+          subject: cancelled ? '休講' : (l.subject ?? ''),
+          test: cancelled ? '' : (l.testLabel ?? ''),
+          color: cancelled
+              ? 0xFFBDBDBD
+              : (subjectColors[l.subject] ?? 0xFF9E9E9E),
+          cancelled: cancelled,
+        ),
+      );
     }
   } else {
     message = day.holidayName ?? day.closureTitle ?? '学校はお休み';
@@ -109,13 +113,14 @@ WidgetDay buildWidgetDay({
     for (final t in tests)
       if (t.period == null && t.kind.isTest) '📝 ${t.displayTitle}',
   ];
-  final todays = [
-    for (final e in events)
-      if (e.occursOn(d)) e,
-  ]..sort((a, b) {
-      if (a.isAllDay != b.isAllDay) return a.isAllDay ? -1 : 1;
-      return a.start.compareTo(b.start);
-    });
+  final todays =
+      [
+        for (final e in events)
+          if (e.occursOn(d)) e,
+      ]..sort((a, b) {
+        if (a.isAllDay != b.isAllDay) return a.isAllDay ? -1 : 1;
+        return a.start.compareTo(b.start);
+      });
   for (final e in todays) {
     lines.add(e.isAllDay ? '・${e.title}' : '${_hmOf(e.start)}  ${e.title}');
   }
@@ -177,12 +182,12 @@ class WidgetScheduleLine {
   final bool today;
 
   String encode() => [
-        header ? 'h' : 'i',
-        _clean(left),
-        _clean(title),
-        color,
-        today ? 1 : 0,
-      ].join('\t');
+    header ? 'h' : 'i',
+    _clean(left),
+    _clean(title),
+    color,
+    today ? 1 : 0,
+  ].join('\t');
 }
 
 /// 日付順の一覧を作る（予定が何もない日は飛ばす）
@@ -197,19 +202,23 @@ List<WidgetScheduleLine> buildWidgetSchedule({
     if (day.items.isEmpty) continue;
     if (out.length >= maxLines) break;
     final d = day.date;
-    out.add(WidgetScheduleLine(
-      header: true,
-      left: '${d.month}/${d.day}(${_wd[d.weekday - 1]})',
-      today: d.year == t.year && d.month == t.month && d.day == t.day,
-    ));
+    out.add(
+      WidgetScheduleLine(
+        header: true,
+        left: '${d.month}/${d.day}(${_wd[d.weekday - 1]})',
+        today: d.year == t.year && d.month == t.month && d.day == t.day,
+      ),
+    );
     for (final item in day.items) {
       if (out.length >= maxLines) break;
-      out.add(WidgetScheduleLine(
-        header: false,
-        left: item.timeText,
-        title: item.title,
-        color: scheduleItemColor(item),
-      ));
+      out.add(
+        WidgetScheduleLine(
+          header: false,
+          left: item.timeText,
+          title: item.title,
+          color: scheduleItemColor(item),
+        ),
+      );
     }
   }
   return out;
@@ -239,7 +248,8 @@ class WidgetChip {
 List<WidgetChip> buildChips(List<ScheduleItem> items, int max) {
   if (items.length <= max) {
     return [
-      for (final i in items) WidgetChip(scheduleItemColor(i), chipTitle(i.title)),
+      for (final i in items)
+        WidgetChip(scheduleItemColor(i), chipTitle(i.title)),
     ];
   }
   return [
@@ -273,13 +283,13 @@ class WidgetDayCell {
   final List<WidgetChip> chips;
 
   String encode() => [
-        day,
-        inMonth ? 1 : 0,
-        today ? 1 : 0,
-        holiday ? 1 : 0,
-        chips.length,
-        for (final c in chips) ...[c.color, _clean(c.title)],
-      ].join('\t');
+    day,
+    inMonth ? 1 : 0,
+    today ? 1 : 0,
+    holiday ? 1 : 0,
+    chips.length,
+    for (final c in chips) ...[c.color, _clean(c.title)],
+  ].join('\t');
 }
 
 /// カレンダーのウィジェット1つぶん
@@ -302,8 +312,9 @@ class WidgetGrid {
   String get encodedCells => cells.map((c) => c.encode()).join('\n');
 }
 
-List<String> _weekdayLabels(int weekStart) =>
-    [for (var i = 0; i < 7; i++) _wd[(weekStart - 1 + i) % 7]];
+List<String> _weekdayLabels(int weekStart) => [
+  for (var i = 0; i < 7; i++) _wd[(weekStart - 1 + i) % 7],
+];
 
 /// ［月］ビューを作る（6週ぶん＝42マス）
 ///
@@ -326,13 +337,15 @@ WidgetGrid buildWidgetMonth({
     final d = DateTime(start.year, start.month, start.day + i);
     final inMonth = d.year == first.year && d.month == first.month;
     final items = byDate[dateKey(d)]?.items ?? const <ScheduleItem>[];
-    cells.add(WidgetDayCell(
-      day: d.day,
-      inMonth: inMonth,
-      today: d.year == t.year && d.month == t.month && d.day == t.day,
-      holiday: items.any((x) => x.kind == ScheduleKind.holiday),
-      chips: inMonth ? buildChips(items, monthChips) : const [],
-    ));
+    cells.add(
+      WidgetDayCell(
+        day: d.day,
+        inMonth: inMonth,
+        today: d.year == t.year && d.month == t.month && d.day == t.day,
+        holiday: items.any((x) => x.kind == ScheduleKind.holiday),
+        chips: inMonth ? buildChips(items, monthChips) : const [],
+      ),
+    );
   }
 
   return WidgetGrid(
@@ -360,12 +373,14 @@ WidgetGrid buildWidgetWeek({
   for (var i = 0; i < 7; i++) {
     final d = DateTime(start.year, start.month, start.day + i);
     final items = byDate[dateKey(d)]?.items ?? const <ScheduleItem>[];
-    cells.add(WidgetDayCell(
-      day: d.day,
-      today: d.year == t.year && d.month == t.month && d.day == t.day,
-      holiday: items.any((x) => x.kind == ScheduleKind.holiday),
-      chips: buildChips(items, weekChips),
-    ));
+    cells.add(
+      WidgetDayCell(
+        day: d.day,
+        today: d.year == t.year && d.month == t.month && d.day == t.day,
+        holiday: items.any((x) => x.kind == ScheduleKind.holiday),
+        chips: buildChips(items, weekChips),
+      ),
+    );
   }
 
   return WidgetGrid(

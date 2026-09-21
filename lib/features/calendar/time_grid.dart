@@ -4,10 +4,13 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../../core/time_zones.dart';
 import '../../widgets/color_palette_picker.dart';
 import '../events/calendar_event.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/weekly_lesson_test.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/subject_colors.dart';
@@ -30,7 +33,14 @@ double _yOfMinutes(num minutes) => minutes / 60 * _hourHeight;
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-String _hm(DateTime d) => '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+String _hm(DateTime d, AppSettings s) => s.timeOf(d);
+
+/// 目盛りの「1:00」「午前1」（せまいので午前・午後のときは分を出さない）
+String _hourLabel(int h, AppSettings s) {
+  if (s.use24Hour) return '$h:00';
+  final h12 = h % 12 == 0 ? 12 : h % 12;
+  return h < 12 ? '午前$h12' : '午後$h12';
+}
 
 /// 授業に関する操作（カレンダー画面から渡してもらう）
 class LessonTestActions {
@@ -411,8 +421,19 @@ class _HourGutter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = SettingsScope.of(context);
+    final outline = Theme.of(context).colorScheme.outline;
     final style = Theme.of(context).textTheme.labelSmall
-        ?.copyWith(fontSize: 10, color: Theme.of(context).colorScheme.outline);
+        ?.copyWith(fontSize: 10, color: outline);
+
+    // 世界時計：2つめのタイムゾーンとの時差（分）
+    final shift = settings.showWorldClock && settings.secondTimeZone.isNotEmpty
+        ? zoneDifferenceMinutes(
+            settings.timeZone,
+            settings.secondTimeZone,
+            DateTime.now(),
+          )
+        : null;
 
     return SizedBox(
       width: _gutterWidth,
@@ -420,9 +441,24 @@ class _HourGutter extends StatelessWidget {
         children: [
           for (var h = 1; h < 24; h++)
             Positioned(
-              top: h * _hourHeight - 7,
+              top: h * _hourHeight - (shift == null ? 7 : 12),
               right: 6,
-              child: Text('$h:00', style: style),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_hourLabel(h, settings), style: style),
+                  if (shift != null)
+                    Text(
+                      // 2つめのタイムゾーンは、せまいので必ず24時間表示
+                      formatMinutesWith(h * 60 + shift, use24Hour: true),
+                      style: style?.copyWith(
+                        fontSize: 9,
+                        color: outline.withValues(alpha: 0.7),
+                      ),
+                    ),
+                ],
+              ),
             ),
         ],
       ),
@@ -606,7 +642,8 @@ class _DayColumn extends StatelessWidget {
                   top: _yOfMinutes(items[i].start) + 1,
                   height: math.max(
                     _yOfMinutes(items[i].end) - _yOfMinutes(items[i].start) - 2,
-                    16,
+                    // 「短い予定も読めるようにする」設定で、最低の高さを変える
+                    SettingsScope.of(context).boostShortEvents ? 28 : 16,
                   ),
                   left: width * slots[i].column / slots[i].columnCount + 2,
                   width: width / slots[i].columnCount - 4,
@@ -692,7 +729,8 @@ class _EventBlock extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${_hm(event.start)}〜${_hm(event.end)}',
+                  '${_hm(event.start, SettingsScope.of(context))}'
+                  '〜${_hm(event.end, SettingsScope.of(context))}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.labelSmall?.copyWith(

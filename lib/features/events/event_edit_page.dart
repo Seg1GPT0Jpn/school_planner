@@ -1,7 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/date_format.dart';
 import '../../core/maps.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import 'calendar_event.dart';
 import 'category_manage_page.dart';
 import 'event_category.dart';
@@ -72,6 +73,22 @@ class _EventEditPageState extends State<EventEditPage> {
     }
   }
 
+  AppSettings _settings = const AppSettings();
+  bool _appliedDefaults = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _settings = SettingsScope.of(context);
+    // 新しい予定のときだけ、設定した「デフォルトの長さ」を1回だけ使う
+    if (!_appliedDefaults) {
+      _appliedDefaults = true;
+      if (widget.event == null && !_isAllDay) {
+        _end = _start.add(Duration(minutes: _settings.eventMinutes));
+      }
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -80,8 +97,7 @@ class _EventEditPageState extends State<EventEditPage> {
     super.dispose();
   }
 
-  String _timeText(DateTime d) =>
-      '${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+  String _timeText(DateTime d) => _settings.timeOf(d);
 
   /// 日付を選ぶ（開始を動かしたら、終了も同じだけ動かす）
   Future<void> _pickDate({required bool isStart}) async {
@@ -266,14 +282,14 @@ class _EventEditPageState extends State<EventEditPage> {
               // 開始・終了
               _DateTimeRow(
                 label: '開始',
-                dateText: formatDateJa(_start),
+                dateText: _settings.date(_start, weekday: true),
                 timeText: _isAllDay ? null : _timeText(_start),
                 onTapDate: () => _pickDate(isStart: true),
                 onTapTime: () => _pickTime(isStart: true),
               ),
               _DateTimeRow(
                 label: '終了',
-                dateText: formatDateJa(_end),
+                dateText: _settings.date(_end, weekday: true),
                 timeText: _isAllDay ? null : _timeText(_end),
                 onTapDate: () => _pickDate(isStart: false),
                 onTapTime: () => _pickTime(isStart: false),

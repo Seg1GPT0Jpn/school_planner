@@ -12,11 +12,24 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  String _timeZone = 'Asia/Tokyo';
+
+  /// 設定のタイムゾーンに合わせる（知らない名前のときは何もしない）
+  Future<void> setTimeZone(String name) async {
+    if (kIsWeb || name.isEmpty || name == _timeZone) return;
+    await init();
+    try {
+      tz.setLocalLocation(tz.getLocation(name));
+      _timeZone = name;
+    } catch (e) {
+      debugPrint('【通知】知らないタイムゾーン：$name');
+    }
+  }
 
   Future<void> init() async {
     if (kIsWeb || _ready) return;
     tzdata.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
+    tz.setLocalLocation(tz.getLocation(_timeZone));
     await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -29,11 +42,14 @@ class NotificationService {
   }
 
   /// 予約をすべて入れ替える（ポモドーロのお知らせは残す）
-  Future<void> replaceAll(List<PlannedNotification> plan) async {
+  Future<void> replaceAll(
+    List<PlannedNotification> plan, {
+    bool sound = true,
+  }) async {
     if (kIsWeb) return;
     await init();
     await _cancelWhere((id) => id < pomodoroIdBase);
-    await _schedule(plan);
+    await _schedule(plan, sound: sound);
   }
 
   /// ポモドーロの区切りのお知らせを予約する
@@ -58,7 +74,10 @@ class NotificationService {
     }
   }
 
-  Future<void> _schedule(List<PlannedNotification> plan) async {
+  Future<void> _schedule(
+    List<PlannedNotification> plan, {
+    bool sound = true,
+  }) async {
     final now = DateTime.now();
     for (final n in plan) {
       if (!n.time.isAfter(now)) continue;
@@ -70,11 +89,13 @@ class NotificationService {
           scheduledDate: tz.TZDateTime.from(n.time, tz.local),
           notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
-              'tsuzuri_main',
-              'つづりのお知らせ',
+              // 音のあり・なしはチャンネルを分ける（あとから変えられないため）
+              sound ? 'tsuzuri_main' : 'tsuzuri_quiet',
+              sound ? 'つづりのお知らせ' : 'つづりのお知らせ（音なし）',
               channelDescription: '予定・テスト・ToDo のお知らせ',
               importance: Importance.high,
               priority: Priority.high,
+              playSound: sound,
               styleInformation: BigTextStyleInformation(n.body),
             ),
           ),

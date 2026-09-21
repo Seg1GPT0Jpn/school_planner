@@ -16,6 +16,8 @@ import '../recurring/recurring_test_rule.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_edit_page.dart';
 import '../school_tests/school_test_repository.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/lesson_change_dialog.dart';
 import '../timetable/timetable_models.dart';
@@ -28,7 +30,8 @@ enum CalendarMode {
   month('月'),
   week('週'),
   day('日'),
-  schedule('スケジュール');
+  schedule('スケジュール'),
+  custom('カスタム');
 
   const CalendarMode(this.label);
   final String label;
@@ -75,8 +78,14 @@ class _CalendarPageState extends State<CalendarPage> {
     return DateTime(now.year, now.month, now.day);
   }
 
-  static DateTime _sundayOf(DateTime date) =>
-      DateTime(date.year, date.month, date.day - (date.weekday % 7));
+  /// いまの設定（設定が変わると didChangeDependencies で入れ直される）
+  AppSettings _settings = const AppSettings();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _settings = SettingsScope.of(context);
+  }
 
   @override
   void initState() {
@@ -137,6 +146,11 @@ class _CalendarPageState extends State<CalendarPage> {
       CalendarMode.week => DateTime(f.year, f.month, f.day + 7 * delta),
       CalendarMode.day => DateTime(f.year, f.month, f.day + delta),
       CalendarMode.schedule => DateTime(f.year, f.month + delta, 1),
+      CalendarMode.custom => DateTime(
+        f.year,
+        f.month,
+        f.day + _settings.customView.days * delta,
+      ),
     });
   }
 
@@ -281,13 +295,26 @@ class _CalendarPageState extends State<CalendarPage> {
 
   // ---------------- 表示用 ----------------
 
+  /// 週ビューの列（週の始まり・週末を表示 の設定にしたがう）
   List<DateTime> get _weekDays {
-    final sunday = _sundayOf(_focused);
+    final start = _settings.startOfWeek(_focused);
     return [
-      for (var i = 0; i < 7; i++)
-        DateTime(sunday.year, sunday.month, sunday.day + i),
-    ];
+          for (var i = 0; i < 7; i++)
+            DateTime(start.year, start.month, start.day + i),
+        ]
+        .where(
+          (d) =>
+              _settings.showWeekend ||
+              (d.weekday != DateTime.saturday && d.weekday != DateTime.sunday),
+        )
+        .toList();
   }
+
+  /// カスタムビューの列（今の日から設定した日数ぶん）
+  List<DateTime> get _customDays => [
+    for (var i = 0; i < _settings.customView.days; i++)
+      DateTime(_focused.year, _focused.month, _focused.day + i),
+  ];
 
   String get _heading {
     final f = _focused;
@@ -301,10 +328,17 @@ class _CalendarPageState extends State<CalendarPage> {
         return formatDateJa(f);
       case CalendarMode.schedule:
         return '${f.year}年${f.month}月${f.day}日から';
+      case CalendarMode.custom:
+        final d = _customDays;
+        return '${d.first.month}/${d.first.day} 〜 ${d.last.month}/${d.last.day}';
     }
   }
 
-  String get _unitLabel => _mode == CalendarMode.schedule ? '月' : _mode.label;
+  String get _unitLabel => switch (_mode) {
+    CalendarMode.schedule => '月',
+    CalendarMode.custom => _settings.customView.label,
+    _ => _mode.label,
+  };
 
   void _onHorizontalSwipe(DragEndDetails details) {
     final v = details.primaryVelocity ?? 0;
@@ -315,17 +349,43 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
+  /// キーボードショートカット（設定で切れるものと、いつでも効くもの）
+  Map<ShortcutActivator, VoidCallback> get _shortcutBindings {
+    final always = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _goBack,
+      const SingleActivator(LogicalKeyboardKey.keyY, control: true): _goForward,
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _goBack,
+      const SingleActivator(LogicalKeyboardKey.arrowRight, alt: true):
+          _goForward,
+    };
+    if (!_settings.keyboardShortcuts) return always;
+    return {
+      ...always,
+      const SingleActivator(LogicalKeyboardKey.keyD): () =>
+          _changeView(CalendarMode.day, _focused),
+      const SingleActivator(LogicalKeyboardKey.keyW): () =>
+          _changeView(CalendarMode.week, _focused),
+      const SingleActivator(LogicalKeyboardKey.keyM): () =>
+          _changeView(CalendarMode.month, _focused),
+      const SingleActivator(LogicalKeyboardKey.keyA): () =>
+          _changeView(CalendarMode.schedule, _focused),
+      const SingleActivator(LogicalKeyboardKey.keyX): () =>
+          _changeView(CalendarMode.custom, _focused),
+      const SingleActivator(LogicalKeyboardKey.keyT): _goToday,
+      const SingleActivator(LogicalKeyboardKey.keyJ): () => _move(1),
+      const SingleActivator(LogicalKeyboardKey.keyN): () => _move(1),
+      const SingleActivator(LogicalKeyboardKey.arrowRight): () => _move(1),
+      const SingleActivator(LogicalKeyboardKey.keyK): () => _move(-1),
+      const SingleActivator(LogicalKeyboardKey.keyP): () => _move(-1),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _move(-1),
+      const SingleActivator(LogicalKeyboardKey.keyC): _openEditor,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _goBack,
-        const SingleActivator(LogicalKeyboardKey.keyY, control: true):
-            _goForward,
-        const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _goBack,
-        const SingleActivator(LogicalKeyboardKey.arrowRight, alt: true):
-            _goForward,
-      },
+      bindings: _shortcutBindings,
       child: Focus(
         autofocus: true,
         child: Scaffold(
@@ -486,9 +546,29 @@ class _CalendarPageState extends State<CalendarPage> {
                 colorOf: colorOf,
                 onDayTap: _openDay,
               ),
-              CalendarMode.week || CalendarMode.day => TimeGridView(
+              // カスタムビューが1週間より長いときは、時間の表より一覧のほうが見やすい
+              CalendarMode.custom when _settings.customView.days > 7 =>
+                ScheduleView(
+                  data: data,
+                  from: _focused,
+                  today: today,
+                  events: events,
+                  colorOf: colorOf,
+                  showLessons: _showLessons,
+                  onToggleLessons: (v) => setState(() => _showLessons = v),
+                  onEventTap: (event) => _openEditor(event: event),
+                  onDayTap: _openDay,
+                  days: _settings.customView.days,
+                ),
+              CalendarMode.week ||
+              CalendarMode.day ||
+              CalendarMode.custom => TimeGridView(
                 data: data,
-                days: _mode == CalendarMode.week ? _weekDays : [_focused],
+                days: switch (_mode) {
+                  CalendarMode.week => _weekDays,
+                  CalendarMode.custom => _customDays,
+                  _ => [_focused],
+                },
                 today: today,
                 events: events,
                 colorOf: colorOf,

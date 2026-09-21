@@ -3,14 +3,18 @@ import 'package:material_ui/material_ui.dart';
 
 import '../belongings/belongings_pages.dart';
 import '../events/category_manage_page.dart';
-import '../google_calendar/google_calendar_page.dart';
 import '../events/event_category_repository.dart';
-import '../notifications/notification_planner.dart';
+import '../google_calendar/google_calendar_page.dart';
 import '../recurring/recurring_pages.dart';
 import '../school_tests/weekly_rules_page.dart';
 import '../timetable/school_settings_page.dart';
 import '../timetable/subject_color_page.dart';
 import '../timetable/subject_manage_page.dart';
+import 'app_settings.dart';
+import 'preferences_pages.dart';
+import 'settings_scope.dart';
+import 'shortcuts_page.dart';
+import 'timezone_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -42,7 +46,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    String t(int h, int m) => '$h:${m.toString().padLeft(2, '0')}';
+    final s = SettingsScope.of(context);
 
     Widget header(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
@@ -57,6 +61,62 @@ class SettingsPage extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
             children: [
+              header('全般'),
+              ListTile(
+                leading: const Icon(Icons.calendar_view_month_outlined),
+                title: const Text('表示'),
+                subtitle: Text(
+                  '${s.weekStart.label}はじまり・'
+                  '${s.showWeekend ? '週末あり' : '週末なし'}',
+                ),
+                onTap: () => _push(context, const ViewSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.language),
+                title: const Text('言語と地域'),
+                subtitle: Text(
+                  '${s.date(DateTime.now())}・'
+                  '${s.use24Hour ? '24時間表示' : '午前・午後'}',
+                ),
+                onTap: () => _push(context, const RegionSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.timelapse),
+                title: const Text('予定'),
+                subtitle: Text('デフォルトの長さ ${s.defaultEventMinutes}分'),
+                onTap: () => _push(context, const EventSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('通知'),
+                subtitle: Text(
+                  '${reminderLabel(s.defaultReminderMinutes)}・'
+                  '終日は ${s.time(s.allDayReminderMinutes)}',
+                ),
+                onTap: () => _push(context, const NotificationSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.public),
+                title: const Text('タイムゾーンと世界時計'),
+                subtitle: Text(
+                  s.showWorldClock && s.secondTimeZone.isNotEmpty
+                      ? '${s.timeZone}・${s.secondTimeZone}'
+                      : s.timeZone,
+                ),
+                onTap: () => _push(context, const TimeZoneSettingsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.keyboard_outlined),
+                title: const Text('キーボードショートカット'),
+                subtitle: Text(s.keyboardShortcuts ? '使う' : '使わない'),
+                onTap: () => _push(context, const ShortcutsPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_off_outlined),
+                title: const Text('オフライン'),
+                subtitle: Text(s.offlineEnabled ? 'オフラインでも使う' : '使わない'),
+                onTap: () => _push(context, const OfflineSettingsPage()),
+              ),
               header('学校'),
               ListTile(
                 leading: const Icon(Icons.event_busy_outlined),
@@ -106,16 +166,6 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('Google カレンダー'),
                 subtitle: const Text('読み込み・書き込みの設定'),
                 onTap: () => _push(context, const GoogleCalendarPage()),
-              ),
-              header('通知（Android のアプリのみ）'),
-              ListTile(
-                leading: const Icon(Icons.notifications_outlined),
-                title: const Text('お知らせの時刻'),
-                subtitle: Text(
-                  '前日 ${t(eveningHour, eveningMinute)}・'
-                  '当日 ${t(morningHour, morningMinute)}・'
-                  '予定の${eventReminder.inMinutes}分前',
-                ),
               ),
               header('アカウント'),
               ListTile(

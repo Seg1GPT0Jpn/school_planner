@@ -1,10 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../features/notifications/notification_sync.dart';
+import '../features/settings/settings_scope.dart';
 import '../features/timetable/subject_colors.dart';
+import '../features/widget/widget_sync.dart';
 import 'router.dart';
 import 'theme.dart';
-import '../features/widget/widget_sync.dart';
 
 /// アプリ全体の設定
 class App extends StatelessWidget {
@@ -28,10 +29,12 @@ class App extends StatelessWidget {
       supportedLocales: const [Locale('ja')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
 
-      // すべての画面の外側に「教科の色」と「通知」の係を置く
+      // すべての画面の外側に「設定」「教科の色」「通知」の係を置く
       builder: (context, child) {
-        return SubjectColorProvider(
-          child: NotificationSync(child: WidgetSync(child: child!)),
+        return SettingsProvider(
+          child: SubjectColorProvider(
+            child: NotificationSync(child: WidgetSync(child: child!)),
+          ),
         );
       },
     );

@@ -3,12 +3,14 @@ import 'package:material_ui/material_ui.dart';
 import '../../widgets/color_palette_picker.dart';
 import '../events/calendar_event.dart';
 import '../school_tests/school_test.dart';
+import '../settings/app_settings.dart';
+import '../settings/settings_scope.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/school_periods.dart';
 import '../timetable/timetable_repository.dart';
 import '../timetable/week_cycle.dart';
 
-/// 月表示（日曜始まり、左端にⅠ週/Ⅱ週）
+/// 月表示（週の始まりは設定にしたがう。左端にⅠ週/Ⅱ週）
 class MonthView extends StatelessWidget {
   const MonthView({
     super.key,
@@ -33,41 +35,46 @@ class MonthView extends StatelessWidget {
   /// 日付がタップされたとき
   final ValueChanged<DateTime> onDayTap;
 
-  static const List<String> _weekdayHeaders = [
-    '日',
-    '月',
-    '火',
-    '水',
-    '木',
-    '金',
-    '土',
-  ];
-
   /// 左端（Ⅰ週/Ⅱ週）の列の幅
   static const double _weekLabelWidth = 32;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final settings = SettingsScope.of(context);
     final resolver = data.resolver;
 
-    // 表示する範囲：月の1日を含む週の日曜日 〜 月末を含む週
+    // 週の始まりから数えて i 番目の曜日（月=1 … 日=7）
+    int weekdayAt(int i) => ((settings.weekStart.weekday - 1 + i) % 7) + 1;
+
+    // 出す列（週末を隠す設定のときは土日を飛ばす）
+    final columns = [
+      for (var i = 0; i < 7; i++)
+        if (settings.showWeekend ||
+            (weekdayAt(i) != DateTime.saturday &&
+                weekdayAt(i) != DateTime.sunday))
+          i,
+    ];
+
+    // 表示する範囲：月の1日を含む週のはじめ 〜 月末を含む週
     final firstDay = DateTime(month.year, month.month, 1);
     final lastDay = DateTime(month.year, month.month + 1, 0);
-    final gridStart = DateTime(
-      firstDay.year,
-      firstDay.month,
-      firstDay.day - (firstDay.weekday % 7), // 日曜日なら0日戻る
-    );
+    final gridStart = settings.startOfWeek(firstDay);
 
-    final sundays = <DateTime>[];
+    final weekStarts = <DateTime>[];
     for (
       var d = gridStart;
       !d.isAfter(lastDay);
       d = DateTime(d.year, d.month, d.day + 7)
     ) {
-      sundays.add(d);
+      weekStarts.add(d);
     }
+
+    Color? headerColor(int weekday) => switch (weekday) {
+      DateTime.sunday => colorScheme.error,
+      DateTime.saturday => Colors.blue.shade700,
+      _ => null,
+    };
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 88),
@@ -80,19 +87,13 @@ class MonthView extends StatelessWidget {
               Row(
                 children: [
                   const SizedBox(width: _weekLabelWidth),
-                  for (var i = 0; i < 7; i++)
+                  for (final i in columns)
                     Expanded(
                       child: Center(
                         child: Text(
-                          _weekdayHeaders[i],
+                          settings.weekdayLabels[i],
                           style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: i == 0
-                                    ? colorScheme.error
-                                    : i == 6
-                                    ? Colors.blue.shade700
-                                    : null,
-                              ),
+                              ?.copyWith(color: headerColor(weekdayAt(i))),
                         ),
                       ),
                     ),
@@ -100,14 +101,14 @@ class MonthView extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // 週ごとの行（Ⅰ週/Ⅱ週は、その行の月曜日で判定）
-              for (final sunday in sundays)
+              // 週ごとの行（Ⅰ週/Ⅱ週は、その週の月曜日で判定）
+              for (final weekStart in weekStarts)
                 Builder(
                   builder: (context) {
                     final monday = DateTime(
-                      sunday.year,
-                      sunday.month,
-                      sunday.day + 1,
+                      weekStart.year,
+                      weekStart.month,
+                      weekStart.day + (1 - weekStart.weekday + 7) % 7,
                     );
                     return Row(
                       children: [
@@ -118,15 +119,16 @@ class MonthView extends StatelessWidget {
                           ),
                           width: _weekLabelWidth,
                         ),
-                        for (var i = 0; i < 7; i++)
+                        for (final i in columns)
                           Expanded(
                             child: _buildDayCell(
                               DateTime(
-                                sunday.year,
-                                sunday.month,
-                                sunday.day + i,
+                                weekStart.year,
+                                weekStart.month,
+                                weekStart.day + i,
                               ),
                               resolver,
+                              settings,
                             ),
                           ),
                       ],
@@ -140,7 +142,11 @@ class MonthView extends StatelessWidget {
     );
   }
 
-  Widget _buildDayCell(DateTime date, DayTimetableResolver resolver) {
+  Widget _buildDayCell(
+    DateTime date,
+    DayTimetableResolver resolver,
+    AppSettings settings,
+  ) {
     // その日の予定（終日を先に、あとは開始時刻の順）
     final dayEvents =
         [
@@ -166,6 +172,7 @@ class MonthView extends StatelessWidget {
           date.year == today.year &&
           date.month == today.month &&
           date.day == today.day,
+      isPast: settings.dimPastEvents && date.isBefore(today),
       onTap: () => onDayTap(date),
     );
   }
@@ -217,6 +224,7 @@ class _DayCell extends StatelessWidget {
     required this.colorOf,
     required this.isInMonth,
     required this.isToday,
+    required this.isPast,
     required this.onTap,
   });
 
@@ -227,6 +235,10 @@ class _DayCell extends StatelessWidget {
   final Color Function(CalendarEvent event) colorOf;
   final bool isInMonth;
   final bool isToday;
+
+  /// 過ぎた日（設定で「うすくする」のときだけ true）
+  final bool isPast;
+
   final VoidCallback onTap;
 
   /// 1マスに表示する帯の最大数
@@ -309,7 +321,7 @@ class _DayCell extends StatelessWidget {
     final hiddenCount = items.length - _maxItems;
 
     return Opacity(
-      opacity: isInMonth ? 1 : 0.35,
+      opacity: isInMonth ? (isPast ? 0.5 : 1) : 0.35,
       child: InkWell(
         onTap: onTap,
         child: Container(
