@@ -17,14 +17,20 @@ class AutoSplitCard extends StatelessWidget {
     required this.candidates,
     required this.weekLoad,
     required this.now,
+    this.minutesOf,
   });
 
   final List<Todo> candidates;
   final List<DayLoad> weekLoad;
   final DateTime now;
 
+  /// 見積もり分数の出し方を差し替える（学習した倍率を使うときなど）。
+  /// 省略時は [estimateMinutes] をそのまま使う。
+  final int Function(Todo)? minutesOf;
+
   void _showPlan(BuildContext context, Todo t) {
-    final total = estimateMinutes(t) * 3; // 分割の対象になるくらいの規模感の目安
+    final estimate = minutesOf ?? estimateMinutes;
+    final total = estimate(t) * 3; // 分割の対象になるくらいの規模感の目安
     final plan = splitWorkload(
       from: now,
       dueDate: t.dueDate!,

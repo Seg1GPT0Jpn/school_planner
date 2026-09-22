@@ -29,6 +29,52 @@ const Map<String, List<String>> upperGradeSubjects = {
 /// 今ある科目の教科を移すもの
 const Map<String, String> subjectRecategorize = {'地理総合': '地理・歴史', '公共': '公民'};
 
+/// 高校で、まだ入っていないもの（新課程・現行の学習指導要領にある科目のみ）
+const Map<String, List<String>> highSchoolMoreSubjects = {
+  '数学': ['数学と人間の活動'],
+  '理科': ['科学と人間生活', '地学基礎', '地学', '理科課題研究'],
+  '情報': ['情報Ⅱ'],
+  '副教科': [
+    '家庭基礎',
+    '音楽Ⅱ',
+    '音楽Ⅲ',
+    '美術Ⅱ',
+    '美術Ⅲ',
+    '工芸Ⅰ',
+    '工芸Ⅱ',
+    '工芸Ⅲ',
+    '書道Ⅰ',
+    '書道Ⅱ',
+    '書道Ⅲ',
+  ],
+};
+
+/// 小学校の科目
+const Map<String, List<String>> elementarySubjects = {
+  '国語': ['国語'],
+  '社会': ['社会'],
+  '算数': ['算数'],
+  '理科': ['理科'],
+  '生活': ['生活'],
+  '音楽': ['音楽'],
+  '図画工作': ['図画工作'],
+  '家庭': ['家庭'],
+  '体育': ['体育'],
+};
+
+/// 中学校の科目
+const Map<String, List<String>> middleSchoolSubjects = {
+  '国語': ['国語'],
+  '社会': ['社会'],
+  '数学': ['数学'],
+  '理科': ['理科'],
+  '音楽': ['音楽'],
+  '美術': ['美術'],
+  '保健体育': ['保健体育'],
+  '技術・家庭': ['技術・家庭'],
+  '外国語': ['英語'],
+};
+
 class SubjectRepository {
   SubjectRepository({required this.uid, FirebaseFirestore? firestore})
     : _db = firestore ?? FirebaseFirestore.instance;
@@ -48,14 +94,17 @@ class SubjectRepository {
 
   Future<void> delete(String name) => _col.doc(name).delete();
 
-  /// まだない科目だけ追加し、教科の移し替えも行う。追加した数を返す
-  Future<int> addUpperGrade(List<Subject> existing) async {
+  /// 指定した科目プリセットのうち、まだない科目だけ追加する。追加した数を返す
+  Future<int> addPreset(
+    Map<String, List<String>> preset,
+    List<Subject> existing,
+  ) async {
     final names = {for (final s in existing) s.name};
     final batch = _db.batch();
     var order = existing.length;
     var added = 0;
 
-    upperGradeSubjects.forEach((category, list) {
+    preset.forEach((category, list) {
       for (final name in list) {
         if (names.contains(name)) continue;
         batch.set(_col.doc(name), {
@@ -67,13 +116,23 @@ class SubjectRepository {
       }
     });
 
+    await batch.commit();
+    return added;
+  }
+
+  /// まだない科目だけ追加し、教科の移し替えも行う（2・3年生用）。追加した数を返す
+  Future<int> addUpperGrade(List<Subject> existing) async {
+    final added = await addPreset(upperGradeSubjects, existing);
+
+    final names = {for (final s in existing) s.name};
+    final batch = _db.batch();
     subjectRecategorize.forEach((name, category) {
       if (names.contains(name)) {
         batch.update(_col.doc(name), {'category': category});
       }
     });
-
     await batch.commit();
+
     return added;
   }
 }

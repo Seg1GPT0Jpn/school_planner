@@ -21,13 +21,21 @@ class SplitDay {
 }
 
 /// 見積もりが大きく、締切が2日以上先にある ToDo を「分割候補」として拾う
-List<Todo> findSplitCandidates(List<Todo> todos, DateTime now) {
+///
+/// [minutesOf] を渡すと、見積もり分数の出し方を差し替えられる
+/// （学習した倍率を使うときなど）。省略時は [estimateMinutes] をそのまま使う。
+List<Todo> findSplitCandidates(
+  List<Todo> todos,
+  DateTime now, {
+  int Function(Todo)? minutesOf,
+}) {
+  final estimate = minutesOf ?? estimateMinutes;
   final today = _day(now);
   return todos.where((t) {
     if (t.done || t.dueDate == null) return false;
     final due = _day(t.dueDate!);
     if (due.difference(today).inDays < 2) return false;
-    return estimateMinutes(t) >= autoSplitThresholdMinutes;
+    return estimate(t) >= autoSplitThresholdMinutes;
   }).toList();
 }
 

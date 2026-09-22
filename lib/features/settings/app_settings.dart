@@ -139,6 +139,7 @@ class AppSettings {
     this.gamificationEnabled = true,
     this.moodTrackingEnabled = true,
     this.aiAdvisorEnabled = true,
+    this.generativeAiEnabled = false,
     // 予定候補の提案
     this.dismissedPatternKeys = const [],
   });
@@ -243,6 +244,10 @@ class AppSettings {
   /// ホームに「AIアドバイス」（ToDo・忙しさ・気分などから自動で作る一言）を表示する
   final bool aiAdvisorEnabled;
 
+  /// 生成AI（Gemini・Firebase AI Logic 経由）で「今日のひとこと」を作る
+  /// （要・Firebase Console 側の設定。オフのときはルールベースのみ）
+  final bool generativeAiEnabled;
+
   // ── 予定候補の提案 ──
 
   /// 「却下」した予定候補（もう提案しない）
@@ -317,6 +322,7 @@ class AppSettings {
     bool? gamificationEnabled,
     bool? moodTrackingEnabled,
     bool? aiAdvisorEnabled,
+    bool? generativeAiEnabled,
     List<String>? dismissedPatternKeys,
   }) => AppSettings(
     weekStart: weekStart ?? this.weekStart,
@@ -351,6 +357,7 @@ class AppSettings {
     gamificationEnabled: gamificationEnabled ?? this.gamificationEnabled,
     moodTrackingEnabled: moodTrackingEnabled ?? this.moodTrackingEnabled,
     aiAdvisorEnabled: aiAdvisorEnabled ?? this.aiAdvisorEnabled,
+    generativeAiEnabled: generativeAiEnabled ?? this.generativeAiEnabled,
     dismissedPatternKeys: dismissedPatternKeys ?? this.dismissedPatternKeys,
   );
 
@@ -386,6 +393,7 @@ class AppSettings {
     'gamificationEnabled': gamificationEnabled,
     'moodTrackingEnabled': moodTrackingEnabled,
     'aiAdvisorEnabled': aiAdvisorEnabled,
+    'generativeAiEnabled': generativeAiEnabled,
     'dismissedPatternKeys': dismissedPatternKeys,
   };
 
@@ -485,6 +493,10 @@ class AppSettings {
         d.moodTrackingEnabled,
       ),
       aiAdvisorEnabled: flag('aiAdvisorEnabled', d.aiAdvisorEnabled),
+      generativeAiEnabled: flag(
+        'generativeAiEnabled',
+        d.generativeAiEnabled,
+      ),
       dismissedPatternKeys: [
         for (final x
             in (m['dismissedPatternKeys'] as List<dynamic>? ?? const []))

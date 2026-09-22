@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ai_advisor/actual_time_sheet.dart';
 import '../ai_advisor/advisor.dart';
 import '../ai_advisor/advisor_card.dart';
 import '../ai_advisor/auto_split.dart';
 import '../ai_advisor/auto_split_card.dart';
+import '../ai_advisor/gemini_advisor.dart';
+import '../ai_advisor/generative_advisor_card.dart';
+import '../ai_advisor/quick_add_schedule_page.dart';
+import '../ai_advisor/timing_learning.dart';
 import '../ai_advisor/today_plan.dart';
 import '../ai_advisor/today_plan_card.dart';
 import '../belongings/belongings_pages.dart';
@@ -67,6 +72,7 @@ class _HomePageState extends State<HomePage> {
   late final String _uid = FirebaseAuth.instance.currentUser!.uid;
   late final _testRepository = SchoolTestRepository(uid: _uid);
   late final _todoRepository = TodoRepository(uid: _uid);
+  late final _timingRepository = TimingLearningRepository(uid: _uid);
 
   final _subs = <StreamSubscription<dynamic>>[];
   Timer? _clock;
@@ -78,6 +84,7 @@ class _HomePageState extends State<HomePage> {
   List<Goal> _goals = const [];
   List<CalendarEvent> _events = const [];
   List<StudySession> _sessions = const [];
+  TimingStats _timingStats = const TimingStats();
 
   static const int _upcomingDays = 14;
 
@@ -96,6 +103,7 @@ class _HomePageState extends State<HomePage> {
     on(GoalRepository(uid: _uid).watchGoals(), (v) => _goals = v);
     on(EventRepository(uid: _uid).watchAll(), (v) => _events = v);
     on(StudyRepository(uid: _uid).watchSessions(), (v) => _sessions = v);
+    on(_timingRepository.watch(), (v) => _timingStats = v);
 
     // 「いま何限」を1分ごとに進める
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -147,6 +155,15 @@ class _HomePageState extends State<HomePage> {
 
   void _openTodo(Todo t) =>
       _push(TodoEditPage(todo: t, subjects: _data?.subjects ?? const []));
+
+  /// 完了にしたら、AIアドバイスが有効なときだけ「実際どれくらいかかったか」を
+  /// 軽く（任意で）聞いて、見積もりの学習に使う。保存自体は先に済ませる。
+  void _toggleTodo(Todo t, bool v) {
+    _todoRepository.save(t.toggled(v));
+    if (v && SettingsScope.of(context).aiAdvisorEnabled) {
+      promptActualTime(context, todo: t, repository: _timingRepository);
+    }
+  }
 
   /// テストはカルテ、学校行事はイベントのまとめ、提出物などは編集画面
   void _openUpcoming(UpcomingItem item) {
@@ -272,12 +289,18 @@ class _HomePageState extends State<HomePage> {
       recentMoods: recentMoods,
       testsWithin3Days: testsWithin3Days,
     );
+    int learnedMinutes(Todo t) => estimateMinutesLearned(t, _timingStats);
     final todayPlan = buildTodayPlan(
       now: now,
       todos: todos,
       todayLoad: weekLoad.isNotEmpty ? weekLoad.first : null,
+      minutesOf: learnedMinutes,
     );
-    final splitCandidates = findSplitCandidates(todos, now);
+    final splitCandidates = findSplitCandidates(
+      todos,
+      now,
+      minutesOf: learnedMinutes,
+    );
 
     final patternSuggestions = [
       for (final s in detectPatternSuggestions(
@@ -328,7 +351,7 @@ class _HomePageState extends State<HomePage> {
       _UrgentCard(
         items: urgent,
         now: now,
-        onToggle: (t, v) => _todoRepository.save(t.toggled(v)),
+        onToggle: _toggleTodo,
         onTapTodo: _openTodo,
         onTapTest: _openUpcoming,
       ),
@@ -336,9 +359,21 @@ class _HomePageState extends State<HomePage> {
         gap,
         TodayPlanCard(
           plan: todayPlan,
-          onToggle: (t, v) => _todoRepository.save(t.toggled(v)),
+          onToggle: _toggleTodo,
           onTap: _openTodo,
         ),
+        if (settings.generativeAiEnabled) ...[
+          gap,
+          GenerativeAdvisorCard(
+            input: GeminiAdvisorInput(
+              todos: todos,
+              weekLoad: weekLoad,
+              gamification: computeGamification(todos, now: now),
+              recentMoods: recentMoods,
+              testsWithin3Days: testsWithin3Days,
+            ),
+          ),
+        ],
         gap,
         AdvisorCard(tips: advisorTips),
         if (splitCandidates.isNotEmpty) ...[
@@ -347,8 +382,21 @@ class _HomePageState extends State<HomePage> {
             candidates: splitCandidates,
             weekLoad: weekLoad,
             now: now,
+            minutesOf: learnedMinutes,
           ),
         ],
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.auto_awesome),
+            title: const Text('サクッと予定入力'),
+            subtitle: const Text('文章を入力すると、日付・時刻を読み取って予定の下書きを作ります'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _push(
+              QuickAddSchedulePage(repository: EventRepository(uid: _uid)),
+            ),
+          ),
+        ),
       ],
       gap,
       WorkloadCard(week: weekLoad, settings: settings),

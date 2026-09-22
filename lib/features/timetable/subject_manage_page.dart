@@ -93,6 +93,27 @@ class _SubjectManagePageState extends State<SubjectManagePage> {
     if (ok == true) await _repo.delete(s.name);
   }
 
+  Widget _presetTile({
+    required String title,
+    required String subtitle,
+    required Map<String, List<String>> preset,
+    required List<Subject> subjects,
+  }) {
+    return ListTile(
+      leading: const Icon(Icons.school_outlined),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: FilledButton(
+        onPressed: () async {
+          final messenger = ScaffoldMessenger.of(context);
+          final n = await _repo.addPreset(preset, subjects);
+          messenger.showSnackBar(SnackBar(content: Text('$n 科目を追加しました')));
+        },
+        child: const Text('追加'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<TimetableData>(
@@ -133,6 +154,24 @@ class _SubjectManagePageState extends State<SubjectManagePage> {
                         },
                         child: const Text('追加'),
                       ),
+                    ),
+                    _presetTile(
+                      title: '高校：ほかの科目をまとめて追加',
+                      subtitle: '地学・理科課題研究・情報Ⅱなど、まだない科目だけ追加します',
+                      preset: highSchoolMoreSubjects,
+                      subjects: subjects,
+                    ),
+                    _presetTile(
+                      title: '小学校の科目をまとめて追加',
+                      subtitle: '国語・算数・生活・図画工作など',
+                      preset: elementarySubjects,
+                      subjects: subjects,
+                    ),
+                    _presetTile(
+                      title: '中学校の科目をまとめて追加',
+                      subtitle: '国語・数学・技術・家庭・外国語など',
+                      preset: middleSchoolSubjects,
+                      subjects: subjects,
                     ),
                     const Divider(),
                     for (final cat in categories) ...[

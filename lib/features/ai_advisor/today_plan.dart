@@ -54,7 +54,11 @@ TodayPlan buildTodayPlan({
   required List<Todo> todos,
   DayLoad? todayLoad,
   int maxItems = 5,
+  /// 見積もり分数の出し方を差し替える（学習した倍率を使うときなど）。
+  /// 省略時は [estimateMinutes] をそのまま使う。
+  int Function(Todo)? minutesOf,
 }) {
+  final estimate = minutesOf ?? estimateMinutes;
   final today = _day(now);
   final limit = today.add(const Duration(days: 3));
 
@@ -79,7 +83,7 @@ TodayPlan buildTodayPlan({
   final chosen = candidates.take(maxItems).toList();
   final items = [
     for (final t in chosen)
-      PlanItem(todo: t, minutes: estimateMinutes(t), priority: priorityOf(t)),
+      PlanItem(todo: t, minutes: estimate(t), priority: priorityOf(t)),
   ];
   final total = items.fold(0, (sum, i) => sum + i.minutes);
 

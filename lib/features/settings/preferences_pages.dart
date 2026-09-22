@@ -377,6 +377,19 @@ class MotivationSettingsPage extends StatelessWidget {
           onChanged: (v) =>
               saveSettings(context, s.copyWith(aiAdvisorEnabled: v)),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.auto_awesome),
+          title: const Text('生成AI（Gemini）を使う'),
+          subtitle: const Text(
+            'Google の生成AI（Gemini・無料枠）を使って、「今日のひとこと」アドバイスや'
+            '「サクッと予定入力」の読み取りをより賢くします（送るのは件数の要約や、'
+            '予定入力の欄に入力した文章のみです）。Firebase Console 側で AI Logic を'
+            '有効化していないと動きません（未設定でも他の機能には影響しません）。',
+          ),
+          value: s.generativeAiEnabled,
+          onChanged: (v) =>
+              saveSettings(context, s.copyWith(generativeAiEnabled: v)),
+        ),
         const _Note('OFF にしても、これまでに記録したデータは消えません。表示だけ隠します。'),
       ],
     );

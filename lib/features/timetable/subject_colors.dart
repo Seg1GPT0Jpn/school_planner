@@ -17,6 +17,17 @@ Color categoryColor(String? category) {
     '公民' => const Color.fromARGB(255, 218, 134, 104),
     '情報' => Colors.teal.shade500,
     '副教科' => Colors.blueGrey.shade400,
+    // 小学校・中学校の科目
+    '算数' => Colors.blue.shade500,
+    '生活' => Colors.lightGreen.shade400,
+    '図画工作' => Colors.pink.shade300,
+    '家庭' => Colors.brown.shade400,
+    '技術・家庭' => Colors.brown.shade400,
+    '体育' => Colors.cyan.shade600,
+    '保健体育' => Colors.cyan.shade600,
+    '音楽' => Colors.indigo.shade400,
+    '美術' => Colors.pink.shade400,
+    '外国語' => Colors.purple.shade400,
     _ => Colors.grey.shade500,
   };
 }
