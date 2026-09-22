@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
 
 import '../gamification/gamification.dart';
+import '../life_analysis/life_analysis.dart';
 import '../todo/todo.dart';
 import '../workload/workload.dart';
 import 'nl_schedule_parser.dart';
@@ -184,6 +185,52 @@ Future<ParsedSchedule?> parseScheduleWithGemini(
       dateGuessed: false,
       notes: notes,
     );
+  } catch (_) {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------
+// 「生活分析」用：今月のまとめ文を Gemini に書いてもらう
+// ------------------------------------------------------------
+
+const _lifeAnalysisWeekdayJa = ['月', '火', '水', '木', '金', '土', '日'];
+
+/// 生活分析の「今月のまとめ」を Gemini に生成してもらう。失敗したら null。
+/// 呼び出し側は null のとき、buildFallbackSummary（ルールベース）を使う。
+Future<String?> generateLifeAnalysisMessage({
+  required MonthlyStats stats,
+  MonthlyStats? previous,
+}) async {
+  try {
+    final model = FirebaseAI.googleAI().generativeModel(
+      model: 'gemini-3.8-flash',
+    );
+    final wd = stats.busiestWeekday;
+    final prompt =
+        '''
+あなたは、高校生向け学習管理アプリ「つづり」の中にいる、やさしいアドバイザーです。
+以下は、ユーザーの${stats.month.month}月の生活データです。これだけを見て、
+前向きで役立つ「今月のまとめ」を日本語で2〜3文だけ書いてください。
+説教くさくならないようにしてください。絵文字は0〜2個まで。
+マークダウンや箇条書き、前置きの言葉は使わないでください。
+出力はまとめの本文だけにしてください。
+
+【データ】
+勉強時間: ${stats.studyMinutes}分
+部活時間: ${stats.clubMinutes}分
+提出物・課題の件数: ${stats.todoTotal}件（うち完了${stats.todoDone}件）
+予定のない日: ${stats.noPlanDays}日
+予定が多い曜日: ${wd != null ? '${_lifeAnalysisWeekdayJa[wd - 1]}曜日' : '不明'}
+1日あたりの平均予定数: ${stats.avgEventsPerDay.toStringAsFixed(1)}件
+${previous != null ? '先月の勉強時間（参考）: ${previous.studyMinutes}分' : ''}
+''';
+    final response = await model
+        .generateContent([Content.text(prompt)])
+        .timeout(const Duration(seconds: 15));
+    final text = response.text?.trim();
+    if (text == null || text.isEmpty) return null;
+    return text;
   } catch (_) {
     return null;
   }

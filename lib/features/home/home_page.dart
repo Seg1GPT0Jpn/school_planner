@@ -15,6 +15,8 @@ import '../ai_advisor/timing_learning.dart';
 import '../ai_advisor/today_plan.dart';
 import '../ai_advisor/today_plan_card.dart';
 import '../belongings/belongings_pages.dart';
+import '../belongings/belongings_repository.dart';
+import '../belongings/forgotten_item_detective_card.dart';
 import '../earthquake/earthquake_page.dart';
 import '../events/calendar_event.dart';
 import '../events/event_category_repository.dart';
@@ -27,6 +29,7 @@ import '../goals/goal_repository.dart';
 import '../goals/goals_page.dart';
 import '../growth_log/growth_log_hub_page.dart';
 import '../growth_log/growth_log_repository.dart';
+import '../life_analysis/life_analysis_page.dart';
 import '../pattern_suggest/pattern_suggest.dart';
 import '../pattern_suggest/pattern_suggest_card.dart';
 import '../recovery/recovery_page.dart';
@@ -56,6 +59,7 @@ import '../travel/travel_card.dart';
 import '../todo/todo_page.dart';
 import '../todo/todo_repository.dart';
 import '../weather/weather_home_card.dart';
+import '../what_if/what_if_page.dart';
 import '../workload/workload.dart';
 import '../workload/workload_card.dart';
 import 'home_brief.dart';
@@ -489,6 +493,27 @@ class _HomePageState extends State<HomePage> {
           onTap: () => openEarthquake(context),
         ),
       ),
+      gap,
+      const _SectionTitle('自分を知るAI'),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.bar_chart),
+          title: const Text('生活分析'),
+          subtitle: const Text('今月の勉強・部活時間、曜日のクセなどをふり返る'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _push(const LifeAnalysisPage()),
+        ),
+      ),
+      gap,
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.auto_fix_high),
+          title: const Text('もしも予定シミュレーター'),
+          subtitle: const Text('予定が延びたら、後の予定がどれだけずれるかを試す'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _push(const WhatIfPage()),
+        ),
+      ),
     ];
 
     // ── 明日・近日 ──
@@ -502,6 +527,12 @@ class _HomePageState extends State<HomePage> {
       ),
       gap,
       TomorrowBelongingsCard(data: data, recurring: _recurring),
+      gap,
+      ForgottenItemDetectiveCard(
+        data: data,
+        recurring: _recurring,
+        repository: BelongingsRepository(uid: _uid),
+      ),
       if (today.status != DayStatus.school &&
           tomorrow.status != DayStatus.school) ...[
         gap,

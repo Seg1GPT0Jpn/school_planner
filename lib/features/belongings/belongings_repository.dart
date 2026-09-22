@@ -56,4 +56,33 @@ class BelongingsRepository {
             ? FieldValue.arrayUnion([item])
             : FieldValue.arrayRemove([item]),
       }, SetOptions(merge: true));
+
+  // ------------------------------------------------------------
+  // 忘れ物探偵：持ち物ごとに「最後に持っていった日」を覚える
+  // ------------------------------------------------------------
+
+  DocumentReference<Map<String, dynamic>> get _lastBrought => _db
+      .collection('users')
+      .doc(uid)
+      .collection('settings')
+      .doc('belongings_last_brought');
+
+  /// 持ち物ごとの「最後に持っていった日時」
+  Stream<Map<String, DateTime>> watchLastBrought() =>
+      _lastBrought.snapshots().map((s) {
+        final raw = s.data()?['items'] as Map<String, dynamic>? ?? const {};
+        return {
+          for (final e in raw.entries)
+            if (e.value is Timestamp)
+              e.key: (e.value as Timestamp).toDate(),
+        };
+      });
+
+  /// この持ち物を「今、持っていった」と記録する
+  Future<void> markBrought(String item, {DateTime? when}) => _lastBrought.set(
+    {
+      'items': {item: Timestamp.fromDate(when ?? DateTime.now())},
+    },
+    SetOptions(merge: true),
+  );
 }
