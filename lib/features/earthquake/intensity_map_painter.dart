@@ -1,6 +1,9 @@
-/// 震度分布図（自前で描く。都道府県ごとの最大震度を、地図上の位置に丸で表示）
+/// 震度分布図（Google マップの上に、都道府県ごとの最大震度を重ねて表示）
 library;
 
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'pref_locations.dart';
@@ -19,123 +22,112 @@ Color scaleColor(int scale) => switch (scale) {
   _ => const Color(0xFFBDBDBD),
 };
 
-/// 日本のおおよその範囲（緯度・経度）
-const _latMin = 24.0, _latMax = 46.0;
-const _lngMin = 122.0, _lngMax = 146.5;
+/// 震度（10倍表記）を「5弱」のような表示用文字列にする（地図のラベル用）
+String _label(int scale) => switch (scale) {
+  10 => '1',
+  20 => '2',
+  30 => '3',
+  40 => '4',
+  45 => '5弱',
+  50 => '5強',
+  55 => '6弱',
+  60 => '6強',
+  70 => '7',
+  _ => '不明',
+};
 
-class IntensityMap extends StatelessWidget {
+/// 日本全体が入るくらいのカメラ位置
+const _japanCenter = LatLng(36.8, 138.2);
+
+class IntensityMap extends StatefulWidget {
   const IntensityMap({super.key, required this.maxScaleByPref, this.epicenter});
 
   /// 都道府県名 → 最大震度（10倍表記）
   final Map<String, int> maxScaleByPref;
 
-  /// 震源の位置（表示できれば ×印を出す）
+  /// 震源の位置（表示できれば印を出す）
   final (double lat, double lng)? epicenter;
 
   @override
+  State<IntensityMap> createState() => _IntensityMapState();
+}
+
+class _IntensityMapState extends State<IntensityMap> {
+  GoogleMapController? _controller;
+
+  Set<Circle> get _circles => {
+    for (final e in widget.maxScaleByPref.entries)
+      if (prefLocations[e.key] case final loc?)
+        Circle(
+          circleId: CircleId('pref_${e.key}'),
+          center: LatLng(loc.$1, loc.$2),
+          radius: 18000 + (e.value.clamp(10, 70) - 10) / 60 * 42000,
+          fillColor: scaleColor(e.value).withValues(alpha: 0.55),
+          strokeColor: scaleColor(e.value),
+          strokeWidth: 1,
+        ),
+  };
+
+  Set<Marker> get _markers => {
+    for (final e in widget.maxScaleByPref.entries)
+      if (prefLocations[e.key] case final loc?)
+        Marker(
+          markerId: MarkerId('pref_marker_${e.key}'),
+          position: LatLng(loc.$1, loc.$2),
+          alpha: 0.01,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            HSVColor.fromColor(scaleColor(e.value)).hue,
+          ),
+          infoWindow: InfoWindow(title: '${e.key}　震度${_label(e.value)}'),
+        ),
+    if (widget.epicenter case (final lat, final lng)?)
+      Marker(
+        markerId: const MarkerId('epicenter'),
+        position: LatLng(lat, lng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueViolet,
+        ),
+        infoWindow: const InfoWindow(title: '震源'),
+        zIndexInt: 2,
+      ),
+  };
+
+  @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 0.82,
-      child: CustomPaint(
-        painter: _IntensityMapPainter(
-          maxScaleByPref: maxScaleByPref,
-          epicenter: epicenter,
-          background: Theme.of(context).colorScheme.surfaceContainerHighest,
-          outline: Theme.of(context).colorScheme.outlineVariant,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AspectRatio(
+        aspectRatio: 0.82,
+        child: GoogleMap(
+          initialCameraPosition: const CameraPosition(
+            target: _japanCenter,
+            zoom: 4.4,
+          ),
+          onMapCreated: (c) => _controller = c,
+          circles: _circles,
+          markers: _markers,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          zoomGesturesEnabled: true,
+          mapToolbarEnabled: false,
+          liteModeEnabled: false,
+          // この地図はスクロールできる一覧の中に埋め込まれているため、
+          // 何もしないと指でのピンチ（ズーム）操作が親側のスクロールに
+          // 取られてしまい、拡大できない。地図の上での操作を地図側に
+          // 優先して渡すようにする。
+          gestureRecognizers: {
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          },
         ),
       ),
     );
   }
-}
-
-class _IntensityMapPainter extends CustomPainter {
-  _IntensityMapPainter({
-    required this.maxScaleByPref,
-    required this.epicenter,
-    required this.background,
-    required this.outline,
-  });
-
-  final Map<String, int> maxScaleByPref;
-  final (double lat, double lng)? epicenter;
-  final Color background;
-  final Color outline;
-
-  Offset _project(double lat, double lng, Size size) {
-    final x = (lng - _lngMin) / (_lngMax - _lngMin) * size.width;
-    // 緯度は上が北（大きいほど上）なので反転
-    final y = (1 - (lat - _latMin) / (_latMax - _latMin)) * size.height;
-    return Offset(x, y);
-  }
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = background;
-    final rect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(8),
-    );
-    canvas.drawRRect(rect, bgPaint);
-    canvas.drawRRect(
-      rect,
-      Paint()
-        ..color = outline
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    // 震源
-    if (epicenter != null) {
-      final (lat, lng) = epicenter!;
-      if (lat >= _latMin &&
-          lat <= _latMax &&
-          lng >= _lngMin &&
-          lng <= _lngMax) {
-        final p = _project(lat, lng, size);
-        final paint = Paint()
-          ..color = Colors.black87
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke;
-        canvas.drawLine(
-          p + const Offset(-6, -6),
-          p + const Offset(6, 6),
-          paint,
-        );
-        canvas.drawLine(
-          p + const Offset(-6, 6),
-          p + const Offset(6, -6),
-          paint,
-        );
-      }
-    }
-
-    // 各都道府県の震度（震度が大きいものを後から描いて目立たせる）
-    final entries = maxScaleByPref.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
-    for (final e in entries) {
-      final loc = prefLocations[e.key];
-      if (loc == null) continue;
-      final (lat, lng) = loc;
-      final p = _project(lat, lng, size);
-      final r = 7.0 + (e.value.clamp(10, 70) - 10) / 60 * 8;
-      canvas.drawCircle(
-        p,
-        r,
-        Paint()..color = scaleColor(e.value).withValues(alpha: 0.9),
-      );
-      canvas.drawCircle(
-        p,
-        r,
-        Paint()
-          ..color = Colors.black26
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1,
-      );
-    }
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
-
-  @override
-  bool shouldRepaint(covariant _IntensityMapPainter oldDelegate) =>
-      oldDelegate.maxScaleByPref != maxScaleByPref ||
-      oldDelegate.epicenter != epicenter;
 }

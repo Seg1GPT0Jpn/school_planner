@@ -37,6 +37,7 @@ class BelongingsRepository {
       daily: _list(m['daily']),
       bySubject: _map(m['bySubject']),
       byRecurring: _map(m['byRecurring']),
+      byCategory: _map(m['byCategory']),
     );
   });
 
@@ -44,6 +45,7 @@ class BelongingsRepository {
     'daily': b.daily,
     'bySubject': b.bySubject,
     'byRecurring': b.byRecurring,
+    'byCategory': b.byCategory,
   });
 
   /// その日にチェックした持ち物

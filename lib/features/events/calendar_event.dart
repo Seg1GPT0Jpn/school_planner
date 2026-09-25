@@ -23,6 +23,7 @@ class CalendarEvent {
     this.belongings = const [],
     this.travelForEventId,
     this.mood,
+    this.tags = const [],
   });
 
   /// Firestore の ID（まだ保存していない予定は null）
@@ -55,6 +56,9 @@ class CalendarEvent {
 
   /// この予定の「気分」。自分で選んだ絵文字1つだけを入れる（未選択は null）
   final String? mood;
+
+  /// 自由に付けられるタグ（複数可。検索・絞り込みに使う）
+  final List<String> tags;
 
   /// その日に表示する予定か
   bool occursOn(DateTime date) {

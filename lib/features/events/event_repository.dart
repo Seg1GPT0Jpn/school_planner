@@ -114,6 +114,7 @@ class EventRepository {
     'belongings': e.belongings,
     'travelForEventId': e.travelForEventId,
     'mood': e.mood,
+    'tags': e.tags,
   };
 
   static CalendarEvent _fromMap(String id, Map<String, dynamic> m) {
@@ -135,6 +136,10 @@ class EventRepository {
       ],
       travelForEventId: m['travelForEventId'] as String?,
       mood: m['mood'] as String?,
+      tags: [
+        for (final x in (m['tags'] as List<dynamic>? ?? const []))
+          if (x is String) x,
+      ],
     );
   }
 }

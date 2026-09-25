@@ -200,21 +200,21 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
     title: '④ 週の時間割を Ⅰ・Ⅱ週で分けますか？',
     note: '2週間で1回りの時間割を使っている学校なら「分ける」を選んでください。',
     child: Card(
-      child: Column(
-        children: [
-          RadioListTile<bool>(
-            value: true,
-            groupValue: _useWeekCycle,
-            onChanged: (v) => setState(() => _useWeekCycle = v ?? true),
-            title: const Text('分ける（Ⅰ週・Ⅱ週がある）'),
-          ),
-          RadioListTile<bool>(
-            value: false,
-            groupValue: _useWeekCycle,
-            onChanged: (v) => setState(() => _useWeekCycle = v ?? false),
-            title: const Text('分けない（毎週同じ時間割）'),
-          ),
-        ],
+      child: RadioGroup<bool>(
+        groupValue: _useWeekCycle,
+        onChanged: (v) => setState(() => _useWeekCycle = v ?? _useWeekCycle),
+        child: const Column(
+          children: [
+            RadioListTile<bool>(
+              value: true,
+              title: Text('分ける（Ⅰ週・Ⅱ週がある）'),
+            ),
+            RadioListTile<bool>(
+              value: false,
+              title: Text('分けない（毎週同じ時間割）'),
+            ),
+          ],
+        ),
       ),
     ),
   );

@@ -31,6 +31,13 @@
 
   <title>つづり</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- 雨雲レーダー・地震の震度分布図（Google マップ）を Web 版で表示するために必要。
+       Android 用に発行したものと同じキーを入れているが、Google Cloud Console 側で
+       「Maps JavaScript API」も有効にし、キーの「アプリケーションの制限」に
+       このアプリを配信するサイト（例：school-planner-30628.web.app）を
+       ウェブサイトとして追加しておくこと。 -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCxG4PlVOnzoZwbqa3kVodmZRt-bCLbC88" async></script>
 </head>
 <body>
   <!--

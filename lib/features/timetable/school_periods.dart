@@ -5,6 +5,9 @@
 /// 何も設定していないときは [ScheduleConfig.standard]（今の学校の時程）を使う。
 library;
 
+import '../../core/japanese_holidays.dart';
+import 'week_cycle.dart';
+
 /// 時刻（時・分）を表すクラス
 class ClockTime implements Comparable<ClockTime> {
   const ClockTime(this.hour, this.minute);
@@ -102,7 +105,8 @@ class SchoolPeriod {
 enum DaySchedule {
   regular('通常日課'),
   shortened('短縮日課'),
-  exam('試験日課');
+  exam('試験日課'),
+  custom('特殊日課');
 
   const DaySchedule(this.label);
 
@@ -110,10 +114,25 @@ enum DaySchedule {
   final String label;
 
   /// 昼休みがあるか
+  ///
+  /// 特殊日課（custom）は、その日ごとに決めた時限（[DayOverride.customPeriods]）を
+  /// そのまま使うので、共通の昼休み時刻（[SchoolPeriods.lunchStart] など）には
+  /// 対応しない（昼休みを入れたければ、時限と時限の間の休み時間として表現する）。
   bool get hasLunch => this == DaySchedule.regular;
 
   /// Ⅰ週/Ⅱ週の通常時間割を使うか（試験日課は使わない）
   bool get usesRegularTimetable => this != DaySchedule.exam;
+}
+
+/// その日の授業が終わる時刻（分）。授業のない日（祝日・土日など）は null
+///
+/// 移動時間の目安（travel機能）や、定期の予定を「放課後の何分後から」に
+/// する機能など、「放課後」を基準にする機能から共通で使う。
+int? schoolEndMinutesOn(DateTime day) {
+  if (japaneseHolidays.containsKey(dateKey(day))) return null;
+  final periods = SchoolPeriods.periodsFor(day.weekday);
+  if (periods.isEmpty) return null;
+  return periods.last.end.totalMinutes;
 }
 
 /// 時程の設定（学校ごと・人ごとに変えられる）
@@ -394,6 +413,11 @@ class SchoolPeriods {
       all.take(periodCountFor(weekday)).toList();
 
   /// 日課と曜日から、その日の時限一覧を決める
+  ///
+  /// 特殊日課（[DaySchedule.custom]）は、日によって時限の長さがバラバラなので、
+  /// ここではなく [DayOverride.customPeriods] から直接決める
+  /// （[DayTimetableResolver] を参照）。この関数が custom で呼ばれることはないが、
+  /// switch を全パターン対応させるために空リストを返す。
   static List<SchoolPeriod> periodsForSchedule(
     DaySchedule schedule,
     int weekday,
@@ -407,6 +431,8 @@ class SchoolPeriods {
         return config.shortenedFor(count);
       case DaySchedule.exam:
         return examPeriods;
+      case DaySchedule.custom:
+        return const [];
     }
   }
 

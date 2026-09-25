@@ -127,6 +127,52 @@ class Geocoder {
     }
   }
 
+  /// 緯度経度から、大まかな地名を調べる（現在地の天気の表示名などに使う）
+  ///
+  /// Nominatim の reverse ジオコーディングだけを使う（現在地はキャッシュしない）。
+  static Future<String?> reverse(double lat, double lng) async {
+    try {
+      final wait =
+          const Duration(milliseconds: 1100) -
+          DateTime.now().difference(_lastNominatim);
+      if (wait > Duration.zero) await Future<void>.delayed(wait);
+      _lastNominatim = DateTime.now();
+
+      final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
+        'lat': '$lat',
+        'lon': '$lng',
+        'format': 'jsonv2',
+        'accept-language': 'ja',
+        'zoom': '12',
+      });
+      final res = await http
+          .get(
+            uri,
+            headers: kIsWeb
+                ? null
+                : {'User-Agent': 'Tsuzuri-school-planner/1.0'},
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final j = jsonDecode(utf8.decode(res.bodyBytes));
+      if (j is! Map) return null;
+      final addr = j['address'];
+      if (addr is Map) {
+        final name =
+            addr['city'] ??
+            addr['town'] ??
+            addr['village'] ??
+            addr['suburb'] ??
+            addr['county'];
+        if (name is String && name.isNotEmpty) return name;
+      }
+      final display = j['display_name'];
+      return display is String ? display : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<GeoResult?> _nominatim(String t) async {
     try {
       final wait =

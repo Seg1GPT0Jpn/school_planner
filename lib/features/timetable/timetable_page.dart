@@ -375,7 +375,7 @@ class _WeekTable extends StatelessWidget {
           slot = s;
         }
       }
-      final tap = () => onTapCell(weekday, period);
+      void tap() => onTapCell(weekday, period);
       if (slot == null) return cell(const SizedBox.shrink(), onTap: tap);
 
       String? category;

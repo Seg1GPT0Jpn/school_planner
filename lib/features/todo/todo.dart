@@ -1,6 +1,7 @@
 /// ToDo（やること）
 library;
 
+import '../events/event_category.dart';
 import '../school_tests/school_test.dart';
 
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -23,6 +24,7 @@ class Todo {
     this.doneAt,
     this.subtasks = const [],
     this.linkedTestId,
+    this.loadLevel = CategoryLoadLevel.medium,
   });
 
   final String? id;
@@ -38,6 +40,9 @@ class Todo {
 
   /// 提出物などから自動で作られたものなら、その元の ID
   final String? linkedTestId;
+
+  /// この ToDo1件の「負荷（忙しさ）」レベル（科目が無いものにも設定できる）
+  final CategoryLoadLevel loadLevel;
 
   bool get isLinked => linkedTestId != null;
 
@@ -70,6 +75,7 @@ class Todo {
     bool clearDoneAt = false,
     List<Subtask>? subtasks,
     String? memo,
+    CategoryLoadLevel? loadLevel,
   }) => Todo(
     id: id,
     title: title,
@@ -80,6 +86,7 @@ class Todo {
     doneAt: clearDoneAt ? null : (doneAt ?? this.doneAt),
     subtasks: subtasks ?? this.subtasks,
     linkedTestId: linkedTestId,
+    loadLevel: loadLevel ?? this.loadLevel,
   );
 }
 
@@ -112,6 +119,11 @@ List<Todo> mergeTodos(List<Todo> own, List<SchoolTest> tests) {
         () {
           final s = saved[linkedTodoId(test.id!)];
           final isStudy = !todoKinds.contains(test.kind);
+          final defaultLevel = isStudy
+              ? (test.kind == SchoolTestKind.quiz
+                    ? CategoryLoadLevel.high
+                    : CategoryLoadLevel.highest)
+              : CategoryLoadLevel.medium;
           return Todo(
             id: linkedTodoId(test.id!),
             title: isStudy ? '${test.displayTitle}の勉強' : test.displayTitle,
@@ -126,6 +138,7 @@ List<Todo> mergeTodos(List<Todo> own, List<SchoolTest> tests) {
                     ? [for (final p in studySubtaskPresets) Subtask(p)]
                     : const []),
             linkedTestId: test.id,
+            loadLevel: s?.loadLevel ?? defaultLevel,
           );
         }(),
   ];

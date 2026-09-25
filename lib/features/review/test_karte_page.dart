@@ -287,7 +287,7 @@ class _StudyCard extends StatelessWidget {
             : '',
     ];
     return InfoCard(
-      title: '試験前の勉強（${karteStudyDays}日間）',
+      title: '試験前の勉強（$karteStudyDays日間）',
       icon: Icons.timer_outlined,
       children: [
         if (item.subject == null)

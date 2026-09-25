@@ -127,6 +127,7 @@ class _NotificationSyncState extends State<NotificationSync> {
         day: data.resolver.resolve(d),
         recurring: _recurring,
         settings: _belongings,
+        events: _events,
       ),
     );
     await NotificationService.instance.setTimeZone(_settings.timeZone);

@@ -50,11 +50,10 @@ class WeekAnchor {
 class WeekCycleCalculator {
   WeekCycleCalculator({
     required List<WeekAnchor> anchors,
-    Map<String, WeekType> weekOverrides = const {},
+    this._weekOverrides = const {},
     this.enabled = true,
   }) : _anchors = [...anchors]
-         ..sort((a, b) => mondayOf(a.date).compareTo(mondayOf(b.date))),
-       _weekOverrides = weekOverrides;
+         ..sort((a, b) => mondayOf(a.date).compareTo(mondayOf(b.date)));
 
   /// Ⅰ週・Ⅱ週を使うか（false なら毎週同じ時間割。週の種類は null になる）
   final bool enabled;

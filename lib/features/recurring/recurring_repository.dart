@@ -81,9 +81,11 @@ class RecurringRepository {
     'weekdays': r.weekdays.toList()..sort(),
     'start': r.start.toString(),
     'end': r.end.toString(),
+    'afterSchoolMinutes': r.afterSchoolMinutes,
     'validFrom': r.validFrom == null ? null : dateKey(r.validFrom!),
     'validUntil': r.validUntil == null ? null : dateKey(r.validUntil!),
     'categoryId': r.categoryId,
+    'subject': (r.subject?.trim().isEmpty ?? true) ? null : r.subject!.trim(),
     'location': (r.location?.trim().isEmpty ?? true)
         ? null
         : r.location!.trim(),
@@ -101,9 +103,11 @@ class RecurringRepository {
           : {(m['weekday'] as num).toInt()},
       start: _time(m['start']),
       end: _time(m['end']),
+      afterSchoolMinutes: (m['afterSchoolMinutes'] as num?)?.toInt(),
       validFrom: _date(m['validFrom']),
       validUntil: _date(m['validUntil']),
       categoryId: m['categoryId'] as String? ?? EventCategory.otherId,
+      subject: m['subject'] as String?,
       location: m['location'] as String?,
       skippedDates: {
         for (final s in (m['skippedDates'] as List<dynamic>? ?? const []))

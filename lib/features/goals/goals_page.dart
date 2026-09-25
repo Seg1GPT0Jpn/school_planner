@@ -7,6 +7,9 @@ import '../grades/grades_view.dart';
 import '../study/study_view.dart';
 import '../grades/last_grade_hint.dart';
 import '../review/review_page.dart';
+import 'exam_goal.dart';
+import 'exam_goal_edit_page.dart';
+import 'exam_goal_repository.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
 
@@ -31,7 +34,7 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
-  /// 0：目標　1：ふり返り　2：勉強時間
+  /// 0：目標　1：テスト目標　2：ふり返り　3：勉強時間　4：成績
   int _view = 0;
 
   @override
@@ -47,34 +50,45 @@ class _GoalsPageState extends State<GoalsPage> {
           ),
         ],
       ),
-      floatingActionButton: _view != 0
-          ? null
-          : FloatingActionButton(
-              tooltip: '目標を追加',
-              onPressed: () => _openGoal(context),
-              child: const Icon(Icons.add),
-            ),
+      floatingActionButton: switch (_view) {
+        0 => FloatingActionButton(
+          tooltip: '目標を追加',
+          onPressed: () => _openGoal(context),
+          child: const Icon(Icons.add),
+        ),
+        1 => FloatingActionButton(
+          tooltip: 'テスト目標を追加',
+          onPressed: () => openExamGoal(context),
+          child: const Icon(Icons.add),
+        ),
+        _ => null,
+      },
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8),
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('目標')),
-                ButtonSegment(value: 1, label: Text('ふり返り')),
-                ButtonSegment(value: 2, label: Text('勉強時間')),
-                ButtonSegment(value: 3, label: Text('成績')),
-              ],
-              selected: {_view},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _view = s.first),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 0, label: Text('目標')),
+                  ButtonSegment(value: 1, label: Text('テスト目標')),
+                  ButtonSegment(value: 2, label: Text('ふり返り')),
+                  ButtonSegment(value: 3, label: Text('勉強時間')),
+                  ButtonSegment(value: 4, label: Text('成績')),
+                ],
+                selected: {_view},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => setState(() => _view = s.first),
+              ),
             ),
           ),
           Expanded(
             child: switch (_view) {
-              1 => const _ReflectionView(),
-              2 => const StudyView(),
-              3 => const GradesView(),
+              1 => const _ExamGoalList(),
+              2 => const _ReflectionView(),
+              3 => const StudyView(),
+              4 => const GradesView(),
               _ => const _GoalList(),
             },
           ),
@@ -198,6 +212,116 @@ class _GoalTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(g.progressText),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- テスト目標（定期テスト・模試）の一覧 ----------------
+
+String _num(num v) => v == v.roundToDouble() ? '${v.toInt()}' : '$v';
+
+class _ExamGoalList extends StatefulWidget {
+  const _ExamGoalList();
+
+  @override
+  State<_ExamGoalList> createState() => _ExamGoalListState();
+}
+
+class _ExamGoalListState extends State<_ExamGoalList> {
+  late final _stream = ExamGoalRepository(
+    uid: FirebaseAuth.instance.currentUser!.uid,
+  ).watch();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ExamGoal>>(
+      stream: _stream,
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final all = sortExamGoals(snap.data!);
+        if (all.isEmpty) {
+          return const Center(child: Text('右下の＋から、定期テスト・模試の目標を追加しましょう'));
+        }
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 88),
+          children: [for (final g in all) _ExamGoalTile(goal: g)],
+        );
+      },
+    );
+  }
+}
+
+class _ExamGoalTile extends StatelessWidget {
+  const _ExamGoalTile({required this.goal});
+  final ExamGoal goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final g = goal;
+    final materialsTotal = [for (final s in g.subjects) ...s.materials].length;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: InkWell(
+        onTap: () => openExamGoal(context, g),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '【${g.kind.label}】${g.title}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  if (g.examDate != null)
+                    Text(
+                      _daysLeft(g.examDate!),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: cs.outline),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${g.subjectCount}教科'
+                '${g.totalTargetScore > 0 ? '・目標合計${_num(g.totalTargetScore)}点' : ''}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (g.scoredSubjectCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '結果：${g.achievedSubjectCount}/${g.scoredSubjectCount}教科で目標達成'
+                    '${g.allScoresIn ? '・合計${_num(g.totalCurrentScore)}点' : ''}',
+                  ),
+                ),
+              if (materialsTotal > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: g.materialsProgress,
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('やること'),
                   ],
                 ),
               ],

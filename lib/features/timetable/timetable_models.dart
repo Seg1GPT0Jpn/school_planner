@@ -125,12 +125,17 @@ class DayOverride {
     this.weekType,
     this.changes = const [],
     this.note,
+    this.customPeriods,
   });
 
   final DateTime date;
 
   /// その日の日課（null のときは通常日課）
   final DaySchedule? schedule;
+
+  /// 特殊日課（[DaySchedule.custom]）のときの、その日だけの時限一覧。
+  /// schedule が custom 以外のときは使わない。
+  final List<SchoolPeriod>? customPeriods;
 
   /// その日だけ使う時間割の週（例：Ⅰ週の中の1日だけⅡ週の時間割）
   ///

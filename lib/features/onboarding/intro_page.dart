@@ -183,7 +183,7 @@ class _BackgroundCards extends StatelessWidget {
             width: width,
             height: 46,
             decoration: BoxDecoration(
-              color: color.withOpacity(opacity),
+              color: color.withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(12),
             ),
           ),

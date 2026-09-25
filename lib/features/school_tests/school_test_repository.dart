@@ -79,11 +79,17 @@ class SchoolTestRepository {
     (s) => [for (final d in s.docs) ruleFromMap(d.id, d.data())],
   );
 
-  /// ルールを保存する（id が空なら新しく追加。「なし」にした週はそのまま）
+  /// ルールを保存する（id が空なら新しく追加。「なし」「2回」にした週はそのまま）
   Future<void> saveRule(WeeklyLessonTestRule r) async {
-    final data = ruleToMap(r)..remove('skippedWeeks');
+    final data = ruleToMap(r)
+      ..remove('skippedWeeks')
+      ..remove('extraWeeks');
     if (r.id.isEmpty) {
-      await _rules.add({...data, 'skippedWeeks': <String>[]});
+      await _rules.add({
+        ...data,
+        'skippedWeeks': <String>[],
+        'extraWeeks': <String>[],
+      });
     } else {
       await _rules.doc(r.id).set(data, SetOptions(merge: true));
     }
@@ -101,6 +107,21 @@ class SchoolTestRepository {
     final key = dateKey(mondayOf(anyDateInWeek));
     return _rules.doc(ruleId).set({
       'skippedWeeks': skipped
+          ? FieldValue.arrayUnion([key])
+          : FieldValue.arrayRemove([key]),
+    }, SetOptions(merge: true));
+  }
+
+  /// その週を「2回行った」にする／戻す（時間が無くて同じ週にもう1回行ったとき。
+  /// これ以降の週の範囲の数字が、2回ぶん進んだものとして計算される）
+  Future<void> setWeekExtra(
+    String ruleId,
+    DateTime anyDateInWeek,
+    bool extra,
+  ) {
+    final key = dateKey(mondayOf(anyDateInWeek));
+    return _rules.doc(ruleId).set({
+      'extraWeeks': extra
           ? FieldValue.arrayUnion([key])
           : FieldValue.arrayRemove([key]),
     }, SetOptions(merge: true));
@@ -162,6 +183,8 @@ class SchoolTestRepository {
     'skippedWeeks': r.skippedWeeks.toList()..sort(),
     'endNumber': r.endNumber,
     'startDate': r.startDate == null ? null : dateKey(r.startDate!),
+    'weekday': r.weekday,
+    'extraWeeks': r.extraWeeks.toList()..sort(),
   };
 
   static WeeklyLessonTestRule ruleFromMap(String id, Map<String, dynamic> m) {
@@ -180,6 +203,11 @@ class SchoolTestRepository {
       startDate: m['startDate'] is String
           ? _parseDate(m['startDate'] as String)
           : null,
+      weekday: (m['weekday'] as num?)?.toInt(),
+      extraWeeks: {
+        for (final w in (m['extraWeeks'] as List<dynamic>? ?? const []))
+          w as String,
+      },
     );
   }
 }

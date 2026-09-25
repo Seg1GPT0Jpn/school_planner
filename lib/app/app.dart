@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../features/clock/alarm_sync.dart';
 import '../features/notifications/notification_sync.dart';
 import '../features/settings/settings_scope.dart';
 import '../features/timetable/subject_colors.dart';
@@ -33,7 +34,9 @@ class App extends StatelessWidget {
       builder: (context, child) {
         return SettingsProvider(
           child: SubjectColorProvider(
-            child: NotificationSync(child: WidgetSync(child: child!)),
+            child: NotificationSync(
+              child: AlarmSync(child: WidgetSync(child: child!)),
+            ),
           ),
         );
       },

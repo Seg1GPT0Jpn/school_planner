@@ -48,6 +48,7 @@ class LessonTestActions {
     required this.onAdd,
     required this.onEdit,
     required this.onSetWeekSkipped,
+    required this.onSetWeekExtra,
     required this.onChangeLesson,
   });
 
@@ -60,6 +61,11 @@ class LessonTestActions {
   /// 毎週のテストを、その週だけ「なし」にする／戻す
   final void Function(WeeklyLessonTestRule rule, DateTime date, bool skipped)
   onSetWeekSkipped;
+
+  /// 毎週のテストを、その週だけ「2回行った」にする／戻す
+  /// （時間が無くて同じ週にもう1回行ったとき。以降の範囲の数字がずれないようにする）
+  final void Function(WeeklyLessonTestRule rule, DateTime date, bool extra)
+  onSetWeekExtra;
 
   /// この日だけ科目を変える・休講にする・元に戻す（試験日課の日は試験科目）
   final void Function(DateTime date, ResolvedLesson lesson, bool isExamDay)
@@ -366,6 +372,12 @@ List<Widget> _allDayChips(BuildContext context, DayTimetable day) {
         background: colorScheme.tertiaryContainer,
         foreground: colorScheme.onTertiaryContainer,
       ),
+    if (isSchool && day.schedule == DaySchedule.custom)
+      _AllDayChip(
+        text: day.note ?? '特殊日課',
+        background: colorScheme.tertiaryContainer,
+        foreground: colorScheme.onTertiaryContainer,
+      ),
     if (isSchool && day.isDayWeekTypeOverridden && day.weekType != null)
       _AllDayChip(
         text: '${day.weekType!.label}の時間割',
@@ -663,6 +675,8 @@ class _DayColumn extends StatelessWidget {
                             rule: rule,
                             isWeekSkipped:
                                 rule?.skippedWeeks.contains(weekKey) ?? false,
+                            isWeekExtra:
+                                rule?.extraWeeks.contains(weekKey) ?? false,
                             actions: testActions,
                           );
                         }()
@@ -767,6 +781,7 @@ class _LessonBlock extends StatelessWidget {
     required this.lessonTests,
     required this.rule,
     required this.isWeekSkipped,
+    required this.isWeekExtra,
     required this.actions,
   });
 
@@ -785,6 +800,9 @@ class _LessonBlock extends StatelessWidget {
 
   /// この週が「なし」になっているか
   final bool isWeekSkipped;
+
+  /// この週が「2回行った」になっているか
+  final bool isWeekExtra;
 
   final LessonTestActions actions;
 
@@ -827,6 +845,7 @@ class _LessonBlock extends StatelessWidget {
           lessonTests: lessonTests,
           rule: rule,
           isWeekSkipped: isWeekSkipped,
+          isWeekExtra: isWeekExtra,
           actions: actions,
         ),
         child: Container(
@@ -903,6 +922,7 @@ void _showLessonDetails(
   required List<SchoolTest> lessonTests,
   required WeeklyLessonTestRule? rule,
   required bool isWeekSkipped,
+  required bool isWeekExtra,
   required LessonTestActions actions,
 }) {
   final statusText = switch (lesson.status) {
@@ -1007,6 +1027,27 @@ void _showLessonDetails(
                   icon: const Icon(Icons.block),
                   label: Text('この週の${rule.title}をなしにする'),
                 ),
+
+              // 毎週のテストの「2回行った」「戻す」
+              // （時間が無くて同じ週にもう1回行ったとき。2回目自体は
+              // 「この授業に小テストを追加」から手動で登録する）
+              if (rule != null && !isWeekSkipped)
+                if (isWeekExtra)
+                  TextButton.icon(
+                    onPressed: () => closeThen(
+                      () => actions.onSetWeekExtra(rule, date, false),
+                    ),
+                    icon: const Icon(Icons.undo),
+                    label: Text('この週の${rule.title}を1回に戻す'),
+                  )
+                else if (hasRuleTest)
+                  TextButton.icon(
+                    onPressed: () => closeThen(
+                      () => actions.onSetWeekExtra(rule, date, true),
+                    ),
+                    icon: const Icon(Icons.repeat),
+                    label: Text('この週は${rule.title}を2回行った'),
+                  ),
             ],
           ),
         ),

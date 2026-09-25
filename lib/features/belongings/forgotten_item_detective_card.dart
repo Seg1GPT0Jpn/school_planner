@@ -5,6 +5,7 @@ library;
 
 import 'package:material_ui/material_ui.dart';
 
+import '../events/calendar_event.dart';
 import '../recurring/recurring_schedule.dart';
 import '../timetable/day_timetable_resolver.dart';
 import '../timetable/timetable_repository.dart';
@@ -17,11 +18,15 @@ class ForgottenItemDetectiveCard extends StatefulWidget {
     required this.data,
     required this.recurring,
     required this.repository,
+    this.events = const [],
   });
 
   final TimetableData data;
   final List<RecurringSchedule> recurring;
   final BelongingsRepository repository;
+
+  /// 定期でない予定（カテゴリごとの持ち物・予定ごとの持ち物に使う）
+  final List<CalendarEvent> events;
 
   @override
   State<ForgottenItemDetectiveCard> createState() =>
@@ -67,6 +72,7 @@ class _ForgottenItemDetectiveCardState
           day: widget.data.resolver.resolve(target),
           recurring: widget.recurring,
           settings: ss.data ?? const BelongingSettings(),
+          events: widget.events,
         );
         if (items.isEmpty) return const SizedBox.shrink();
 

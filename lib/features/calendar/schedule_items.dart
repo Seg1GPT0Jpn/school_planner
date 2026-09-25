@@ -75,8 +75,9 @@ ScheduleDay buildScheduleDay({
 
   // 祝日・休業日
   final off = day.holidayName ?? day.closureTitle;
-  if (off != null)
+  if (off != null) {
     items.add(ScheduleItem(kind: ScheduleKind.holiday, title: off));
+  }
 
   // 授業のテスト（LEAP・時限つきの小テスト）と授業
   for (final l in day.lessons) {

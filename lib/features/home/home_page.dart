@@ -14,11 +14,22 @@ import '../ai_advisor/quick_add_schedule_page.dart';
 import '../ai_advisor/timing_learning.dart';
 import '../ai_advisor/today_plan.dart';
 import '../ai_advisor/today_plan_card.dart';
+import '../ai_chat/ai_chat_page.dart';
 import '../belongings/belongings_pages.dart';
 import '../belongings/belongings_repository.dart';
 import '../belongings/forgotten_item_detective_card.dart';
+import '../birthdays/birthday.dart';
+import '../birthdays/birthday_repository.dart';
+import '../birthdays/birthdays_page.dart';
+import '../calendar/event_search_page.dart';
+import '../calendar/year_view_page.dart';
+import '../clock/clock_home_page.dart';
 import '../earthquake/earthquake_page.dart';
+import '../flashcards/decks_page.dart';
+import '../groups/groups_hub_page.dart';
+import '../money/money_page.dart';
 import '../events/calendar_event.dart';
+import '../events/event_category.dart';
 import '../events/event_category_repository.dart';
 import '../events/event_repository.dart';
 import '../free_time/free_time_page.dart';
@@ -30,8 +41,10 @@ import '../goals/goals_page.dart';
 import '../growth_log/growth_log_hub_page.dart';
 import '../growth_log/growth_log_repository.dart';
 import '../life_analysis/life_analysis_page.dart';
+import '../notes/notes_hub_page.dart';
 import '../pattern_suggest/pattern_suggest.dart';
 import '../pattern_suggest/pattern_suggest_card.dart';
+import '../practice_tools/practice_tools_page.dart';
 import '../recovery/recovery_page.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
@@ -39,6 +52,7 @@ import '../recurring/recurring_test_rule.dart';
 import '../review/review_page.dart';
 import '../review/school_event_page.dart';
 import '../review/test_karte_page.dart';
+import '../score/score_list_page.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_edit_page.dart';
 import '../school_tests/school_test_repository.dart';
@@ -87,8 +101,10 @@ class _HomePageState extends State<HomePage> {
   List<Todo> _todos = const [];
   List<Goal> _goals = const [];
   List<CalendarEvent> _events = const [];
+  List<EventCategory> _categories = const [];
   List<StudySession> _sessions = const [];
   TimingStats _timingStats = const TimingStats();
+  List<Birthday> _birthdays = const [];
 
   static const int _upcomingDays = 14;
 
@@ -106,8 +122,10 @@ class _HomePageState extends State<HomePage> {
     on(_todoRepository.watch(), (v) => _todos = v);
     on(GoalRepository(uid: _uid).watchGoals(), (v) => _goals = v);
     on(EventRepository(uid: _uid).watchAll(), (v) => _events = v);
+    on(EventCategoryRepository(uid: _uid).watch(), (v) => _categories = v);
     on(StudyRepository(uid: _uid).watchSessions(), (v) => _sessions = v);
     on(_timingRepository.watch(), (v) => _timingStats = v);
+    on(BirthdayRepository(uid: _uid).watch(), (v) => _birthdays = v);
 
     // 「いま何限」を1分ごとに進める
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -262,6 +280,8 @@ class _HomePageState extends State<HomePage> {
       from: today0,
       events: weekEvents,
       upcoming: upcoming,
+      categories: _categories,
+      todos: todos,
     );
 
     // AIアドバイス用：直近7日の気分（記録がある日だけ）と、3日以内のテスト数
@@ -449,6 +469,74 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+      if (settings.showHomeCard('event_search')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.manage_search),
+            title: const Text('予定検索・履歴'),
+            subtitle: const Text('タグ・場所・メモで予定を探す。過去の予定もふり返れる'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openEventSearch(
+              context,
+              repository: EventRepository(uid: _uid),
+              categoryRepository: EventCategoryRepository(uid: _uid),
+            ),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('year_view')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.calendar_view_month),
+            title: const Text('年間予定'),
+            subtitle: const Text('12か月をひと目で見渡す'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openYearView(
+              context,
+              repository: EventRepository(uid: _uid),
+              categoryRepository: EventCategoryRepository(uid: _uid),
+            ),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('birthdays')) ...[
+        gap,
+        Builder(
+          builder: (context) {
+            final upcoming =
+                [..._birthdays]
+                  ..sort((a, b) => a.daysUntilNext(now).compareTo(b.daysUntilNext(now)));
+            final soon = upcoming
+                .where((b) => b.daysUntilNext(now) <= 30)
+                .take(3)
+                .toList();
+            return Card(
+              child: ListTile(
+                leading: const Icon(Icons.cake_outlined),
+                title: const Text('誕生日'),
+                subtitle: Text(
+                  soon.isEmpty
+                      ? '家族や友達の誕生日を登録しておくと、近づいたらここに出ます'
+                      : soon
+                            .map(
+                              (b) => b.daysUntilNext(now) == 0
+                                  ? '🎉${b.name}（今日）'
+                                  : '${b.name}（あと${b.daysUntilNext(now)}日）',
+                            )
+                            .join(' ・ '),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => openBirthdays(
+                  context,
+                  repository: BirthdayRepository(uid: _uid),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
       gap,
       _StudyCard(today: studyToday, week: studyWeek),
       if (settings.gamificationEnabled) ...[
@@ -493,8 +581,104 @@ class _HomePageState extends State<HomePage> {
           onTap: () => openEarthquake(context),
         ),
       ),
+      if (settings.showHomeCard('clock')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.alarm),
+            title: const Text('アラーム・タイマー'),
+            subtitle: const Text('アラーム・タイマー・ストップウォッチ・お休み時間'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openClockHub(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('practice_tools')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.music_note),
+            title: const Text('チューナー'),
+            subtitle: const Text('メトロノーム・チューナー・ドローン・ピアノ・練習ログ'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openPracticeTools(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('score')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.piano),
+            title: const Text('楽譜作成'),
+            subtitle: const Text('五線譜に音符を入力して作曲・再生'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openScoreList(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('notes')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.edit_note),
+            title: const Text('メモ'),
+            subtitle: const Text('テキスト・Markdown・チェックリスト'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openNotes(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('flashcards')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.style_outlined),
+            title: const Text('暗記カード'),
+            subtitle: const Text('単語帳・一問一答。忘れかけたころに復習できる'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openFlashcardDecks(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('groups')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.groups_outlined),
+            title: const Text('グループ'),
+            subtitle: const Text('部活や友達とお知らせ・共有ToDoを使う'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openGroups(context),
+          ),
+        ),
+      ],
+      if (settings.showHomeCard('money')) ...[
+        gap,
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.savings_outlined),
+            title: const Text('お小遣い管理'),
+            subtitle: const Text('収支の記録・カテゴリ別予算・グラフ'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openMoney(context),
+          ),
+        ),
+      ],
       gap,
       const _SectionTitle('自分を知るAI'),
+      if (settings.showHomeCard('ai_chat')) ...[
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.chat_outlined),
+            title: const Text('AIチャット'),
+            subtitle: const Text('要約・添削・翻訳・なんでも質問できるチャット'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => openAiChat(context),
+          ),
+        ),
+        gap,
+      ],
       Card(
         child: ListTile(
           leading: const Icon(Icons.bar_chart),
@@ -526,12 +710,17 @@ class _HomePageState extends State<HomePage> {
         onTapTest: _openUpcoming,
       ),
       gap,
-      TomorrowBelongingsCard(data: data, recurring: _recurring),
+      TomorrowBelongingsCard(
+        data: data,
+        recurring: _recurring,
+        events: _events,
+      ),
       gap,
       ForgottenItemDetectiveCard(
         data: data,
         recurring: _recurring,
         repository: BelongingsRepository(uid: _uid),
+        events: _events,
       ),
       if (today.status != DayStatus.school &&
           tomorrow.status != DayStatus.school) ...[

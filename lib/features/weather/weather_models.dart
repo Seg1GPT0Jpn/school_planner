@@ -99,6 +99,11 @@ class CurrentWeather {
     this.precipitation,
     this.code,
     this.isDay = true,
+    this.uvIndex,
+    this.usAqi,
+    this.europeanAqi,
+    this.pm25,
+    this.pm10,
   });
 
   final DateTime time;
@@ -123,7 +128,56 @@ class CurrentWeather {
   final double? precipitation;
   final int? code;
   final bool isDay;
+
+  /// UV指数
+  final double? uvIndex;
+
+  /// 大気質指数（アメリカ基準、0〜500）
+  final int? usAqi;
+
+  /// 大気質指数（ヨーロッパ基準、0〜100超）
+  final int? europeanAqi;
+
+  /// 微小粒子状物質 PM2.5（µg/m³）
+  final double? pm25;
+
+  /// 浮遊粒子状物質 PM10（µg/m³）
+  final double? pm10;
+
+  CurrentWeather copyWith({
+    int? usAqi,
+    int? europeanAqi,
+    double? pm25,
+    double? pm10,
+  }) => CurrentWeather(
+    time: time,
+    temperature: temperature,
+    apparent: apparent,
+    humidity: humidity,
+    pressure: pressure,
+    windSpeed: windSpeed,
+    windDirection: windDirection,
+    precipitation: precipitation,
+    code: code,
+    isDay: isDay,
+    uvIndex: uvIndex,
+    usAqi: usAqi ?? this.usAqi,
+    europeanAqi: europeanAqi ?? this.europeanAqi,
+    pm25: pm25 ?? this.pm25,
+    pm10: pm10 ?? this.pm10,
+  );
 }
+
+/// 大気質指数（アメリカ基準）のめやす
+({String label, String description}) usAqiOf(int? aqi) => switch (aqi) {
+  null => (label: '—', description: ''),
+  <= 50 => (label: '良好', description: '空気の質は満足できる状態です'),
+  <= 100 => (label: 'まあまあ', description: '敏感な人は影響を受ける可能性があります'),
+  <= 150 => (label: '敏感な人に注意', description: '呼吸器疾患のある人などは長時間の屋外活動を控えめに'),
+  <= 200 => (label: '健康に良くない', description: '誰でも影響を受け始める可能性があります'),
+  <= 300 => (label: 'とても健康に良くない', description: '屋外での激しい運動は避けましょう'),
+  _ => (label: '危険', description: '外出はできるだけ控えましょう'),
+};
 
 /// 1時間ごと（または15分ごと）の1つ
 class WeatherSlot {
@@ -138,6 +192,11 @@ class WeatherSlot {
     this.windDirection,
     this.humidity,
     this.pressure,
+    this.uvIndex,
+    this.usAqi,
+    this.europeanAqi,
+    this.pm25,
+    this.pm10,
   });
 
   final DateTime time;
@@ -150,6 +209,40 @@ class WeatherSlot {
   final double? windDirection;
   final double? humidity;
   final double? pressure;
+
+  /// UV指数
+  final double? uvIndex;
+
+  /// 大気質指数（アメリカ基準）
+  final int? usAqi;
+
+  /// 大気質指数（ヨーロッパ基準）
+  final int? europeanAqi;
+  final double? pm25;
+  final double? pm10;
+
+  WeatherSlot copyWith({
+    int? usAqi,
+    int? europeanAqi,
+    double? pm25,
+    double? pm10,
+  }) => WeatherSlot(
+    time: time,
+    temperature: temperature,
+    apparent: apparent,
+    precipitation: precipitation,
+    precipitationProbability: precipitationProbability,
+    code: code,
+    windSpeed: windSpeed,
+    windDirection: windDirection,
+    humidity: humidity,
+    pressure: pressure,
+    uvIndex: uvIndex,
+    usAqi: usAqi ?? this.usAqi,
+    europeanAqi: europeanAqi ?? this.europeanAqi,
+    pm25: pm25 ?? this.pm25,
+    pm10: pm10 ?? this.pm10,
+  );
 }
 
 /// 1日ぶん
@@ -165,6 +258,7 @@ class DailyWeather {
     this.precipitationProbability,
     this.windSpeedMax,
     this.windDirection,
+    this.uvIndexMax,
   });
 
   final DateTime date;
@@ -179,7 +273,20 @@ class DailyWeather {
   final int? precipitationProbability;
   final double? windSpeedMax;
   final double? windDirection;
+
+  /// その日の最大UV指数
+  final double? uvIndexMax;
 }
+
+/// UV指数のめやす
+({String label, String advice}) uvIndexOf(double? uv) => switch (uv) {
+  null => (label: '—', advice: ''),
+  <= 2 => (label: '弱い', advice: '対策は特に不要です'),
+  <= 5 => (label: '中程度', advice: '日中はできるだけ日陰を利用しましょう'),
+  <= 7 => (label: '強い', advice: '日焼け止め・帽子などの対策を'),
+  <= 10 => (label: '非常に強い', advice: '日中の外出はできるだけ避け、しっかり対策を'),
+  _ => (label: '極端に強い', advice: '日中の外出はなるべく避けましょう'),
+};
 
 /// 天気予報ぜんぶ
 class WeatherForecast {
@@ -243,7 +350,127 @@ class WeatherForecast {
     }
     return null;
   }
+
+  /// 大気質（PM2.5・PM10・AQI）を、時刻を合わせてマージしたものを返す
+  WeatherForecast mergeAirQuality(AirQuality aq) {
+    ({int? usAqi, int? europeanAqi, double? pm25, double? pm10})? at(
+      DateTime t,
+    ) {
+      AirQualitySlot? best;
+      Duration? gap;
+      for (final s in aq.hourly) {
+        final g = s.time.difference(t).abs();
+        if (gap == null || g < gap) {
+          gap = g;
+          best = s;
+        }
+      }
+      if (best == null || gap! > const Duration(hours: 1)) return null;
+      return (
+        usAqi: best.usAqi,
+        europeanAqi: best.europeanAqi,
+        pm25: best.pm25,
+        pm10: best.pm10,
+      );
+    }
+
+    return WeatherForecast(
+      fetchedAt: fetchedAt,
+      current: current == null
+          ? null
+          : () {
+              final m = at(current!.time);
+              return m == null
+                  ? current
+                  : current!.copyWith(
+                      usAqi: m.usAqi,
+                      europeanAqi: m.europeanAqi,
+                      pm25: m.pm25,
+                      pm10: m.pm10,
+                    );
+            }(),
+      minutely: minutely,
+      hourly: [
+        for (final s in hourly)
+          () {
+            final m = at(s.time);
+            return m == null
+                ? s
+                : s.copyWith(
+                    usAqi: m.usAqi,
+                    europeanAqi: m.europeanAqi,
+                    pm25: m.pm25,
+                    pm10: m.pm10,
+                  );
+          }(),
+      ],
+      daily: daily,
+    );
+  }
 }
+
+/// 大気質の1時間ぶん
+class AirQualitySlot {
+  const AirQualitySlot({
+    required this.time,
+    this.usAqi,
+    this.europeanAqi,
+    this.pm25,
+    this.pm10,
+  });
+
+  final DateTime time;
+  final int? usAqi;
+  final int? europeanAqi;
+  final double? pm25;
+  final double? pm10;
+}
+
+/// 大気質（Open-Meteo の大気質 API の結果）
+class AirQuality {
+  const AirQuality({this.hourly = const []});
+
+  final List<AirQualitySlot> hourly;
+}
+
+/// Open-Meteo の大気質 API の JSON を読む
+AirQuality parseOpenMeteoAirQuality(Map<String, dynamic> json) {
+  final h = json['hourly'] as Map<String, dynamic>?;
+  final hTime = _list(h, 'time', _time);
+  final hUs = _list(h, 'us_aqi', _i);
+  final hEu = _list(h, 'european_aqi', _i);
+  final hPm25 = _list(h, 'pm2_5', _d);
+  final hPm10 = _list(h, 'pm10', _d);
+
+  T? at<T>(List<T?> l, int i) => i < l.length ? l[i] : null;
+
+  return AirQuality(
+    hourly: [
+      for (var i = 0; i < hTime.length; i++)
+        if (hTime[i] != null)
+          AirQualitySlot(
+            time: hTime[i]!,
+            usAqi: at(hUs, i),
+            europeanAqi: at(hEu, i),
+            pm25: at(hPm25, i),
+            pm10: at(hPm10, i),
+          ),
+    ],
+  );
+}
+
+/// Open-Meteo の大気質 API に聞く URL
+Uri openMeteoAirQualityUri({
+  double latitude = schoolLatitude,
+  double longitude = schoolLongitude,
+  String timeZone = 'Asia/Tokyo',
+}) => Uri.https('air-quality-api.open-meteo.com', '/v1/air-quality', {
+  'latitude': '$latitude',
+  'longitude': '$longitude',
+  'timezone': timeZone,
+  'forecast_days': '3',
+  'hourly': ['pm10', 'pm2_5', 'us_aqi', 'european_aqi'].join(','),
+});
 
 /// Open-Meteo の JSON を読む
 WeatherForecast parseOpenMeteo(
@@ -268,6 +495,7 @@ WeatherForecast parseOpenMeteo(
   final hWd = _list(h, 'wind_direction_10m', _d);
   final hHum = _list(h, 'relative_humidity_2m', _d);
   final hPres = _list(h, 'surface_pressure', _d);
+  final hUv = _list(h, 'uv_index', _d);
 
   final dTime = _list(d, 'time', _time);
   final dCode = _list(d, 'weather_code', _i);
@@ -279,6 +507,7 @@ WeatherForecast parseOpenMeteo(
   final dPop = _list(d, 'precipitation_probability_max', _i);
   final dWs = _list(d, 'wind_speed_10m_max', _d);
   final dWd = _list(d, 'wind_direction_10m_dominant', _d);
+  final dUv = _list(d, 'uv_index_max', _d);
 
   T? at<T>(List<T?> l, int i) => i < l.length ? l[i] : null;
 
@@ -297,6 +526,7 @@ WeatherForecast parseOpenMeteo(
             precipitation: _d(c['precipitation']),
             code: _i(c['weather_code']),
             isDay: _i(c['is_day']) != 0,
+            uvIndex: _d(c['uv_index']),
           ),
     minutely: [
       for (var i = 0; i < mTime.length; i++)
@@ -317,6 +547,7 @@ WeatherForecast parseOpenMeteo(
             windDirection: at(hWd, i),
             humidity: at(hHum, i),
             pressure: at(hPres, i),
+            uvIndex: at(hUv, i),
           ),
     ],
     daily: [
@@ -333,6 +564,7 @@ WeatherForecast parseOpenMeteo(
             precipitationProbability: at(dPop, i),
             windSpeedMax: at(dWs, i),
             windDirection: at(dWd, i),
+            uvIndexMax: at(dUv, i),
           ),
     ],
   );
@@ -359,6 +591,7 @@ Uri openMeteoUri({
     'precipitation',
     'weather_code',
     'is_day',
+    'uv_index',
   ].join(','),
   'minutely_15': 'precipitation',
   'forecast_minutely_15': '32',
@@ -372,6 +605,7 @@ Uri openMeteoUri({
     'wind_direction_10m',
     'relative_humidity_2m',
     'surface_pressure',
+    'uv_index',
   ].join(','),
   'daily': [
     'weather_code',
@@ -383,5 +617,6 @@ Uri openMeteoUri({
     'precipitation_probability_max',
     'wind_speed_10m_max',
     'wind_direction_10m_dominant',
+    'uv_index_max',
   ].join(','),
 });

@@ -243,6 +243,8 @@ class _CalendarPageState extends State<CalendarPage> {
     onEdit: (test) => _openTestEditor(test: test),
     onSetWeekSkipped: (rule, date, skipped) =>
         _testRepository.setWeekSkipped(rule.id, date, skipped),
+    onSetWeekExtra: (rule, date, extra) =>
+        _testRepository.setWeekExtra(rule.id, date, extra),
     onChangeLesson: _changeLesson,
   );
 

@@ -85,7 +85,7 @@ class _OnboardingFlowPageState extends State<OnboardingFlowPage> {
               // 失敗しても go_router の redirect が未完了として扱うだけなので、
               // とりあえずホームへの遷移は試みる
             }
-            if (mounted) context.go('/');
+            if (context.mounted) context.go('/');
           },
         );
     }

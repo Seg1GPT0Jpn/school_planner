@@ -194,8 +194,9 @@ class _ChartPainter extends CustomPainter {
     }
     for (var i = 0; i < points.length; i++) {
       final a = points[i].average;
-      if (a != null)
+      if (a != null) {
         canvas.drawCircle(Offset(x(i), y(a)), 2.5, Paint()..color = average);
+      }
     }
 
     // 自分の線

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/date_format.dart';
+import '../events/event_category.dart';
 import '../timetable/timetable_models.dart';
 import '../timetable/timetable_repository.dart';
 import 'todo.dart';
@@ -183,6 +184,8 @@ class _TodoEditPageState extends State<TodoEditPage> {
   late DateTime? _due = _t?.dueDate;
   late String? _subject = _t?.subject;
   late final List<Subtask> _subs = [...?_t?.subtasks];
+  late CategoryLoadLevel _loadLevel =
+      _t?.loadLevel ?? CategoryLoadLevel.medium;
   String? _error;
 
   void _addSub() {
@@ -209,6 +212,7 @@ class _TodoEditPageState extends State<TodoEditPage> {
         done: _t?.done ?? false,
         subtasks: _subs,
         linkedTestId: _t?.linkedTestId,
+        loadLevel: _loadLevel,
       ),
     );
     nav.pop();
@@ -304,6 +308,27 @@ class _TodoEditPageState extends State<TodoEditPage> {
                       : (v) => setState(() => _subject = v),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('負荷（忙しさ）'),
+          const SizedBox(height: 4),
+          Text(
+            '科目が無い ToDo でも設定できます。重い ToDo が多い日を'
+            '「予定が多い日」として拾えるようになります。',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final level in CategoryLoadLevel.values)
+                ChoiceChip(
+                  label: Text(level.label),
+                  selected: _loadLevel == level,
+                  onSelected: (_) => setState(() => _loadLevel = level),
+                ),
             ],
           ),
           const Divider(height: 32),

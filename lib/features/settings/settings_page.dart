@@ -10,6 +10,7 @@ import '../events/category_manage_page.dart';
 import '../events/event_category_repository.dart';
 import '../google_calendar/google_access.dart';
 import '../google_calendar/google_calendar_page.dart';
+import '../home/home_card_options.dart';
 import '../recurring/recurring_pages.dart';
 import '../school_tests/weekly_rules_page.dart';
 import '../timetable/schedule_config_page.dart';
@@ -19,6 +20,7 @@ import '../timetable/subject_manage_page.dart';
 import '../train_delay/line_picker_page.dart';
 import '../travel/places_page.dart';
 import 'app_settings.dart';
+import 'home_visibility_page.dart';
 import 'import_export_page.dart';
 import 'preferences_pages.dart';
 import 'settings_scope.dart';
@@ -131,6 +133,16 @@ class SettingsPage extends StatelessWidget {
                 title: const Text('インポート／エクスポート'),
                 subtitle: const Text('.ics ファイルで予定を読み書き'),
                 onTap: () => _push(context, const ImportExportPage()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.dashboard_customize_outlined),
+                title: const Text('ホーム画面に表示する項目'),
+                subtitle: Text(
+                  s.hiddenHomeCards.isEmpty
+                      ? 'すべて表示中'
+                      : '${homeCardOptions.length - s.hiddenHomeCards.length}/${homeCardOptions.length}件を表示中',
+                ),
+                onTap: () => _push(context, const HomeVisibilityPage()),
               ),
               ListTile(
                 leading: const Icon(Icons.emoji_events_outlined),

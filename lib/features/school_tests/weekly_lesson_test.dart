@@ -18,6 +18,8 @@ class WeeklyLessonTestRule {
     this.skippedWeeks = const {},
     this.endNumber,
     this.startDate,
+    this.weekday,
+    this.extraWeeks = const {},
   });
 
   /// Firestore の ID
@@ -46,6 +48,15 @@ class WeeklyLessonTestRule {
 
   /// この日を含む週から始まる（それより前の週はテストなし）。null なら制限なし
   final DateTime? startDate;
+
+  /// テストを行う曜日を固定する（1=月 〜 5=金）。
+  /// null なら「その週で対象科目の授業が最初にある日」を自動で使う（従来どおり）。
+  final int? weekday;
+
+  /// 「時間が無くて同じ週にもう1回行った」週（その週の月曜日の dateKey）。
+  /// この週から先の範囲の計算が、2回ぶん進んだものとして扱われる。
+  /// （2回目のテスト自体は、通常の小テスト登録から手動で追加する）
+  final Set<String> extraWeeks;
 }
 
 /// 計算結果：その週のテスト
@@ -95,7 +106,17 @@ class WeeklyLessonTestCalculator {
     if (_cache.containsKey(key)) return _cache[key];
 
     (DateTime, ResolvedLesson)? found;
-    for (var i = 0; i < 5 && found == null; i++) {
+
+    // 曜日が固定されていれば、その日（1=月〜5=金）だけを見る。
+    // 未指定なら従来どおり、週の中で対象科目が最初にある日を探す。
+    final fixedWeekday = rule.weekday;
+    final dayOffsets = fixedWeekday == null
+        ? const [0, 1, 2, 3, 4]
+        : [fixedWeekday - 1];
+
+    for (final i in dayOffsets) {
+      if (found != null) break;
+      if (i < 0 || i > 4) continue;
       final day = monday.add(Duration(days: i));
       final timetable = resolver.resolve(day);
 
@@ -120,6 +141,13 @@ class WeeklyLessonTestCalculator {
       !rule.skippedWeeks.contains(dateKey(monday)) &&
       _firstLessonInWeek(monday) != null;
 
+  /// その週が、範囲の計算上「何回ぶん」進むか（通常は1、時間が無くて
+  /// 同じ週にもう1回行った週は2、「なし」の週や授業のない週は0）
+  int _weekWeight(DateTime monday) {
+    if (!_hasTest(monday)) return 0;
+    return rule.extraWeeks.contains(dateKey(monday)) ? 2 : 1;
+  }
+
   /// その日を含む週のテスト（なければ null）
   LessonTestOccurrence? occurrenceInWeek(DateTime anyDateInWeek) {
     final monday = mondayOf(anyDateInWeek);
@@ -143,7 +171,7 @@ class WeeklyLessonTestCalculator {
         w.isBefore(monday);
         w = w.add(const Duration(days: 7))
       ) {
-        if (_hasTest(w)) count++;
+        count += _weekWeight(w);
       }
       rangeStart = rule.baseRangeStart + rule.rangeStep * count;
     } else {
@@ -152,7 +180,7 @@ class WeeklyLessonTestCalculator {
         w.isBefore(baseMonday);
         w = w.add(const Duration(days: 7))
       ) {
-        if (_hasTest(w)) count++;
+        count += _weekWeight(w);
       }
       rangeStart = rule.baseRangeStart - rule.rangeStep * count;
     }

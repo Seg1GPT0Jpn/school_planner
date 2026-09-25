@@ -119,14 +119,12 @@ class DayTimetableResolver {
     required this.weekCalculator,
     required List<TimetableSlot> slots,
     List<DayOverride> dayOverrides = const [],
-    List<SchoolClosure> closures = const [],
-    Map<String, String> holidays = const {},
+    this._closures = const [],
+    this._holidays = const {},
     this.postProcess,
     this.slotsForDate,
   }) : _slots = _toMap(slots),
-       _dayOverrides = {for (final o in dayOverrides) dateKey(o.date): o},
-       _closures = closures,
-       _holidays = holidays;
+       _dayOverrides = {for (final o in dayOverrides) dateKey(o.date): o};
 
   final WeekCycleCalculator weekCalculator;
   final Map<String, TimetableSlot> _slots;
@@ -212,7 +210,9 @@ class DayTimetableResolver {
 
     // ⑤ 日課と時限
     final schedule = dayOverride?.schedule ?? DaySchedule.regular;
-    final periods = SchoolPeriods.periodsForSchedule(schedule, weekday);
+    final periods = schedule == DaySchedule.custom
+        ? (dayOverride?.customPeriods ?? const <SchoolPeriod>[])
+        : SchoolPeriods.periodsForSchedule(schedule, weekday);
     final slotMap = _slotMapFor(day);
 
     final lessons = <int, ResolvedLesson>{};

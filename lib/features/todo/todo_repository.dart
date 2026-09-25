@@ -3,6 +3,7 @@ library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../events/event_category.dart';
 import '../timetable/week_cycle.dart';
 import 'todo.dart';
 
@@ -41,6 +42,7 @@ class TodoRepository {
       for (final s in t.subtasks) {'title': s.title, 'done': s.done},
     ],
     'linkedTestId': t.linkedTestId,
+    'loadLevel': t.loadLevel.name,
   };
 
   static Todo fromMap(String id, Map<String, dynamic> m) {
@@ -65,6 +67,9 @@ class TodoRepository {
           ),
       ],
       linkedTestId: m['linkedTestId'] as String?,
+      loadLevel:
+          CategoryLoadLevel.values.asNameMap()[m['loadLevel']] ??
+          CategoryLoadLevel.medium,
     );
   }
 }

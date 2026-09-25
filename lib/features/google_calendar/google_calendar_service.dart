@@ -168,7 +168,7 @@ class GoogleCalendarService {
           'singleEvents': 'true',
           'orderBy': 'startTime',
           'maxResults': '2500',
-          if (page != null) 'pageToken': page,
+          'pageToken': ?page,
         },
       );
       items.addAll([

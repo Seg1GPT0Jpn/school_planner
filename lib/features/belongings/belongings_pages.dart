@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../events/calendar_event.dart';
+import '../events/event_category.dart';
+import '../events/event_category_repository.dart';
 import '../recurring/recurring_repository.dart';
 import '../recurring/recurring_schedule.dart';
 import '../timetable/day_timetable_resolver.dart';
@@ -98,6 +101,7 @@ class _BelongingsSettingsPageState extends State<BelongingsSettingsPage> {
   late final String _uid = FirebaseAuth.instance.currentUser!.uid;
   late final _timetable = TimetableRepository(uid: _uid).watch();
   late final _recurring = RecurringRepository(uid: _uid).watch();
+  late final _categories = EventCategoryRepository(uid: _uid).watch();
   late final _settings = _repo().watchSettings();
 
   @override
@@ -108,58 +112,77 @@ class _BelongingsSettingsPageState extends State<BelongingsSettingsPage> {
         stream: _timetable,
         builder: (context, ts) => StreamBuilder<List<RecurringSchedule>>(
           stream: _recurring,
-          builder: (context, rs) => StreamBuilder<BelongingSettings>(
-            stream: _settings,
-            builder: (context, ss) {
-              if (!ts.hasData || !ss.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final s = ss.data!;
-              void save(BelongingSettings n) => _repo().saveSettings(n);
+          builder: (context, rs) => StreamBuilder<List<EventCategory>>(
+            stream: _categories,
+            builder: (context, cs) => StreamBuilder<BelongingSettings>(
+              stream: _settings,
+              builder: (context, ss) {
+                if (!ts.hasData || !ss.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final s = ss.data!;
+                void save(BelongingSettings n) => _repo().saveSettings(n);
 
-              // 今の時間割にある科目（＋持ち物が登録されている科目）
-              final subjects = <String>[
-                for (final x in ts.data!.slotsForDate(DateTime.now()))
-                  x.subject,
-                ...s.bySubject.keys,
-              ].toSet().toList()..sort();
+                // 今の時間割にある科目（＋持ち物が登録されている科目）
+                final subjects =
+                    {
+                      for (final x in ts.data!.slotsForDate(DateTime.now()))
+                        x.subject,
+                      ...s.bySubject.keys,
+                    }.toList()
+                    ..sort();
 
-              Widget header(String t) => Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                child: Text(t, style: Theme.of(context).textTheme.titleSmall),
-              );
-
-              return ListView(
-                padding: const EdgeInsets.only(bottom: 32),
-                children: [
-                  header('毎日（学校がある日）'),
-                  _ItemRow(
-                    title: '毎日',
-                    items: s.daily,
-                    onChanged: (v) => save(s.copyWith(daily: v)),
+                Widget header(String t) => Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Text(
+                    t,
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  header('科目ごと'),
-                  for (final name in subjects)
+                );
+
+                return ListView(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  children: [
+                    header('毎日（学校がある日）'),
                     _ItemRow(
-                      title: name,
-                      items: s.bySubject[name] ?? const [],
-                      onChanged: (v) => save(
-                        s.copyWith(bySubject: {...s.bySubject, name: v}),
-                      ),
+                      title: '毎日',
+                      items: s.daily,
+                      onChanged: (v) => save(s.copyWith(daily: v)),
                     ),
-                  header('定期の予定ごと'),
-                  for (final r in rs.data ?? const <RecurringSchedule>[])
-                    if (r.id != null)
+                    header('科目ごと'),
+                    for (final name in subjects)
                       _ItemRow(
-                        title: '${r.title}（${r.weekdayText}）',
-                        items: s.byRecurring[r.id] ?? const [],
+                        title: name,
+                        items: s.bySubject[name] ?? const [],
                         onChanged: (v) => save(
-                          s.copyWith(byRecurring: {...s.byRecurring, r.id!: v}),
+                          s.copyWith(bySubject: {...s.bySubject, name: v}),
                         ),
                       ),
-                ],
-              );
-            },
+                    header('定期の予定ごと'),
+                    for (final r in rs.data ?? const <RecurringSchedule>[])
+                      if (r.id != null)
+                        _ItemRow(
+                          title: '${r.title}（${r.weekdayText}）',
+                          items: s.byRecurring[r.id] ?? const [],
+                          onChanged: (v) => save(
+                            s.copyWith(
+                              byRecurring: {...s.byRecurring, r.id!: v},
+                            ),
+                          ),
+                        ),
+                    header('カテゴリごと（定期でない予定にも使えます）'),
+                    for (final c in cs.data ?? const <EventCategory>[])
+                      _ItemRow(
+                        title: c.name,
+                        items: s.byCategory[c.id] ?? const [],
+                        onChanged: (v) => save(
+                          s.copyWith(byCategory: {...s.byCategory, c.id: v}),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -173,10 +196,14 @@ class TomorrowBelongingsCard extends StatefulWidget {
     super.key,
     required this.data,
     required this.recurring,
+    this.events = const [],
   });
 
   final TimetableData data;
   final List<RecurringSchedule> recurring;
+
+  /// 定期でない予定（カテゴリごとの持ち物・予定ごとの持ち物に使う）
+  final List<CalendarEvent> events;
 
   @override
   State<TomorrowBelongingsCard> createState() => _TomorrowBelongingsCardState();
@@ -210,6 +237,7 @@ class _TomorrowBelongingsCardState extends State<TomorrowBelongingsCard> {
           day: widget.data.resolver.resolve(target),
           recurring: widget.recurring,
           settings: ss.data ?? const BelongingSettings(),
+          events: widget.events,
         );
         return StreamBuilder<Set<String>>(
           stream: _repo().watchChecked(target),

@@ -402,7 +402,17 @@ class TimetableRepository {
     'weekType': o.weekType?.name,
     'note': o.note,
     'changes': [for (final c in o.changes) _changeToMap(c)],
+    'customPeriods': o.customPeriods == null
+        ? null
+        : [for (final p in o.customPeriods!) p.toMap()],
   };
+
+  static List<SchoolPeriod>? _customPeriodsFromList(Object? v) {
+    if (v is! List) return null;
+    final list = [for (final x in v) ?SchoolPeriod.fromMap(x)]
+      ..sort((a, b) => a.number.compareTo(b.number));
+    return list.isEmpty ? null : list;
+  }
 
   static DayOverride _dayOverrideFromMap(Map<String, dynamic> m) {
     final scheduleName = m['schedule'] as String?;
@@ -421,6 +431,7 @@ class TimetableRepository {
           ? null
           : WeekType.values.byName(weekTypeName),
       note: m['note'] as String?,
+      customPeriods: _customPeriodsFromList(m['customPeriods']),
       changes: [
         for (final c in changeMaps)
           switch (c['type'] as String) {

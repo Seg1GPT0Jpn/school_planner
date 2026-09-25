@@ -89,9 +89,8 @@ class _CategoryManagePageState extends State<CategoryManagePage> {
                       buildDefaultDragHandles: false,
                       padding: const EdgeInsets.only(bottom: 88),
                       itemCount: categories.length,
-                      onReorder: (oldIndex, newIndex) {
+                      onReorderItem: (oldIndex, newIndex) {
                         final list = [...categories];
-                        if (newIndex > oldIndex) newIndex -= 1;
                         list.insert(newIndex, list.removeAt(oldIndex));
                         widget.repository.reorder(list);
                       },
@@ -113,6 +112,7 @@ class _CategoryManagePageState extends State<CategoryManagePage> {
                               Expanded(child: Text(c.name)),
                             ],
                           ),
+                          subtitle: Text('負荷：${c.loadLevel.label}'),
                           onTap: () => _edit(c, categories.length),
                           trailing: c.isDeletable
                               ? IconButton(
@@ -147,6 +147,7 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
   late final TextEditingController _nameController;
   late int _colorValue;
   late bool _growthLogEnabled;
+  late CategoryLoadLevel _loadLevel;
   String? _errorMessage;
 
   @override
@@ -155,6 +156,7 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
     _nameController = TextEditingController(text: widget.initial.name);
     _colorValue = widget.initial.colorValue;
     _growthLogEnabled = widget.initial.growthLogEnabled;
+    _loadLevel = widget.initial.loadLevel;
   }
 
   @override
@@ -182,6 +184,7 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
         name: name,
         colorValue: _colorValue,
         growthLogEnabled: _growthLogEnabled,
+        loadLevel: _loadLevel,
       ),
     );
   }
@@ -192,7 +195,8 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
 
     return AlertDialog(
       title: Text(widget.isNew ? 'カテゴリを追加' : 'カテゴリを編集'),
-      content: Column(
+      content: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
@@ -228,6 +232,30 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('負荷（忙しさ）', style: Theme.of(context).textTheme.labelLarge),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'このカテゴリの予定1件あたりの重さです。軽い予定を多く入れても'
+            '「詰め込みすぎ」と判定されにくくなります。',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final level in CategoryLoadLevel.values)
+                ChoiceChip(
+                  label: Text(level.label),
+                  selected: _loadLevel == level,
+                  onSelected: (_) => setState(() => _loadLevel = level),
+                ),
+            ],
+          ),
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -237,6 +265,7 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
             onChanged: (v) => setState(() => _growthLogEnabled = v),
           ),
         ],
+        ),
       ),
       actions: [
         TextButton(

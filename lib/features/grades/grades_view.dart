@@ -308,7 +308,7 @@ class _ExamEditPageState extends State<ExamEditPage> {
         _e?.totalDeviation == null ||
             _e!.totalDeviationSource != DeviationSource.entered
         ? ''
-        : numText(_e!.totalDeviation!),
+        : numText(_e.totalDeviation!),
   );
   late ExamKind _kind = _e?.kind ?? widget.kind;
   late DateTime _date = _e?.date ?? DateTime.now();

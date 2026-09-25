@@ -15,6 +15,40 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    // グループ（部活・友達など、複数人で使う場所）
+    // メンバーかどうかは memberUids（IDのリスト）で判断する
+    function isGroupMember(groupId) {
+      return request.auth != nulladb connect 192.168.1.12:33021
+          && request.auth.uid in
+              get(/databases/$(database)/documents/groups/$(groupId)).data.memberUids;
+    }
+
+    match /groups/{groupId} {
+      // メンバーだけが読める
+      allow read: if request.auth != null
+          && request.auth.uid in resource.data.memberUids;
+
+      // 作るときは、自分がオーナーかつメンバーに入っていること
+      allow create: if request.auth != null
+          && request.auth.uid == request.resource.data.ownerUid
+          && request.auth.uid in request.resource.data.memberUids;
+
+      // 更新は「もとからのメンバー」か「招待コードで新しく参加する本人」ができる
+      // （名前の変更などはメンバーだけ、参加は自分のIDを追加するだけなので許可）
+      allow update: if request.auth != null
+          && (request.auth.uid in resource.data.memberUids
+              || request.auth.uid in request.resource.data.memberUids);
+
+      // 削除はオーナーだけ
+      allow delete: if request.auth != null
+          && request.auth.uid == resource.data.ownerUid;
+
+      // グループ内の連絡・共有ToDoなど。メンバーだけが読み書きできる
+      match /items/{itemId} {
+        allow read, write: if isGroupMember(groupId);
+      }
+    }
+
     // ここに書いていない場所は、すべて読み書き禁止
   }
 }

@@ -37,6 +37,11 @@ class WeatherService {
   WeatherBundle? _last;
   Future<WeatherBundle>? _loading;
 
+  // 現在地の天気（学校の天気とは別に覚えておく）
+  WeatherBundle? _lastAt;
+  Future<WeatherBundle>? _loadingAt;
+  double? _lastAtLat, _lastAtLng;
+
   /// 取ってくる（10分以内なら前のものを返す。force なら取り直す）
   Future<WeatherBundle> load({bool force = false}) {
     final last = _last;
@@ -48,8 +53,35 @@ class WeatherService {
     return _loading ??= _fetch().whenComplete(() => _loading = null);
   }
 
+  /// 指定した場所の天気を取ってくる（現在地など、学校以外の場所用）
+  Future<WeatherBundle> loadAt({
+    required double latitude,
+    required double longitude,
+    bool force = false,
+  }) {
+    final last = _lastAt;
+    final samePlace = _lastAtLat == latitude && _lastAtLng == longitude;
+    if (!force &&
+        samePlace &&
+        last != null &&
+        DateTime.now().difference(last.fetchedAt) < _keep) {
+      return Future.value(last);
+    }
+    if (!samePlace) {
+      _lastAt = null;
+      _lastAtLat = latitude;
+      _lastAtLng = longitude;
+    }
+    return _loadingAt ??= _fetch(latitude: latitude, longitude: longitude)
+        .then((b) => _lastAt = b)
+        .whenComplete(() => _loadingAt = null);
+  }
+
   /// いま持っているもの（まだ一度も取っていなければ null）
   WeatherBundle? get cached => _last;
+
+  /// 現在地で最後に取ったもの
+  WeatherBundle? get cachedAt => _lastAt;
 
   Future<Object?> _getJson(Uri uri) async {
     final res = await http.get(uri).timeout(_timeout);
@@ -59,9 +91,13 @@ class WeatherService {
     return jsonDecode(utf8.decode(res.bodyBytes));
   }
 
-  Future<WeatherBundle> _fetch() async {
+  /// latitude/longitude を指定したときは、その場所の天気予報だけを取る
+  /// （警報・注意報は市区町村単位の気象庁の区域コードに対応づけできないため、
+  /// 学校の場所（藤沢市）のものを参考として引き続き表示する）
+  Future<WeatherBundle> _fetch({double? latitude, double? longitude}) async {
     final errors = <String>[];
     final now = DateTime.now();
+    final atOtherPlace = latitude != null && longitude != null;
 
     Future<T?> attempt<T>(String what, Future<T> Function() f) async {
       try {
@@ -74,7 +110,11 @@ class WeatherService {
 
     final results = await Future.wait([
       attempt('天気予報', () async {
-        final j = await _getJson(openMeteoUri());
+        final j = await _getJson(
+          atOtherPlace
+              ? openMeteoUri(latitude: latitude, longitude: longitude)
+              : openMeteoUri(),
+        );
         return parseOpenMeteo(j! as Map<String, dynamic>, fetchedAt: now);
       }),
       attempt('気象庁の警報', () async {
@@ -83,15 +123,29 @@ class WeatherService {
       attempt('気象庁の台風情報', () async {
         return parseTyphoons(await _getJson(jmaTyphoonUri()));
       }),
+      attempt('大気質', () async {
+        final j = await _getJson(
+          atOtherPlace
+              ? openMeteoAirQualityUri(latitude: latitude, longitude: longitude)
+              : openMeteoAirQualityUri(),
+        );
+        return parseOpenMeteoAirQuality(j! as Map<String, dynamic>);
+      }),
     ]);
+
+    final rawForecast = results[0] as WeatherForecast?;
+    final airQuality = results[3] as AirQuality?;
 
     final bundle = WeatherBundle(
       fetchedAt: now,
-      forecast: results[0] as WeatherForecast?,
+      forecast: rawForecast == null || airQuality == null
+          ? rawForecast
+          : rawForecast.mergeAirQuality(airQuality),
       warnings: results[1] as AreaWarnings?,
       typhoons: (results[2] as List<String>?) ?? const [],
       errors: errors,
     );
+    if (atOtherPlace) return bundle;
     // 何も取れなかったときは、前のものを残す
     if (bundle.forecast != null || bundle.warnings != null || _last == null) {
       _last = bundle;

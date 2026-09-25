@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_state.dart';
 import '../features/auth/login_page.dart';
 import '../features/calendar/calendar_page.dart';
+import '../features/clock/alarm_ring_page.dart';
+import '../features/clock/alarm_ring_state.dart';
 import '../features/goals/goals_page.dart';
 import '../features/home/home_page.dart';
 import '../features/onboarding/intro_page.dart';
@@ -24,7 +26,7 @@ final OnboardingStateNotifier _onboardingState = OnboardingStateNotifier();
 /// ※ 変更したときは、r ではなく R（または起動し直し）が必要
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
-  refreshListenable: Listenable.merge([_authState, _onboardingState]),
+  refreshListenable: Listenable.merge([_authState, _onboardingState, alarmRingState]),
   redirect: (context, state) {
     final isLoggedIn = _authState.isLoggedIn;
     final loc = state.matchedLocation;
@@ -45,6 +47,12 @@ final GoRouter appRouter = GoRouter(
       return '/onboarding';
     }
 
+    // アラームが鳴っている（通知をタップした）ときは、いちばん優先してアラーム画面へ
+    if (alarmRingState.alarmId != null) {
+      return loc == '/alarm-ring' ? null : '/alarm-ring';
+    }
+    if (loc == '/alarm-ring') return '/';
+
     // 案内は終わっている → ログイン画面や案内の画面には行かせない
     if (loc == '/login' || loc == '/intro' || loc == '/onboarding') {
       return '/';
@@ -57,6 +65,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingFlowPage(),
+    ),
+    GoRoute(
+      path: '/alarm-ring',
+      builder: (context, state) => AlarmRingPage(alarmId: alarmRingState.alarmId!),
     ),
 
     // タブのある画面（app_shell.dart の _tabs と同じ順番）

@@ -10,7 +10,6 @@ import '../settings/app_settings.dart';
 import '../settings/settings_scope.dart';
 import '../timetable/school_periods.dart';
 import '../travel/geocoder.dart';
-import '../travel/travel.dart';
 import '../travel/travel_card.dart';
 import 'calendar_event.dart';
 import 'category_manage_page.dart';
@@ -50,6 +49,7 @@ class _EventEditPageState extends State<EventEditPage> {
   late final TextEditingController _locationController;
   late final TextEditingController _memoController;
   late final TextEditingController _belongingInputController;
+  late final TextEditingController _tagInputController;
   late final Stream<List<EventCategory>> _categoryStream;
 
   late DateTime _start;
@@ -57,6 +57,7 @@ class _EventEditPageState extends State<EventEditPage> {
   late bool _isAllDay;
   late String _categoryId;
   late List<String> _belongings;
+  late List<String> _tags;
   String? _mood;
   late final GrowthLogRepository _growthLogRepository;
   StreamSubscription<List<EventCategory>>? _categorySub;
@@ -83,9 +84,11 @@ class _EventEditPageState extends State<EventEditPage> {
     _locationController = TextEditingController(text: e?.location ?? '');
     _memoController = TextEditingController(text: e?.memo ?? '');
     _belongingInputController = TextEditingController();
+    _tagInputController = TextEditingController();
     _isAllDay = e?.isAllDay ?? widget.initialAllDay;
     _categoryId = e?.categoryId ?? EventCategory.otherId;
     _belongings = List<String>.from(e?.belongings ?? const []);
+    _tags = List<String>.from(e?.tags ?? const []);
     _mood = e?.mood;
     _categoryStream = widget.categoryRepository.watch();
     _growthLogRepository = GrowthLogRepository(
@@ -128,6 +131,7 @@ class _EventEditPageState extends State<EventEditPage> {
     _locationController.dispose();
     _memoController.dispose();
     _belongingInputController.dispose();
+    _tagInputController.dispose();
     super.dispose();
   }
 
@@ -257,6 +261,19 @@ class _EventEditPageState extends State<EventEditPage> {
     setState(() => _belongings.remove(item));
   }
 
+  void _addTag() {
+    final text = _tagInputController.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      if (!_tags.contains(text)) _tags.add(text);
+      _tagInputController.clear();
+    });
+  }
+
+  void _removeTag(String item) {
+    setState(() => _tags.remove(item));
+  }
+
   void _openCategoryManager() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -284,6 +301,7 @@ class _EventEditPageState extends State<EventEditPage> {
       categoryId: _categoryId,
       belongings: _belongings,
       mood: _mood,
+      tags: _tags,
     );
 
     final error = event.validate();
@@ -500,6 +518,48 @@ class _EventEditPageState extends State<EventEditPage> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // タグ（自由入力・複数可。あとで検索・絞り込みに使う）
+              Row(
+                children: [
+                  const Icon(Icons.sell_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Text('タグ', style: Theme.of(context).textTheme.labelLarge),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_tags.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final tag in _tags)
+                      InputChip(
+                        label: Text(tag),
+                        onDeleted: () => _removeTag(tag),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _tagInputController,
+                      decoration: const InputDecoration(
+                        hintText: 'タグを追加（例：合唱コン）',
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _addTag(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: _addTag,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               const Divider(),
 
               // 気分（任意・選ぶだけ。設定でOFFにできる）

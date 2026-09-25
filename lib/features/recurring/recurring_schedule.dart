@@ -42,9 +42,11 @@ class RecurringSchedule {
     int? weekday,
     required this.start,
     required this.end,
+    this.afterSchoolMinutes,
     this.validFrom,
     this.validUntil,
     this.categoryId = EventCategory.otherId,
+    this.subject,
     this.location,
     this.skippedDates = const {},
     this.test,
@@ -58,9 +60,17 @@ class RecurringSchedule {
 
   final ClockTime start;
   final ClockTime end;
+
+  /// null なら [start] の固定時刻で始まる。数を入れると、その日の放課後
+  /// （授業の終わる時刻）の何分後に始めるかを表す（長さは end − start のまま）。
+  /// 授業のない日（土日・祝日など）は「放課後」が決まらないので、その日はお休みになる。
+  final int? afterSchoolMinutes;
   final DateTime? validFrom;
   final DateTime? validUntil;
   final String categoryId;
+
+  /// 教科（塾の科目など）。未設定なら null
+  final String? subject;
   final String? location;
   final Set<String> skippedDates;
   final RecurringTestConfig? test;
@@ -76,16 +86,26 @@ class RecurringSchedule {
     if (!weekdays.contains(d.weekday)) return false;
     if (validFrom != null && d.isBefore(_day(validFrom!))) return false;
     if (validUntil != null && d.isAfter(_day(validUntil!))) return false;
-    return !skippedDates.contains(dateKey(d));
+    if (skippedDates.contains(dateKey(d))) return false;
+    // 「放課後の◯分後」指定で、授業のない日（土日・祝日など）は
+    // 基準になる「放課後」自体がないので、その日はお休みにする。
+    if (afterSchoolMinutes != null && schoolEndMinutesOn(d) == null) {
+      return false;
+    }
+    return true;
   }
 
   CalendarEvent toEvent(DateTime date) {
     final d = _day(date);
+    final durationMinutes = end.totalMinutes - start.totalMinutes;
+    final startMinutes = afterSchoolMinutes != null
+        ? (schoolEndMinutesOn(d) ?? start.totalMinutes) + afterSchoolMinutes!
+        : start.totalMinutes;
     return CalendarEvent(
       id: '$recurringIdPrefix$id:${dateKey(d)}',
       title: title,
-      start: d.add(Duration(minutes: start.totalMinutes)),
-      end: d.add(Duration(minutes: end.totalMinutes)),
+      start: d.add(Duration(minutes: startMinutes)),
+      end: d.add(Duration(minutes: startMinutes + durationMinutes)),
       location: location,
       categoryId: categoryId,
     );

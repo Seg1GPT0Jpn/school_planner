@@ -109,16 +109,24 @@ class _WhatIfPageState extends State<WhatIfPage> {
               else ...[
                 const Text('どの予定を変えますか？'),
                 const SizedBox(height: 4),
-                for (final e in dayEvents)
-                  RadioListTile<String>(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    value: e.id!,
-                    groupValue: _selectedId,
-                    onChanged: (v) => setState(() => _selectedId = v),
-                    title: Text(e.title),
-                    subtitle: Text('${_time(e.start)}〜${_time(e.end)}'),
+                RadioGroup<String>(
+                  groupValue: _selectedId,
+                  onChanged: (v) => setState(() => _selectedId = v),
+                  child: Column(
+                    children: [
+                      for (final e in dayEvents)
+                        RadioListTile<String>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          value: e.id!,
+                          title: Text(e.title),
+                          subtitle: Text(
+                            '${_time(e.start)}〜${_time(e.end)}',
+                          ),
+                        ),
+                    ],
                   ),
+                ),
                 if (selected != null) ...[
                   const SizedBox(height: 16),
                   Text('「${selected.title}」が延びる／縮むと？'),

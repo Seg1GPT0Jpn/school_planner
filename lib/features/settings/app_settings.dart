@@ -135,6 +135,7 @@ class AppSettings {
     this.autoAddTravelEvents = false,
     // 電車の遅延情報
     this.favoriteLineIds = const [],
+    this.customLineNames = const {},
     // がんばり・気分
     this.gamificationEnabled = true,
     this.moodTrackingEnabled = true,
@@ -142,6 +143,8 @@ class AppSettings {
     this.generativeAiEnabled = false,
     // 予定候補の提案
     this.dismissedPatternKeys = const [],
+    // ホーム画面に表示する項目
+    this.hiddenHomeCards = const [],
   });
 
   // ── 表示 ──
@@ -233,6 +236,10 @@ class AppSettings {
   /// よく使う路線（ODPT の路線ID）
   final List<String> favoriteLineIds;
 
+  /// 一覧に無い路線をユーザーが自分で追加したもの（ODPTの路線ID → 表示名）。
+  /// ODPTの開発者サイト（https://developer.odpt.org/）で路線IDを調べて追加する。
+  final Map<String, String> customLineNames;
+
   // ── がんばり・気分 ──
 
   /// ホームに「がんばり」（ポイント・バッジ・連続記録）を表示する
@@ -252,6 +259,14 @@ class AppSettings {
 
   /// 「却下」した予定候補（もう提案しない）
   final List<String> dismissedPatternKeys;
+
+  // ── ホーム画面 ──
+
+  /// ホーム画面に出さない項目（HomeCardOption.key の一覧）
+  final List<String> hiddenHomeCards;
+
+  /// ホーム画面にこの項目を出すか
+  bool showHomeCard(String key) => !hiddenHomeCards.contains(key);
 
   /// 自宅の位置（登録していなければ null）
   LatLng? get homePoint =>
@@ -319,11 +334,13 @@ class AppSettings {
     bool? departFromSchool,
     bool? autoAddTravelEvents,
     List<String>? favoriteLineIds,
+    Map<String, String>? customLineNames,
     bool? gamificationEnabled,
     bool? moodTrackingEnabled,
     bool? aiAdvisorEnabled,
     bool? generativeAiEnabled,
     List<String>? dismissedPatternKeys,
+    List<String>? hiddenHomeCards,
   }) => AppSettings(
     weekStart: weekStart ?? this.weekStart,
     showWeekend: showWeekend ?? this.showWeekend,
@@ -354,11 +371,13 @@ class AppSettings {
     departFromSchool: departFromSchool ?? this.departFromSchool,
     autoAddTravelEvents: autoAddTravelEvents ?? this.autoAddTravelEvents,
     favoriteLineIds: favoriteLineIds ?? this.favoriteLineIds,
+    customLineNames: customLineNames ?? this.customLineNames,
     gamificationEnabled: gamificationEnabled ?? this.gamificationEnabled,
     moodTrackingEnabled: moodTrackingEnabled ?? this.moodTrackingEnabled,
     aiAdvisorEnabled: aiAdvisorEnabled ?? this.aiAdvisorEnabled,
     generativeAiEnabled: generativeAiEnabled ?? this.generativeAiEnabled,
     dismissedPatternKeys: dismissedPatternKeys ?? this.dismissedPatternKeys,
+    hiddenHomeCards: hiddenHomeCards ?? this.hiddenHomeCards,
   );
 
   Map<String, dynamic> toMap() => {
@@ -390,11 +409,13 @@ class AppSettings {
     'departFromSchool': departFromSchool,
     'autoAddTravelEvents': autoAddTravelEvents,
     'favoriteLineIds': favoriteLineIds,
+    'customLineNames': customLineNames,
     'gamificationEnabled': gamificationEnabled,
     'moodTrackingEnabled': moodTrackingEnabled,
     'aiAdvisorEnabled': aiAdvisorEnabled,
     'generativeAiEnabled': generativeAiEnabled,
     'dismissedPatternKeys': dismissedPatternKeys,
+    'hiddenHomeCards': hiddenHomeCards,
   };
 
   /// 知らない値・足りない値は、はじめの設定にもどす
@@ -487,6 +508,12 @@ class AppSettings {
         for (final x in (m['favoriteLineIds'] as List<dynamic>? ?? const []))
           if (x is String) x,
       ],
+      customLineNames: {
+        for (final e in (m['customLineNames'] as Map<String, dynamic>? ??
+                const {})
+            .entries)
+          if (e.value is String) e.key: e.value as String,
+      },
       gamificationEnabled: flag('gamificationEnabled', d.gamificationEnabled),
       moodTrackingEnabled: flag(
         'moodTrackingEnabled',
@@ -500,6 +527,10 @@ class AppSettings {
       dismissedPatternKeys: [
         for (final x
             in (m['dismissedPatternKeys'] as List<dynamic>? ?? const []))
+          if (x is String) x,
+      ],
+      hiddenHomeCards: [
+        for (final x in (m['hiddenHomeCards'] as List<dynamic>? ?? const []))
           if (x is String) x,
       ],
     );

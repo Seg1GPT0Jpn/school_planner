@@ -97,7 +97,7 @@ class TimetableVersionRepository {
             s.weekday == weekday &&
             s.period == period))
           s,
-      if (newSlot != null) newSlot,
+      ?newSlot,
     ];
     await _col('timetable_versions').doc(dateKey(version.validFrom)).update({
       'slots': [for (final s in slots) slotToMap(s)],

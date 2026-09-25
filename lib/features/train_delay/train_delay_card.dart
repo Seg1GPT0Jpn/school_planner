@@ -86,10 +86,14 @@ class _TrainDelayCardState extends State<TrainDelayCard> {
             ),
           );
         }
+        final customNames = widget.settings.customLineNames;
         final lines = [
           for (final id in widget.settings.favoriteLineIds)
-            if (findTrainLine(id) case final l?) l,
-        ];
+            findTrainLine(id) ??
+                (customNames[id] != null
+                    ? TrainLine(id: id, name: customNames[id]!, operatorName: '')
+                    : null),
+        ].whereType<TrainLine>().toList();
         final anyTrouble = lines.any(
           (l) => !(bundle.statuses[l.id]?.isNormal ?? true),
         );

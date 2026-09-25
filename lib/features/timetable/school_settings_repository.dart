@@ -41,6 +41,22 @@ class SchoolSettingsRepository {
       'date': dateKey(date),
       'schedule': schedule.name,
       'note': (note == null || note.trim().isEmpty) ? null : note.trim(),
+      // 短縮・試験日課に変えるときは、前に入れた特殊日課の時限は使わない
+      'customPeriods': null,
+    }, SetOptions(merge: true));
+  }
+
+  /// その日を特殊日課（この日だけの特別な時限）に設定する
+  Future<void> setCustomSchedule(
+    DateTime date,
+    List<SchoolPeriod> periods,
+    String? note,
+  ) {
+    return _col('timetable_overrides').doc(dateKey(date)).set({
+      'date': dateKey(date),
+      'schedule': DaySchedule.custom.name,
+      'note': (note == null || note.trim().isEmpty) ? null : note.trim(),
+      'customPeriods': [for (final p in periods) p.toMap()],
     }, SetOptions(merge: true));
   }
 
@@ -55,7 +71,7 @@ class SchoolSettingsRepository {
     if (data['weekType'] == null && changes.isEmpty) {
       await doc.delete();
     } else {
-      await doc.update({'schedule': null, 'note': null});
+      await doc.update({'schedule': null, 'note': null, 'customPeriods': null});
     }
   }
 }

@@ -4,7 +4,9 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'current_location_weather_card.dart';
 import 'jma_warnings.dart';
+import 'rain_radar_page.dart';
 import 'school_closure.dart';
 import 'weather_charts.dart';
 import 'weather_models.dart';
@@ -134,6 +136,8 @@ class _WeatherBody extends StatelessWidget {
                   ),
                 ),
               ),
+            const CurrentLocationWeatherCard(),
+            gap,
             if (prediction != null) ...[
               ClosureCard(prediction: prediction, detailed: true),
               gap,
@@ -197,6 +201,23 @@ class _WeatherBody extends StatelessWidget {
               ),
               gap,
             ],
+            _Section(
+              title: '雨雲レーダー',
+              icon: Icons.radar,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Google マップの上に、気象庁の降水ナウキャストを重ねて見られます。'),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: () => openRainRadar(context),
+                    icon: const Icon(Icons.radar),
+                    label: const Text('雨雲レーダーを見る'),
+                  ),
+                ],
+              ),
+            ),
+            gap,
             _Section(
               title: '地図・くわしい情報（気象庁）',
               icon: Icons.map_outlined,
@@ -417,7 +438,7 @@ class _WarningsCard extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final r = warnings.reportTime;
     return _Section(
-      title: '${schoolPlaceName}の警報・注意報',
+      title: '$schoolPlaceNameの警報・注意報',
       icon: Icons.warning_amber_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,6 +638,20 @@ class _NowCard extends StatelessWidget {
                   today?.precipitationProbability == null
                       ? null
                       : '降水確率 ${today!.precipitationProbability}%',
+                ),
+                tile(
+                  Icons.wb_sunny_outlined,
+                  'UV指数',
+                  c?.uvIndex == null ? '—' : c!.uvIndex!.toStringAsFixed(1),
+                  uvIndexOf(c?.uvIndex).label == '—'
+                      ? null
+                      : uvIndexOf(c?.uvIndex).label,
+                ),
+                tile(
+                  Icons.blur_on,
+                  '大気質',
+                  c?.usAqi == null ? '—' : '${c!.usAqi}',
+                  usAqiOf(c?.usAqi).label == '—' ? null : usAqiOf(c?.usAqi).label,
                 ),
               ],
             ),

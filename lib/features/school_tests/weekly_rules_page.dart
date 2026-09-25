@@ -16,7 +16,10 @@ String weeklyRuleSummary(WeeklyLessonTestRule r) => [
   '${formatDateJa(r.baseWeekDate)}の週が ${r.baseRangeStart}〜',
   '${r.rangeStep}ずつ',
   r.endNumber == null ? '終わりなし' : '${r.endNumber}まで',
+  if (r.weekday != null) '毎週${_weekdayLabels[r.weekday! - 1]}曜日',
 ].join('・');
+
+const _weekdayLabels = ['月', '火', '水', '木', '金'];
 
 /// 毎週の単語テスト（LEAP・鉄壁など）の一覧
 class WeeklyRulesPage extends StatefulWidget {
@@ -109,6 +112,9 @@ class _WeeklyRuleEditPageState extends State<WeeklyRuleEditPage> {
   late bool _startFromBase =
       widget.rule == null || widget.rule!.startDate != null;
 
+  /// null = 自動（対象科目の授業が週で最初にある日）。1〜5 = 月〜金に固定
+  late int? _weekday = _r?.weekday;
+
   late final _timetable = TimetableRepository(
     uid: FirebaseAuth.instance.currentUser!.uid,
   ).watch();
@@ -131,8 +137,10 @@ class _WeeklyRuleEditPageState extends State<WeeklyRuleEditPage> {
         baseRangeStart: int.tryParse(_start.text) ?? 1,
         rangeStep: int.tryParse(_step.text) ?? 100,
         skippedWeeks: _r?.skippedWeeks ?? const <String>{},
+        extraWeeks: _r?.extraWeeks ?? const <String>{},
         endNumber: int.tryParse(_end.text),
         startDate: _startFromBase ? _baseWeek : null,
+        weekday: _weekday,
       ),
     );
     nav.pop();
@@ -157,6 +165,7 @@ class _WeeklyRuleEditPageState extends State<WeeklyRuleEditPage> {
       ),
     );
     if (ok != true) return;
+    if (!mounted) return;
     final nav = Navigator.of(context);
     await _repo().deleteRule(_r!.id);
     nav.pop();
@@ -251,6 +260,36 @@ class _WeeklyRuleEditPageState extends State<WeeklyRuleEditPage> {
               _num(_start, '始まりの番号（例：1）'),
               _num(_step, '1回で進む数（例：100）'),
               _num(_end, '最後の番号（例：1900）', hint: '空にすると終わりなし'),
+              const SizedBox(height: 12),
+              const Text('テストを行う曜日'),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: const Text('自動'),
+                    selected: _weekday == null,
+                    onSelected: (_) => setState(() => _weekday = null),
+                  ),
+                  for (var i = 0; i < _weekdayLabels.length; i++)
+                    ChoiceChip(
+                      label: Text('${_weekdayLabels[i]}曜日'),
+                      selected: _weekday == i + 1,
+                      onSelected: (_) => setState(() => _weekday = i + 1),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _weekday == null
+                    ? '「自動」は、その週で対象科目の授業が最初にある日にテストを行います。'
+                    : '毎週${_weekdayLabels[_weekday! - 1]}曜日にテストを行います'
+                          '（その日が休講・授業なしの場合はその週はテストなし）。',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.outline,
+                  fontSize: 12,
+                ),
+              ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('この週から始める'),

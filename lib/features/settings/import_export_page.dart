@@ -42,10 +42,11 @@ class _ImportExportPageState extends State<ImportExportPage> {
   }
 
   Future<String> _buildText() async {
+    final timeZone = SettingsScope.of(context).timeZone;
     final events = await _ownEvents();
     return buildIcs([
       for (final e in events) icsFromEvent(e),
-    ], timeZone: SettingsScope.of(context).timeZone);
+    ], timeZone: timeZone);
   }
 
   // ───────── 書き出し ─────────

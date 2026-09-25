@@ -205,7 +205,7 @@ ClosurePrediction predictClosure({
     reasons = [for (final r in nowCheck.reasons) 'いま $r'];
   } else if (forecastSevere || threeCount >= 2) {
     risk = ClosureRisk.medium;
-    reasons = [if (threeCount >= 2) '大雨・河川氾濫・土砂災害のうち${threeCount}つにレベル3以上の警報'];
+    reasons = [if (threeCount >= 2) '大雨・河川氾濫・土砂災害のうち$threeCountつにレベル3以上の警報'];
   } else if (forecastRough ||
       typhoons.isNotEmpty ||
       warnings.warnings.any((w) => w.level >= 3)) {

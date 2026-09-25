@@ -7,6 +7,8 @@ import '../events/calendar_event.dart';
 import '../events/event_category.dart';
 import '../events/event_category_repository.dart';
 import '../timetable/school_periods.dart';
+import '../timetable/timetable_models.dart';
+import '../timetable/timetable_repository.dart';
 import 'recurring_repository.dart';
 import 'recurring_schedule.dart';
 
@@ -123,10 +125,13 @@ class _RecurringListPageState extends State<RecurringListPage> {
                     ),
                   ),
                   title: Text(
-                    s.test == null ? s.title : '${s.title}（${s.test!.title}）',
+                    [
+                      s.test == null ? s.title : '${s.title}（${s.test!.title}）',
+                      if (s.subject != null) '【${s.subject}】',
+                    ].join(''),
                   ),
                   subtitle: Text(
-                    '${s.start}〜${s.end}　'
+                    '${s.afterSchoolMinutes != null ? '放課後${s.afterSchoolMinutes}分後〜（${s.end.totalMinutes - s.start.totalMinutes}分間）' : '${s.start}〜${s.end}'}　'
                     '${_dateText(s.validFrom, '')}'
                     '${s.validFrom == null && s.validUntil == null ? '' : '〜'}'
                     '${_dateText(s.validUntil, '')}',
@@ -160,12 +165,18 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
     if (widget.schedule == null) DateTime.monday,
   };
   late ClockTime _start = widget.schedule?.start ?? ClockTime(19, 40);
+  late bool _useAfterSchool = widget.schedule?.afterSchoolMinutes != null;
+  late int _afterSchoolMinutes = widget.schedule?.afterSchoolMinutes ?? 0;
   late final _testEnd = TextEditingController(text: _t0?.end?.toString() ?? '');
   late DateTime? _from = widget.schedule?.validFrom;
   late DateTime? _until = widget.schedule?.validUntil;
   late String _categoryId =
       widget.schedule?.categoryId ?? EventCategory.otherId;
   late final _categories = EventCategoryRepository(
+    uid: FirebaseAuth.instance.currentUser!.uid,
+  ).watch();
+  late String? _subject = widget.schedule?.subject;
+  late final _timetable = TimetableRepository(
     uid: FirebaseAuth.instance.currentUser!.uid,
   ).watch();
 
@@ -218,9 +229,11 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
       weekdays: {..._weekdays},
       start: _start,
       end: _end,
+      afterSchoolMinutes: _useAfterSchool ? _afterSchoolMinutes : null,
       validFrom: _from,
       validUntil: _until,
       categoryId: _categoryId,
+      subject: _subject,
       location: _location.text,
       skippedDates: widget.schedule?.skippedDates ?? const {},
       test: _buildTest(),
@@ -300,6 +313,39 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
               ),
             ],
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('開始を「放課後の◯分後」にする'),
+            subtitle: Text(
+              _useAfterSchool
+                  ? 'その日の授業が終わる時刻の$_afterSchoolMinutes分後から始まります'
+                      '（長さは上の時刻の差のまま）。授業のない日はお休みになります。'
+                  : 'ONにすると、上の開始時刻の代わりに使います（下校時刻を基準に自動で決まります）',
+            ),
+            value: _useAfterSchool,
+            onChanged: (v) => setState(() => _useAfterSchool = v),
+          ),
+          if (_useAfterSchool)
+            Row(
+              children: [
+                const Text('放課後　'),
+                IconButton(
+                  onPressed: () => setState(
+                    () => _afterSchoolMinutes =
+                        (_afterSchoolMinutes - 5).clamp(0, 240).toInt(),
+                  ),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                Text('$_afterSchoolMinutes 分後から'),
+                IconButton(
+                  onPressed: () => setState(
+                    () => _afterSchoolMinutes =
+                        (_afterSchoolMinutes + 5).clamp(0, 240).toInt(),
+                  ),
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
           Row(
             children: [
               Text('期間', style: label),
@@ -345,6 +391,33 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
                   ),
               ],
             ),
+          ),
+          const SizedBox(height: 8),
+          Text('教科（任意）', style: label),
+          StreamBuilder<TimetableData>(
+            stream: _timetable,
+            builder: (context, snap) {
+              final names = [for (final s in snap.data?.subjects ?? const <Subject>[]) s.name];
+              if (_subject != null && !names.contains(_subject)) {
+                names.add(_subject!);
+              }
+              return Wrap(
+                spacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: const Text('なし'),
+                    selected: _subject == null,
+                    onSelected: (_) => setState(() => _subject = null),
+                  ),
+                  for (final n in names)
+                    ChoiceChip(
+                      label: Text(n),
+                      selected: _subject == n,
+                      onSelected: (_) => setState(() => _subject = n),
+                    ),
+                ],
+              );
+            },
           ),
           TextField(
             controller: _location,

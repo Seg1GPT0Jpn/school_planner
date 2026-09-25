@@ -28,13 +28,28 @@ class EventCategoryRepository {
     });
   }
 
-  /// カテゴリが1つもなければ、最初の6つを登録する
+  /// カテゴリが1つもなければ、最初の既定カテゴリをすべて登録する。
+  /// すでにカテゴリがある既存ユーザーには、あとから追加された既定カテゴリ
+  /// （例：「テスト」）だけを補って追加する（他のカテゴリは変更しない）。
   Future<void> ensureDefaults() async {
     final existing = await _categories.limit(1).get();
-    if (existing.docs.isNotEmpty) return;
+    if (existing.docs.isEmpty) {
+      final batch = _db.batch();
+      for (final c in defaultEventCategories) {
+        batch.set(_categories.doc(c.id), _toMap(c));
+      }
+      await batch.commit();
+      return;
+    }
 
-    final batch = _db.batch();
+    final missing = <EventCategory>[];
     for (final c in defaultEventCategories) {
+      final doc = await _categories.doc(c.id).get();
+      if (!doc.exists) missing.add(c);
+    }
+    if (missing.isEmpty) return;
+    final batch = _db.batch();
+    for (final c in missing) {
       batch.set(_categories.doc(c.id), _toMap(c));
     }
     await batch.commit();
@@ -80,6 +95,7 @@ class EventCategoryRepository {
     'color': c.colorValue,
     'order': c.order,
     'growthLogEnabled': c.growthLogEnabled,
+    'loadLevel': c.loadLevel.name,
   };
 
   static EventCategory _fromMap(String id, Map<String, dynamic> m) {
@@ -89,6 +105,9 @@ class EventCategoryRepository {
       colorValue: (m['color'] as num?)?.toInt() ?? 0xFF78909C,
       order: (m['order'] as num?)?.toInt() ?? 0,
       growthLogEnabled: m['growthLogEnabled'] as bool? ?? false,
+      loadLevel:
+          CategoryLoadLevel.values.asNameMap()[m['loadLevel']] ??
+          CategoryLoadLevel.medium,
     );
   }
 }

@@ -23,7 +23,8 @@ enum TravelMode {
 /// どこから出発するか
 enum TravelOrigin {
   home('自宅'),
-  school('学校');
+  school('学校'),
+  current('現在地');
 
   const TravelOrigin(this.label);
 
