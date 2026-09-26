@@ -31,6 +31,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   late final _repository = GroupRepository(uid: _uid);
   final _inputController = TextEditingController();
   GroupItemType _newType = GroupItemType.announcement;
+  bool _indexChecked = false;
 
   @override
   void dispose() {
@@ -93,6 +94,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
       stream: _repository.watchGroup(widget.groupId),
       builder: (context, groupSnap) {
         final group = groupSnap.data;
+        if (group != null && !_indexChecked && group.isOwner(_uid)) {
+          _indexChecked = true;
+          // 招待コードの対応表より前に作られたグループなら、ここで登録しておく
+          _repository.ensureInviteCodeIndexed(group);
+        }
         return Scaffold(
           appBar: AppBar(
             title: Text(group?.name ?? 'グループ'),

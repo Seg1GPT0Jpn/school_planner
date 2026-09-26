@@ -18,7 +18,7 @@ service cloud.firestore {
     // グループ（部活・友達など、複数人で使う場所）
     // メンバーかどうかは memberUids（IDのリスト）で判断する
     function isGroupMember(groupId) {
-      return request.auth != nulladb connect 192.168.1.12:33021
+      return request.auth != null
           && request.auth.uid in
               get(/databases/$(database)/documents/groups/$(groupId)).data.memberUids;
     }
@@ -47,6 +47,22 @@ service cloud.firestore {
       match /items/{itemId} {
         allow read, write: if isGroupMember(groupId);
       }
+    }
+
+    // 招待コード（6文字）→ グループID の小さな対応表
+    // ・まだメンバーでない人が「招待コードで参加する」ときに、
+    //   コード自体（ドキュメントID）を知っていればグループIDだけ引ける
+    // ・一覧検索（list）はできないので、コードを知らない人が
+    //   総当たりで探すことはできない
+    // ・作成／削除は、そのグループのオーナー本人だけができる
+    match /inviteCodes/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null
+          && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if request.auth != null
+          && resource.data.ownerUid == request.auth.uid;
     }
 
     // ここに書いていない場所は、すべて読み書き禁止

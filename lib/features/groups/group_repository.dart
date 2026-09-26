@@ -15,6 +15,11 @@ class GroupRepository {
   CollectionReference<Map<String, dynamic>> get _groups =>
       _db.collection('groups');
 
+  /// 招待コード（6文字）→ グループID の対応表
+  /// まだメンバーでない人でも、コードさえ知っていればグループIDだけ引ける
+  CollectionReference<Map<String, dynamic>> get _inviteCodes =>
+      _db.collection('inviteCodes');
+
   /// 自分が入っているグループ一覧
   Stream<List<Group>> watchMyGroups() {
     return _groups
@@ -39,6 +44,7 @@ class GroupRepository {
       'inviteCode': code,
       'createdAt': FieldValue.serverTimestamp(),
     });
+    await _inviteCodes.doc(code).set({'groupId': ref.id, 'ownerUid': uid});
     return ref.id;
   }
 
@@ -49,17 +55,33 @@ class GroupRepository {
   Future<Group?> joinByCode(String code) async {
     final trimmed = code.trim().toUpperCase();
     if (trimmed.isEmpty) return null;
-    final snap = await _groups
-        .where('inviteCode', isEqualTo: trimmed)
-        .limit(1)
-        .get();
-    if (snap.docs.isEmpty) return null;
-    final doc = snap.docs.first;
-    await doc.reference.update({
+    // まず対応表でグループIDを引く（メンバーでなくても読める場所）
+    final codeDoc = await _inviteCodes.doc(trimmed).get();
+    if (!codeDoc.exists) return null;
+    final groupId = codeDoc.data()?['groupId'] as String?;
+    if (groupId == null) return null;
+    final ref = _groups.doc(groupId);
+    // 自分を memberUids に加える（この更新自体は誰でもできる設計）
+    await ref.update({
       'memberUids': FieldValue.arrayUnion([uid]),
     });
-    final fresh = await doc.reference.get();
+    // メンバーになった後なので、ここからは普通に読める
+    final fresh = await ref.get();
+    if (!fresh.exists) return null;
     return _fromMap(fresh.id, fresh.data()!);
+  }
+
+  /// 古いグループ（この仕組みより前に作られたもの）が、まだ対応表に
+  /// 載っていなければ載せる。オーナー本人が開いたときに自動で呼ぶ想定
+  Future<void> ensureInviteCodeIndexed(Group g) async {
+    if (!g.isOwner(uid)) return;
+    if (g.inviteCode.isEmpty) return;
+    final doc = await _inviteCodes.doc(g.inviteCode).get();
+    if (doc.exists) return;
+    await _inviteCodes.doc(g.inviteCode).set({
+      'groupId': g.id,
+      'ownerUid': uid,
+    });
   }
 
   /// グループから抜ける（オーナーは、先にオーナーを譲るか削除する必要あり）
@@ -68,11 +90,16 @@ class GroupRepository {
   });
 
   Future<void> delete(String groupId) async {
+    final doc = await _groups.doc(groupId).get();
+    final code = doc.data()?['inviteCode'] as String?;
     final items = await _groups.doc(groupId).collection('items').get();
     for (final d in items.docs) {
       await d.reference.delete();
     }
     await _groups.doc(groupId).delete();
+    if (code != null && code.isNotEmpty) {
+      await _inviteCodes.doc(code).delete();
+    }
   }
 
   // ── グループ内の共有アイテム（お知らせ・共有ToDo）──
