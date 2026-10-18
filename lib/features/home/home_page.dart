@@ -53,6 +53,8 @@ import '../review/review_page.dart';
 import '../review/school_event_page.dart';
 import '../review/test_karte_page.dart';
 import '../score/score_list_page.dart';
+import '../quest_link/quest_link.dart';
+import '../quest_link/quest_link_card.dart';
 import '../school_tests/school_test.dart';
 import '../school_tests/school_test_edit_page.dart';
 import '../school_tests/school_test_repository.dart';
@@ -62,6 +64,7 @@ import '../settings/app_settings.dart';
 import '../settings/settings_page.dart';
 import '../settings/settings_scope.dart';
 import '../study/study.dart';
+import '../study/study_goal.dart';
 import '../study/study_repository.dart';
 import '../timetable/day_timetable_card.dart';
 import '../timetable/day_timetable_resolver.dart';
@@ -106,6 +109,11 @@ class _HomePageState extends State<HomePage> {
   TimingStats _timingStats = const TimingStats();
   List<Birthday> _birthdays = const [];
 
+  /// つづりクエストとの連携（テスト予定を渡し、勉強の成果を受け取る）
+  late final _questLink = QuestLinkRepository(uid: _uid);
+  QuestResults? _questResults;
+  DateTime? _questGoalsAt;
+
   static const int _upcomingDays = 14;
 
   @override
@@ -126,6 +134,15 @@ class _HomePageState extends State<HomePage> {
     on(StudyRepository(uid: _uid).watchSessions(), (v) => _sessions = v);
     on(_timingRepository.watch(), (v) => _timingStats = v);
     on(BirthdayRepository(uid: _uid).watch(), (v) => _birthdays = v);
+    on(_questLink.watchResults(), (v) {
+      _questResults = v;
+      // クエストから勉強時間が届いたら、勉強時間の目標の進み具合を計算し直す
+      final at = v?.updatedAt;
+      if (at != null && at != _questGoalsAt) {
+        _questGoalsAt = at;
+        unawaited(recomputeStudyGoals(_uid).catchError((Object _) {}));
+      }
+    });
 
     // 「いま何限」を1分ごとに進める
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -258,6 +275,8 @@ class _HomePageState extends State<HomePage> {
       ),
       ...upcomingRecurringTests(_recurring, now, _upcomingDays),
     ]..sort((a, b) => a.date.compareTo(b.date));
+    // クエストにも、これからのテストを渡す（変わったときだけ書く）
+    unawaited(_questLink.exportUpcoming(upcoming).catchError((Object _) {}));
     final events = [
       ..._events,
       ...expandRecurringWithTests(
@@ -381,11 +400,7 @@ class _HomePageState extends State<HomePage> {
       ),
       if (settings.aiAdvisorEnabled) ...[
         gap,
-        TodayPlanCard(
-          plan: todayPlan,
-          onToggle: _toggleTodo,
-          onTap: _openTodo,
-        ),
+        TodayPlanCard(plan: todayPlan, onToggle: _toggleTodo, onTap: _openTodo),
         if (settings.generativeAiEnabled) ...[
           gap,
           GenerativeAdvisorCard(
@@ -505,9 +520,10 @@ class _HomePageState extends State<HomePage> {
         gap,
         Builder(
           builder: (context) {
-            final upcoming =
-                [..._birthdays]
-                  ..sort((a, b) => a.daysUntilNext(now).compareTo(b.daysUntilNext(now)));
+            final upcoming = [..._birthdays]
+              ..sort(
+                (a, b) => a.daysUntilNext(now).compareTo(b.daysUntilNext(now)),
+              );
             final soon = upcoming
                 .where((b) => b.daysUntilNext(now) <= 30)
                 .take(3)
@@ -539,6 +555,10 @@ class _HomePageState extends State<HomePage> {
       ],
       gap,
       _StudyCard(today: studyToday, week: studyWeek),
+      if (settings.showHomeCard('quest')) ...[
+        gap,
+        QuestLinkCard(results: _questResults, now: now),
+      ],
       if (settings.gamificationEnabled) ...[
         gap,
         GamificationCard(stats: computeGamification(todos, now: now)),
@@ -1270,16 +1290,14 @@ class _MoodWeekCard extends StatelessWidget {
                     builder: (context) {
                       final day = weekFrom.add(Duration(days: i));
                       final mood = moodFor(day);
-                      final isToday =
-                          _sameDay(day, DateTime.now());
+                      final isToday = _sameDay(day, DateTime.now());
                       return Column(
                         children: [
                           Text(
                             weekdayLabels[i],
                             style: tt.bodySmall?.copyWith(
                               color: isToday ? cs.primary : cs.outline,
-                              fontWeight:
-                                  isToday ? FontWeight.bold : null,
+                              fontWeight: isToday ? FontWeight.bold : null,
                             ),
                           ),
                           const SizedBox(height: 4),

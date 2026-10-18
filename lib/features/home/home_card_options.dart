@@ -52,6 +52,12 @@ const List<HomeCardOption> homeCardOptions = [
     icon: Icons.edit_note,
   ),
   HomeCardOption(
+    key: 'quest',
+    label: 'つづりクエスト',
+    description: 'クエストで勉強した時間・問題数・苦手な単元',
+    icon: Icons.sports_esports_outlined,
+  ),
+  HomeCardOption(
     key: 'flashcards',
     label: '暗記カード',
     description: '単語帳・一問一答',
