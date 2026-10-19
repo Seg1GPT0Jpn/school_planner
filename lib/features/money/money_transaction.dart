@@ -78,3 +78,25 @@ class MonthlySummary {
     return MonthlySummary(income: income, expense: expense, byCategory: byCategory);
   }
 }
+
+/// 残高の基準（「この日の時点で○円あった」）
+class MoneyBalanceBase {
+  const MoneyBalanceBase({required this.amount, required this.date});
+
+  /// 基準の日の、記録を足し引きする前の残高（円）
+  final int amount;
+
+  /// 基準の日（この日からの記録を足し引きする）
+  final DateTime date;
+
+  DateTime get day => DateTime(date.year, date.month, date.day);
+
+  /// 今の残高：基準の残高に、基準の日からの収支を足したもの
+  int balance(List<MoneyTransaction> items) {
+    var total = amount;
+    for (final t in items) {
+      if (!t.date.isBefore(day)) total += t.signedAmount;
+    }
+    return total;
+  }
+}

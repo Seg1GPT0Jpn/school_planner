@@ -51,6 +51,27 @@ class _MoneyPageState extends State<MoneyPage> {
     );
   }
 
+  /// 保存した記録を直す
+  Future<void> _editTransaction(MoneyTransaction t) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _AddTransactionDialog(
+        repository: _repository,
+        initialDate: t.date,
+        initial: t,
+      ),
+    );
+  }
+
+  /// 残高を設定する・直す
+  Future<void> _editBalance(MoneyBalanceBase? current) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) =>
+          _BalanceDialog(repository: _repository, initial: current),
+    );
+  }
+
   Future<void> _confirmDelete(MoneyTransaction t) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -154,8 +175,10 @@ class _MoneyPageState extends State<MoneyPage> {
                               ),
                               Expanded(
                                 child: _SummaryStat(
-                                  label: '残高',
-                                  value: _yen(summary.balance),
+                                  label: '月の収支',
+                                  value:
+                                      (summary.balance > 0 ? '+' : '') +
+                                      _yen(summary.balance),
                                   color: summary.balance < 0
                                       ? Colors.red
                                       : Colors.blueGrey,
@@ -164,6 +187,12 @@ class _MoneyPageState extends State<MoneyPage> {
                             ],
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      _BalanceCard(
+                        repository: _repository,
+                        yen: _yen,
+                        onEdit: _editBalance,
                       ),
                       if (summary.byCategory.isNotEmpty) ...[
                         const SizedBox(height: 16),
@@ -198,6 +227,8 @@ class _MoneyPageState extends State<MoneyPage> {
                       for (final t in items)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
+                          // タップすると、保存した記録を直せる
+                          onTap: () => _editTransaction(t),
                           leading: Icon(
                             t.isIncome
                                 ? Icons.add_circle_outline
@@ -234,6 +265,193 @@ class _MoneyPageState extends State<MoneyPage> {
           );
         },
       ),
+    );
+  }
+}
+
+/// 残高（お財布の中身）：設定した残高に、その日からの収支を足し引きしたもの
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    required this.repository,
+    required this.yen,
+    required this.onEdit,
+  });
+
+  final MoneyRepository repository;
+  final String Function(int) yen;
+  final void Function(MoneyBalanceBase? current) onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<MoneyBalanceBase?>(
+      stream: repository.watchBalanceBase(),
+      builder: (context, snap) {
+        final base = snap.data;
+        if (base == null) {
+          return Card(
+            child: ListTile(
+              key: const ValueKey('money-balance-set'),
+              leading: const Icon(Icons.account_balance_wallet_outlined),
+              title: const Text('残高を設定する'),
+              subtitle: const Text('今お財布にある金額を入れると、記録から残高を計算します'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => onEdit(null),
+            ),
+          );
+        }
+        return StreamBuilder<List<MoneyTransaction>>(
+          stream: repository.watchSince(base.day),
+          builder: (context, txSnap) {
+            final balance = base.balance(txSnap.data ?? const []);
+            return Card(
+              child: ListTile(
+                key: const ValueKey('money-balance'),
+                leading: const Icon(Icons.account_balance_wallet_outlined),
+                title: const Text('残高'),
+                subtitle: Text(
+                  '${base.day.month}/${base.day.day} の ${yen(base.amount)} から計算',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      yen(balance),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: balance < 0 ? Colors.red : null,
+                      ),
+                    ),
+                    IconButton(
+                      key: const ValueKey('money-balance-edit'),
+                      tooltip: '残高を直す',
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: () => onEdit(base),
+                    ),
+                  ],
+                ),
+                onTap: () => onEdit(base),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// 残高を設定する・直す
+class _BalanceDialog extends StatefulWidget {
+  const _BalanceDialog({required this.repository, this.initial});
+
+  final MoneyRepository repository;
+  final MoneyBalanceBase? initial;
+
+  @override
+  State<_BalanceDialog> createState() => _BalanceDialogState();
+}
+
+class _BalanceDialogState extends State<_BalanceDialog> {
+  late final _amount = TextEditingController(
+    text: widget.initial == null ? '' : '${widget.initial!.amount}',
+  );
+  late DateTime _date = widget.initial?.day ?? DateTime.now();
+  String? _error;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(_date.year - 2),
+      lastDate: DateTime(DateTime.now().year + 1),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _save() async {
+    final amount = int.tryParse(_amount.text.trim().replaceAll(',', ''));
+    if (amount == null) {
+      setState(() => _error = '金額を数字で入れてください');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.repository.setBalanceBase(
+        MoneyBalanceBase(amount: amount, date: _date),
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '保存できませんでした：$e';
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.initial == null ? '残高を設定' : '残高を直す'),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              key: const ValueKey('money-balance-amount'),
+              controller: _amount,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              decoration: const InputDecoration(
+                labelText: 'その日のはじめの残高',
+                suffixText: '円',
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('基準の日'),
+              trailing: TextButton(
+                onPressed: _pickDate,
+                child: Text('${_date.year}/${_date.month}/${_date.day}'),
+              ),
+            ),
+            Text(
+              'この日からの収入・支出の記録を足し引きして、今の残高を出します。'
+              '数え直したときは、今日の日付で入れ直してください。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          key: const ValueKey('money-balance-save'),
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? '保存中…' : '保存'),
+        ),
+      ],
     );
   }
 }
@@ -374,20 +592,28 @@ class _AddTransactionDialog extends StatefulWidget {
   const _AddTransactionDialog({
     required this.repository,
     required this.initialDate,
+    this.initial,
   });
 
   final MoneyRepository repository;
   final DateTime initialDate;
+
+  /// 直すときの、保存ずみの記録（新しく記録するときは null）
+  final MoneyTransaction? initial;
 
   @override
   State<_AddTransactionDialog> createState() => _AddTransactionDialogState();
 }
 
 class _AddTransactionDialogState extends State<_AddTransactionDialog> {
-  bool _isIncome = false;
-  late String _category = expenseCategories.first;
-  final _amountController = TextEditingController();
-  final _memoController = TextEditingController();
+  late bool _isIncome = widget.initial?.isIncome ?? false;
+  late String _category = widget.initial?.category ?? expenseCategories.first;
+  late final _amountController = TextEditingController(
+    text: widget.initial == null ? '' : '${widget.initial!.amount}',
+  );
+  late final _memoController = TextEditingController(
+    text: widget.initial?.memo ?? '',
+  );
   late DateTime _date = widget.initialDate;
   String? _error;
   bool _saving = false;
@@ -412,6 +638,7 @@ class _AddTransactionDialogState extends State<_AddTransactionDialog> {
   Future<void> _save() async {
     final amount = int.tryParse(_amountController.text.trim()) ?? 0;
     final t = MoneyTransaction(
+      id: widget.initial?.id,
       date: _date,
       isIncome: _isIncome,
       category: _category,
@@ -445,7 +672,7 @@ class _AddTransactionDialogState extends State<_AddTransactionDialog> {
     final categories = _isIncome ? incomeCategories : expenseCategories;
     if (!categories.contains(_category)) _category = categories.first;
     return AlertDialog(
-      title: const Text('収支を記録'),
+      title: Text(widget.initial == null ? '収支を記録' : '収支を直す'),
       content: SizedBox(
         width: 360,
         child: Column(

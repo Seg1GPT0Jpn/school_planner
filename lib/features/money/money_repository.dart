@@ -15,6 +15,9 @@ class MoneyRepository {
   CollectionReference<Map<String, dynamic>> get _transactions =>
       _db.collection('users').doc(uid).collection('money_transactions');
 
+  DocumentReference<Map<String, dynamic>> get _balance =>
+      _db.collection('users').doc(uid).collection('settings').doc('money');
+
   CollectionReference<Map<String, dynamic>> get _budgets =>
       _db.collection('users').doc(uid).collection('money_budgets');
 
@@ -47,6 +50,32 @@ class MoneyRepository {
   }
 
   Future<void> delete(String id) => _transactions.doc(id).delete();
+
+  /// 残高の基準（まだ設定していなければ null）
+  Stream<MoneyBalanceBase?> watchBalanceBase() => _balance.snapshots().map((s) {
+    final m = s.data();
+    final amount = m?['balanceAmount'];
+    final date = m?['balanceDate'];
+    if (amount is! num || date is! Timestamp) return null;
+    return MoneyBalanceBase(amount: amount.toInt(), date: date.toDate());
+  });
+
+  /// 残高の基準を保存する（あとから何度でも直せる）
+  Future<void> setBalanceBase(MoneyBalanceBase base) => _balance.set({
+    'balanceAmount': base.amount,
+    'balanceDate': Timestamp.fromDate(base.day),
+  }, SetOptions(merge: true));
+
+  /// [from] の日からの収支（残高の計算に使う）
+  Stream<List<MoneyTransaction>> watchSince(DateTime from) => _transactions
+      .where(
+        'date',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(
+          DateTime(from.year, from.month, from.day),
+        ),
+      )
+      .snapshots()
+      .map((s) => [for (final d in s.docs) _fromMap(d.id, d.data())]);
 
   /// カテゴリごとの、月の予算上限（円）。未設定のカテゴリは含まれない
   Stream<Map<String, int>> watchBudgets() {
