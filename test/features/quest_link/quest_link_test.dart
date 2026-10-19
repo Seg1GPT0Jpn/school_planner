@@ -80,4 +80,40 @@ void main() {
     );
     expect(find.textContaining('「つづりと連携」すると'), findsOneWidget);
   });
+
+  testWidgets('教科ごとの成果と、テストごとの対策時間', (t) async {
+    final r = QuestResults.fromMap({
+      'today': {'minutes': 10, 'answered': 10, 'correct': 9},
+      'week': {'minutes': 80, 'answered': 100, 'correct': 80},
+      'subjects': {
+        '数学': {'minutes': 20, 'answered': 30, 'correct': 15},
+        '英語': {'minutes': 60, 'answered': 70, 'correct': 65},
+      },
+      'tests': {'2026-10-19|ECⅠ LEAP単語テスト': 12},
+    })!;
+    expect(r.subjects.keys, ['英語', '数学'], reason: '時間の長い順');
+    expect(r.prepMinutes(DateTime(2026, 10, 19), 'ECⅠ LEAP単語テスト'), 12);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: QuestLinkCard(
+              results: r,
+              now: DateTime(2026, 10, 18),
+              upcoming: [
+                UpcomingItem(
+                  date: DateTime(2026, 10, 19),
+                  title: 'ECⅠ LEAP単語テスト',
+                  kindLabel: '小テスト',
+                  isTest: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('・英語　1時間・70問（正答率93%）'), findsOneWidget);
+    expect(find.text('・10/19 ECⅠ LEAP単語テスト　クエストで12分'), findsOneWidget);
+  });
 }

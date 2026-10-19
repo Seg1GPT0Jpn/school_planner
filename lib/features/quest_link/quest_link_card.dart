@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../school_tests/upcoming_tests.dart';
 import '../study/study.dart';
 import 'quest_link.dart';
 
@@ -10,11 +11,19 @@ Future<void> openQuest() =>
 
 /// ホームの「つづりクエスト」：クエストで勉強した時間・問題数・苦手な単元
 class QuestLinkCard extends StatelessWidget {
-  const QuestLinkCard({super.key, required this.results, required this.now});
+  const QuestLinkCard({
+    super.key,
+    required this.results,
+    required this.now,
+    this.upcoming = const [],
+  });
 
   /// クエストから届いた成果（まだつないでいなければ null）
   final QuestResults? results;
   final DateTime now;
+
+  /// これからのテスト（クエストで対策した時間を出す）
+  final List<UpcomingItem> upcoming;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +65,41 @@ class QuestLinkCard extends StatelessWidget {
                   '${r.updatedAt!.month}/${r.updatedAt!.day} にクエストから届いた記録です',
                   style: tt.bodySmall?.copyWith(color: cs.outline),
                 ),
+              if (r.subjects.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '教科ごと（この1週間）',
+                  style: tt.bodySmall?.copyWith(color: cs.outline),
+                ),
+                for (final e in r.subjects.entries.take(5))
+                  Text(
+                    '・${e.key}　${sum(e.value)}',
+                    key: ValueKey('quest-subject-${e.key}'),
+                    style: tt.bodySmall,
+                  ),
+              ],
+              ...() {
+                final prepped = [
+                  for (final u in upcoming)
+                    if (u.isTest && r.prepMinutes(u.date, u.title) > 0)
+                      (u, r.prepMinutes(u.date, u.title)),
+                ];
+                if (prepped.isEmpty) return const <Widget>[];
+                return [
+                  const SizedBox(height: 6),
+                  Text(
+                    'テストの対策',
+                    style: tt.bodySmall?.copyWith(color: cs.outline),
+                  ),
+                  for (final (u, m) in prepped.take(4))
+                    Text(
+                      '・${u.date.month}/${u.date.day} ${u.title}　クエストで${formatMinutes(m)}',
+                      style: tt.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ];
+              }(),
               if (r.weak.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text('苦手な単元', style: tt.bodySmall?.copyWith(color: cs.outline)),

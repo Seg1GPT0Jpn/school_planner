@@ -11,6 +11,7 @@ library;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../school_tests/upcoming_tests.dart';
+import '../timetable/day_timetable_resolver.dart';
 import '../timetable/week_cycle.dart';
 
 /// つづりクエストの Web 版
@@ -32,6 +33,27 @@ List<Map<String, Object?>> questUpcomingItems(List<UpcomingItem> items) => [
       'period': i.period,
     },
 ];
+
+/// クエストへ渡す1週間の時間割（日付 → その日の授業。休みの日・休講は入れない）
+Map<String, List<Map<String, Object?>>> questLessons(
+  DayTimetableResolver resolver,
+  DateTime from, {
+  int days = 7,
+}) {
+  final out = <String, List<Map<String, Object?>>>{};
+  for (var i = 0; i < days; i++) {
+    final day = DateTime(from.year, from.month, from.day + i);
+    final t = resolver.resolve(day);
+    if (t.status != DayStatus.school) continue;
+    final lessons = [
+      for (final l in t.lessons)
+        if (l.subject != null && l.status != LessonStatus.cancelled)
+          {'period': l.period, 'subject': l.subject},
+    ];
+    if (lessons.isNotEmpty) out[dateKey(day)] = lessons;
+  }
+  return out;
+}
 
 /// 1日（または1週間）ぶんのクエストの成果
 class QuestSum {
@@ -69,12 +91,24 @@ class QuestResults {
     required this.today,
     required this.week,
     required this.weak,
+    this.subjects = const {},
+    this.tests = const {},
     this.updatedAt,
   });
 
   final QuestSum today;
   final QuestSum week;
   final List<QuestWeakUnit> weak;
+
+  /// この1週間の教科ごとの成果（時間の長い順）
+  final Map<String, QuestSum> subjects;
+
+  /// テストごとの、クエストで対策した時間（分）。キーは「2026-10-19|テスト名」
+  final Map<String, int> tests;
+
+  /// そのテストのためにクエストで対策した時間（分）
+  int prepMinutes(DateTime date, String title) =>
+      tests['${dateKey(date)}|$title'] ?? 0;
 
   /// クエストが最後に送った時刻
   final DateTime? updatedAt;
@@ -91,9 +125,21 @@ class QuestResults {
   static QuestResults? fromMap(Map<String, dynamic>? m) {
     if (m == null) return null;
     final at = m['updatedAt'];
+    final subjects = <String, QuestSum>{
+      for (final e in ((m['subjects'] as Map?) ?? const {}).entries)
+        '${e.key}': QuestSum.fromMap(e.value),
+    };
     return QuestResults(
       today: QuestSum.fromMap(m['today']),
       week: QuestSum.fromMap(m['week']),
+      subjects: Map.fromEntries(
+        subjects.entries.toList()
+          ..sort((a, b) => b.value.minutes.compareTo(a.value.minutes)),
+      ),
+      tests: {
+        for (final e in ((m['tests'] as Map?) ?? const {}).entries)
+          if (e.value is num) '${e.key}': (e.value as num).toInt(),
+      },
       weak: [
         for (final w in (m['weak'] as List?) ?? const [])
           if (w is Map && w['unit'] is String)
@@ -120,15 +166,19 @@ class QuestLinkRepository {
   /// 前回書いた内容（同じなら書かない）
   static String? _lastSent;
 
-  /// これからのテスト・提出物をクエストへ渡す（変わったときだけ書く）
-  Future<void> exportUpcoming(List<UpcomingItem> items) async {
+  /// これからのテスト・提出物と1週間の時間割をクエストへ渡す（変わったときだけ書く）
+  Future<void> exportUpcoming(
+    List<UpcomingItem> items, {
+    Map<String, List<Map<String, Object?>>> lessons = const {},
+  }) async {
     final list = questUpcomingItems(items);
-    final key = '$uid|$list';
+    final key = '$uid|$list|$lessons';
     if (_lastSent == key) return;
     _lastSent = key;
     await _doc.set({
-      'v': 1,
+      'v': 2,
       'items': list,
+      'lessons': lessons,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
