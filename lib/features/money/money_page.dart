@@ -251,6 +251,12 @@ class _MoneyPageState extends State<MoneyPage> {
                                 ),
                               ),
                               IconButton(
+                                key: ValueKey('money-edit-${t.id}'),
+                                tooltip: '直す',
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                onPressed: () => _editTransaction(t),
+                              ),
+                              IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 18),
                                 onPressed: () => _confirmDelete(t),
                               ),
