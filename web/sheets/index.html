@@ -100,6 +100,7 @@ table.score td .ed { text-align: center; }
 .nb-aim .ed { white-space: nowrap; overflow: hidden; }
 .nb-subj { font-size: 13.5px; font-weight: 600; white-space: nowrap; display: flex; align-items: baseline; padding-left: 3mm; }
 .nb-subj .ed { display: inline-block; min-width: 1em; text-align: center; }
+@media print { .nb-sc.empty { display: none; } .blank .nb-sc.empty { display: inline; } }
 .nb-col { min-width: 0; }
 .item { position: relative; display: flex; align-items: center; gap: 2px; min-height: var(--lh); padding-left: 3mm; break-inside: avoid; }
 .item .no { position: absolute; left: 0; top: -1.6mm; font-size: 7.5px; color: #555; line-height: 1; }
@@ -109,15 +110,15 @@ table.score td .ed { text-align: center; }
 .b5 .item .ed { font-size: 8.8px; }
 .item.cut .ed, .item.cut .box { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 1.6px; }
 .item.cut::after { content: ""; position: absolute; left: 3mm; right: 0; top: 50%; border-top: 1.6px solid var(--accent); }
-.nb-extra-h { margin-top: var(--lh); color: #2b3f8c; }
-.nb-extra { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 2mm; padding-left: 4mm; }
-.nb-brace { height: calc(var(--lh) * 2); display: block; width: 86%; margin: 0 auto; }
+.nb-extra-h { margin-top: calc(var(--lh) * 0.6); color: #2b3f8c; }
+.nb-extra { display: grid; column-gap: 1.5mm; }
+.nb-brace { height: calc(var(--lh) * 1.4); display: block; width: 86%; margin: 0 auto; }
 .nb-common { width: 72mm; margin: 0 auto; }
 .nb-common .head { padding-left: 4mm; }
 .nb-common .item { padding-left: 5mm; }
 .nb-common .item .no { font-size: 8px; top: -0.6mm; }
 .nb-common .final .ed { font-weight: 700; }
-.nb-log { margin-top: var(--lh); }
+.nb-log { margin-top: calc(var(--lh) * 0.6); }
 .nb-loghead { display: grid; grid-template-columns: 14mm minmax(0, 1fr) 36%; font-size: 9.5px; }
 .nb-loghead .got { color: var(--accent); }
 .nb-logrow { display: grid; grid-template-columns: 14mm minmax(0, 1fr) 36%; min-height: calc(var(--lh) * 2); }
@@ -146,7 +147,7 @@ table.score td .ed { text-align: center; }
   .mark { border-color: var(--line2); }
   thead { display: table-header-group; }
   .sheet.nb { min-height: 272mm; }
-  .sheet.nb.b5 { min-height: 232mm; }
+  .sheet.nb.b5 { min-height: 222mm; }
 }
 @media (max-width: 820px) {
   .sheet, .sheet.b5 { width: auto; min-height: 0; margin: 10px 8px 30px; padding: 12px 10px; }
@@ -200,7 +201,7 @@ function fresh() {
     },
     nset: {
       title: '', phrase: '', must: '必ずやること', common: '全教科共通', alphaFinal: '', due: '',
-      cols: null, extra: Array.from({ length: 10 }, () => ({ t: '', done: false })),
+      useAlpha: false, cols: null, extra: Array.from({ length: 10 }, () => ({ t: '', done: false })),
       alpha: [{ t: '', done: false }, { t: '', done: false }, { t: '', done: false }, { t: '', done: false }],
       log: Array.from({ length: 7 }, () => ({ date: '', plan: '', got: '' })),
       perCol: 8,
@@ -360,7 +361,7 @@ function renderNset(root) {
   const count = h('span', { class: 'nb-count' }), recount = h('span', { class: 'nb-recount' });
   const refreshCount = () => {
     const written = all().filter(x => x.t.trim());
-    count.textContent = `（n＝${written.length || '　'}＋α）`;
+    count.textContent = `（n＝${written.length || '　'}${n.useAlpha ? '＋α' : ''}）`;
     const cut = written.filter(x => x.cut).length;
     recount.textContent = cut ? `（n＝${written.length - cut}）` : '';
   };
@@ -369,7 +370,7 @@ function renderNset(root) {
   root.append(h('div', { class: 'nb-nodate' }, h('div'), h('div', {}, h('span', {}, 'No.'), h('span', {}, 'Date　　　.　　　.'))));
   root.append(h('div', { class: 'nb-title' },
     ed(() => n.title, v => { n.title = v; }, '入試まで○週：○週間やることチェック'),
-    h('div', { class: 'nb-phrase' }, '「', ed(() => n.phrase, v => { n.phrase = v; refreshCount(); }, '湘南高校に合格するため'), 'の n 個」', count)));
+    h('div', { class: 'nb-phrase' }, '「', ed(() => n.phrase, v => { n.phrase = v; refreshCount(); }, '○○に合格するため'), 'の n 個」', count)));
   root.append(h('div', { class: 'nb-row2' }, h('span', { class: 'nb-must' }, ed(() => n.must, v => { n.must = v; }, '必ずやること')), recount));
   refreshCount();
   const item = (it, label, list, i, extraCls = '') => {
@@ -386,16 +387,23 @@ function renderNset(root) {
     h('div', { class: 'lab' }, '各目標：'),
     n.cols.map(c => h('div', { class: 'nb-aim' }, ed(() => c.aim, v => { c.aim = v; }, 'とにかく覚える'))),
     h('div'),
-    n.cols.map((c, i) => h('div', { class: 'nb-subj', style: `color:${subjColor(c.name, i)}` }, c.name, '（', ed(() => c.score, v => { c.score = v; }, ''), '）')),
+    n.cols.map((c, i) => { const sc = h('span', { class: 'nb-sc' + (c.score ? '' : ' empty') }, '（', ed(() => c.score, v => { c.score = v; sc.classList.toggle('empty', !v.trim()); }, '目標点'), '）');
+      return h('div', { class: 'nb-subj', style: `color:${subjColor(c.name, i)}` }, c.name, sc); }),
     h('div'),
     n.cols.map(c => h('div', { class: 'nb-col' },
       c.items.map((it, i) => item(it, String(++no), c.items, i)),
       h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { c.items.push({ t: '', done: false }); save(); render(); } }, '＋'))))));
   // 追加でやること ↓（番号は続き）
   root.append(h('div', { class: 'nb-extra-h' }, '追加でやること ↓'));
-  root.append(h('div', { class: 'nb-extra' }, n.extra.map((it, i) => item(it, String(++no), n.extra, i))));
-  root.append(h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { for (let k = 0; k < 5; k++) n.extra.push({ t: '', done: false }); save(); render(); } }, '＋ 追加の行を足す')));
-  // 大きな波かっこ → 全教科共通の α
+  root.append(h('div', { class: 'nb-extra', style: `grid-template-columns:${cols}` },
+    n.extra.flatMap((it, i) => [i % n.cols.length === 0 ? h('div') : null, item(it, String(++no), n.extra, i)]).filter(Boolean)));
+  root.append(h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { for (let k = 0; k < n.cols.length; k++) n.extra.push({ t: '', done: false }); save(); render(); } }, '＋ 追加の行を足す')));
+  // 入試前の最後の週など：大きな波かっこ → 全教科共通の α（設定で入れたときだけ）
+  if (n.useAlpha) renderAlpha(root, item);
+  renderLog(root);
+}
+function renderAlpha(root, item) {
+  const n = S.nset;
   root.append(braceSvg());
   root.append(h('div', { class: 'nb-common' },
     h('div', { class: 'head' }, ed(() => n.common, v => { n.common = v; }, '全教科共通')),
@@ -404,11 +412,14 @@ function renderNset(root) {
       const row = item({ get t() { return n.alphaFinal; }, set t(v) { n.alphaFinal = v; }, get done() { return fin.done; }, set done(v) { fin.done = v; }, get cut() { return fin.cut; }, set cut(v) { fin.cut = v; } }, 'α' + (n.alpha.length + 1), null, 0, ' final');
       row.querySelector('.ed').setAttribute('data-ph', '湘南高校合格'); return row; })(),
     h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.alpha.push({ t: '', done: false }); save(); render(); } }, '＋ α を足す'))));
+}
+function renderLog(root) {
+  const n = S.nset;
   // やること（その日にやる番号）／やったこと（オレンジ）
   root.append(h('div', { class: 'nb-log' },
     h('div', { class: 'nb-loghead' }, h('span', {}, 'やること'), h('span'), h('span', { class: 'got' }, 'やったこと')),
     n.log.map((l, i) => h('div', { class: 'nb-logrow' },
-      h('div', { class: 'd' }, ed(() => l.date, v => { l.date = v; }, i ? '' : '2/9(月)')),
+      h('div', { class: 'd' }, ed(() => l.date, v => { l.date = v; }, i ? '' : '1/5(月)')),
       h('div', {}, ed(() => l.plan, v => { l.plan = v; }, i ? '' : '5, 6, 15, 16, 17, 21, 22 …')),
       h('div', { class: 'g' }, ed(() => l.got, v => { l.got = v; }, i ? '' : '5, 15, 16, 21')))),
     h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.log.push({ date: '', plan: '', got: '' }); save(); render(); } }, '＋ 日を足す'))));
@@ -438,6 +449,7 @@ function renderSettings() {
     const n = S.nset;
     box.append(
       field('教科ごとの行の数（新しい教科）', inp('number', () => n.perCol, v => { n.perCol = Math.max(1, Math.min(40, v || 8)); })),
+      h('label', {}, (() => { const c = h('input', { type: 'checkbox' }); c.checked = !!n.useAlpha; c.addEventListener('change', () => { n.useAlpha = c.checked; save(); render(); }); return c; })(), '総仕上げ α（全教科共通）を入れる（入試前の最後の週など）'),
       subj);
   }
 }
