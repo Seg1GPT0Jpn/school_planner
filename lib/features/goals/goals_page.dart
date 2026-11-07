@@ -12,6 +12,7 @@ import 'exam_goal_edit_page.dart';
 import 'exam_goal_repository.dart';
 import 'goal.dart';
 import 'goal_repository.dart';
+import 'plan_sheets.dart';
 
 GoalRepository _repo() =>
     GoalRepository(uid: FirebaseAuth.instance.currentUser!.uid);
@@ -43,6 +44,12 @@ class _GoalsPageState extends State<GoalsPage> {
       appBar: AppBar(
         title: const Text('目標'),
         actions: [
+          IconButton(
+            key: const ValueKey('open-plan-sheets'),
+            icon: const Icon(Icons.print_outlined),
+            tooltip: '計画シート（記入して印刷できる）',
+            onPressed: () => openPlanSheets(context),
+          ),
           IconButton(
             icon: const Icon(Icons.insights),
             tooltip: 'ふり返りレビュー（週・月・学期）',
