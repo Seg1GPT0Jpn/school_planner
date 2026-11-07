@@ -77,41 +77,64 @@ table.score td .ed { text-align: center; }
 .scorebox .note { border-left: 1px dashed #f3c7a8; padding-left: 6px; font-size: 11px; }
 .scorebox .note .lab { font-size: 10px; color: var(--accent); font-weight: 700; }
 
-/* 目標達成のための n 個 */
-.nhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 2px 0 8px; }
-.nhead .goal { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 4px; }
-.nhead .goal .ed { min-width: 30mm; border-bottom: 1.5px solid var(--ink); text-align: center; }
-.ncount { color: var(--accent); font-weight: 700; font-size: 14px; }
-.cols { display: grid; gap: 4px; }
-.col { border-left: 1px solid var(--line); padding: 0 3px; min-width: 0; }
-.col:first-child { border-left: none; }
-.col .aim { font-size: 9.5px; color: var(--soft); min-height: 2.4em; }
-.col .subj { display: flex; align-items: baseline; justify-content: center; gap: 2px; font-weight: 800; font-size: 13px; margin: 2px 0 4px; }
-.col .subj .score { font-size: 11px; font-weight: 700; display: inline-flex; align-items: baseline; }
-.col .subj .score .ed { display: inline-block; min-width: 1.6em; text-align: center; }
-.item { display: flex; gap: 3px; align-items: flex-start; font-size: 10.5px; padding: 2px 0; border-bottom: 1px solid var(--line); min-height: 7mm; break-inside: avoid; }
-.item .no { font-size: 9px; color: var(--soft); min-width: 1.6em; text-align: right; padding-top: 2px; }
-.box { width: 4mm; height: 4mm; border: 1.3px solid var(--ink); flex: none; margin-top: 2px; cursor: pointer; position: relative; background: none; padding: 0; }
-.box.on::after { content: "✓"; position: absolute; left: 0; top: -5px; font-size: 15px; color: var(--accent); font-weight: 800; }
-.item .ed { flex: 1; min-width: 0; }
-.item.done .ed { text-decoration: line-through; text-decoration-color: var(--accent); }
-.section { margin-top: 10px; break-inside: avoid; }
-.section h3 { font-size: 12px; margin: 0 0 4px; border-bottom: 1.5px solid var(--line2); padding-bottom: 2px; display: flex; gap: 8px; align-items: center; }
-.extra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
-.alpha { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 10px; }
-.alpha .final { font-weight: 800; }
-table.log { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
-table.log th { font-size: 10px; color: var(--soft); text-align: left; border-bottom: 1.5px solid var(--line2); padding: 2px; }
-table.log td { border-bottom: 1px solid var(--line); padding: 3px; height: 9mm; vertical-align: top; }
-table.log td.got .ed { color: var(--accent); }
-.add { margin-top: 3px; }
+/* 目標達成のための n 個：ルーズリーフ（5mm 罫）に手で書いていた形をそのまま */
+.sheet.nb { --lh: 6.4mm; --rule: #b7cbe2; --ruleTop: #7d9cc7; position: relative; font-size: 11px; line-height: var(--lh);
+  background-image: linear-gradient(to top, var(--rule) 1px, transparent 1px); background-size: 100% var(--lh);
+  background-origin: content-box; background-clip: content-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sheet.nb .ed { min-height: var(--lh); line-height: var(--lh); }
+.sheet.nb.b5 { --lh: 5.5mm; font-size: 10px; }
+.nb-nodate { display: grid; grid-template-columns: 1fr 52mm; height: calc(var(--lh) * 2); color: #7d9cc7; font-size: 10px; }
+.nb-nodate div:last-child { display: grid; grid-template-rows: 1fr 1fr; }
+.nb-nodate span { border-bottom: 1px dashed #9fb6d6; display: block; }
+.nb-title { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 6mm; border-top: 1.6px solid var(--ruleTop); font-size: 12.5px; }
+.nb-title .ed { font-weight: 500; }
+.nb-phrase { display: flex; align-items: baseline; justify-content: flex-end; gap: 1px; white-space: nowrap; min-width: 0; }
+.nb-phrase .ed { flex: 0 1 auto; min-width: 25mm; white-space: nowrap; overflow: hidden; }
+.nb-count { white-space: nowrap; margin-left: 4px; }
+.nb-row2 { display: flex; justify-content: space-between; }
+.nb-must { color: var(--accent); font-weight: 600; }
+.nb-recount { color: var(--accent); font-size: 13px; font-weight: 600; padding-right: 4mm; }
+.nb-grid { display: grid; column-gap: 1.5mm; }
+.nb-grid .lab { font-size: 9.5px; white-space: nowrap; }
+.nb-aim { font-size: 9px; white-space: nowrap; overflow: hidden; }
+.nb-aim .ed { white-space: nowrap; overflow: hidden; }
+.nb-subj { font-size: 13.5px; font-weight: 600; white-space: nowrap; display: flex; align-items: baseline; padding-left: 3mm; }
+.nb-subj .ed { display: inline-block; min-width: 1em; text-align: center; }
+.nb-col { min-width: 0; }
+.item { position: relative; display: flex; align-items: center; gap: 2px; min-height: var(--lh); padding-left: 3mm; break-inside: avoid; }
+.item .no { position: absolute; left: 0; top: -1.6mm; font-size: 7.5px; color: #555; line-height: 1; }
+.box { width: 3.6mm; height: 3.6mm; border: 1.2px solid var(--ink); flex: none; cursor: pointer; position: relative; background: none; padding: 0; }
+.item.done .box::after { content: "✓"; position: absolute; left: 0.8mm; top: -1.4mm; font-size: 15px; line-height: 1; color: var(--accent); font-weight: 700; }
+.item .ed { flex: 1; min-width: 0; font-size: 9.5px; white-space: nowrap; overflow: hidden; }
+.b5 .item .ed { font-size: 8.8px; }
+.item.cut .ed, .item.cut .box { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 1.6px; }
+.item.cut::after { content: ""; position: absolute; left: 3mm; right: 0; top: 50%; border-top: 1.6px solid var(--accent); }
+.nb-extra-h { margin-top: var(--lh); color: #2b3f8c; }
+.nb-extra { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 2mm; padding-left: 4mm; }
+.nb-brace { height: calc(var(--lh) * 2); display: block; width: 86%; margin: 0 auto; }
+.nb-common { width: 72mm; margin: 0 auto; }
+.nb-common .head { padding-left: 4mm; }
+.nb-common .item { padding-left: 5mm; }
+.nb-common .item .no { font-size: 8px; top: -0.6mm; }
+.nb-common .final .ed { font-weight: 700; }
+.nb-log { margin-top: var(--lh); }
+.nb-loghead { display: grid; grid-template-columns: 14mm minmax(0, 1fr) 36%; font-size: 9.5px; }
+.nb-loghead .got { color: var(--accent); }
+.nb-logrow { display: grid; grid-template-columns: 14mm minmax(0, 1fr) 36%; min-height: calc(var(--lh) * 2); }
+.nb-logrow .ed { font-size: 11px; }
+.nb-logrow .d .ed { font-size: 10px; }
+.nb-logrow .g .ed { color: var(--accent); }
+.add { margin-top: 2px; line-height: 1.6; }
 
 /* 白紙で印刷：書いた中身を消して、印刷用の空欄だけにする */
 /* 見出し（表の上の行・教科名）と日付・残り日数は残し、書いた中身だけ消す */
 .blank td .ed, .blank .item .ed, .blank .aim .ed, .blank .subj .score .ed, .blank .title .ed, .blank .goal .ed, .blank .note .ed, .blank .scorebox .head .ed,
 .blank .mark, .blank .diff, .blank td[data-sum] { color: transparent !important; }
 .blank .box.on::after { content: ""; }
-.blank .ncount { color: transparent !important; }
+.blank .nb-aim .ed, .blank .nb-subj .ed, .blank .nb-common .final .ed, .blank .nb-title .ed, .blank .nb-phrase .ed, .blank .nb-count, .blank .nb-recount, .blank .nb-logrow .ed { color: transparent !important; }
+.blank .item.done .box::after { content: none; }
+.blank .item.cut::after { display: none; }
+.blank .item.cut .ed, .blank .item.cut .box { text-decoration: none; }
 .blank .ed:empty::before { content: ""; }
 
 @media print {
@@ -122,6 +145,8 @@ table.log td.got .ed { color: var(--accent); }
   .ed:focus { background: none; }
   .mark { border-color: var(--line2); }
   thead { display: table-header-group; }
+  .sheet.nb { min-height: 272mm; }
+  .sheet.nb.b5 { min-height: 232mm; }
 }
 @media (max-width: 820px) {
   .sheet, .sheet.b5 { width: auto; min-height: 0; margin: 10px 8px 30px; padding: 12px 10px; }
@@ -174,10 +199,10 @@ function fresh() {
       habit: '毎日マッピ', rows: {}, boxes: [], blankRows: 26,
     },
     nset: {
-      title: '入試まで　週：週間でやることチェック', target: '', due: '',
-      cols: null, extra: [{ t: '', done: false }, { t: '', done: false }, { t: '', done: false }],
+      title: '', phrase: '', must: '必ずやること', common: '全教科共通', alphaFinal: '', due: '',
+      cols: null, extra: Array.from({ length: 10 }, () => ({ t: '', done: false })),
       alpha: [{ t: '', done: false }, { t: '', done: false }, { t: '', done: false }, { t: '', done: false }],
-      log: [{ date: '', plan: '', got: '' }, { date: '', plan: '', got: '' }, { date: '', plan: '', got: '' }, { date: '', plan: '', got: '' }, { date: '', plan: '', got: '' }, { date: '', plan: '', got: '' }],
+      log: Array.from({ length: 7 }, () => ({ date: '', plan: '', got: '' })),
       perCol: 8,
     },
   };
@@ -309,60 +334,84 @@ function renderDaily(root) {
     ' ', h('span', { class: 'meta' }, '（行にマウスを乗せると「＋点数」で、その日のあとに枠を入れられます）')));
 }
 
-// ── 目標達成のための n 個 ──
+// ── 目標達成のための n 個（ルーズリーフに書いていた形をそのまま） ──
+const SUBJ_COLOR = { 国語: '#e4462c', 数学: '#4a4fae', 英語: '#f07800', 理科: '#2f9e44', 社会: '#e3a000', 特色: '#9b4dca' };
+const MORE_COLORS = ['#9b4dca', '#1f8a8a', '#d1477a', '#6b7a2a'];
+const subjColor = (name, i) => SUBJ_COLOR[name] || MORE_COLORS[i % MORE_COLORS.length];
+// 項目の状態：□ → ✓（できた）→ 取り消し線（やめた）→ □
+const nextState = it => { if (it.cut) { it.cut = false; it.done = false; } else if (it.done) { it.done = false; it.cut = true; } else it.done = true; };
+function braceSvg() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 1000 60'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'nb-brace');
+  const p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', 'M4 10 C 10 24, 120 26, 300 26 C 440 26, 470 30, 500 56 C 530 30, 560 26, 700 26 C 880 26, 990 24, 996 6');
+  p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#555'); p.setAttribute('stroke-width', '2.2'); p.setAttribute('vector-effect', 'non-scaling-stroke');
+  svg.append(p);
+  return svg;
+}
 function renderNset(root) {
   syncCols();
   const n = S.nset;
+  n.phrase ??= ''; n.common ??= '全教科共通'; n.alphaFinal ??= ''; n.must ??= '必ずやること';
+  root.classList.add('nb');
   let no = 0;
-  const numbered = n.cols.reduce((a, c) => a + c.items.length, 0) + n.extra.length;
-  const doneCount = [...n.cols.flatMap(c => c.items), ...n.extra].filter(x => x.done).length;
-  const count = h('span', { class: 'ncount' });
+  const all = () => [...n.cols.flatMap(c => c.items), ...n.extra];
+  const count = h('span', { class: 'nb-count' }), recount = h('span', { class: 'nb-recount' });
   const refreshCount = () => {
-    const all = [...n.cols.flatMap(c => c.items), ...n.extra];
-    const used = all.filter(x => x.t.trim()).length || all.length;
-    count.textContent = `（n＝${used}＋α）　達成 ${all.filter(x => x.done).length}`;
+    const written = all().filter(x => x.t.trim());
+    count.textContent = `（n＝${written.length || '　'}＋α）`;
+    const cut = written.filter(x => x.cut).length;
+    recount.textContent = cut ? `（n＝${written.length - cut}）` : '';
   };
   onEdit = refreshCount;
-  root.append(h('div', { class: 'title' }, ed(() => n.title, v => { n.title = v; }, '入試まで○週：○週間でやることチェック'),
-    h('span', { class: 'meta' }, n.due ? `締め切り：${n.due.replace(/-/g, '/')}` : '')));
-  root.append(h('div', { class: 'nhead' },
-    h('div', { class: 'goal' }, '「', ed(() => n.target, v => { n.target = v; }, '○○高校'), 'に合格するための n 個」'), count));
+  // No.・Date（ルーズリーフの右上）
+  root.append(h('div', { class: 'nb-nodate' }, h('div'), h('div', {}, h('span', {}, 'No.'), h('span', {}, 'Date　　　.　　　.'))));
+  root.append(h('div', { class: 'nb-title' },
+    ed(() => n.title, v => { n.title = v; }, '入試まで○週：○週間やることチェック'),
+    h('div', { class: 'nb-phrase' }, '「', ed(() => n.phrase, v => { n.phrase = v; refreshCount(); }, '湘南高校に合格するため'), 'の n 個」', count)));
+  root.append(h('div', { class: 'nb-row2' }, h('span', { class: 'nb-must' }, ed(() => n.must, v => { n.must = v; }, '必ずやること')), recount));
   refreshCount();
-  const toggle = (it, row, box) => () => { it.done = !it.done; box.classList.toggle('on', it.done); row.classList.toggle('done', it.done); save(); refreshCount(); };
-  const item = (it, label, list, i) => {
-    const box = h('button', { class: 'box' + (it.done ? ' on' : ''), title: 'できたらチェック' });
-    const row = h('div', { class: 'item' + (it.done ? ' done' : '') }, h('span', { class: 'no' }, label), box, ed(() => it.t, v => { it.t = v; }, ''),
-      h('span', { class: 'rowtools noprint' }, h('button', { class: 'btn small', title: '消す', onclick: () => { list.splice(i, 1); save(); render(); } }, '×')));
-    box.addEventListener('click', toggle(it, row, box));
+  const item = (it, label, list, i, extraCls = '') => {
+    const box = h('button', { class: 'box', title: 'タップ：✓ できた → 取り消し線（やめた）→ 空' });
+    const row = h('div', { class: 'item' + (it.done ? ' done' : '') + (it.cut ? ' cut' : '') + extraCls },
+      h('span', { class: 'no' }, label), box, ed(() => it.t, v => { it.t = v; }, ''),
+      list ? h('span', { class: 'rowtools noprint' }, h('button', { class: 'btn small', title: 'この行を消す', onclick: () => { list.splice(i, 1); save(); render(); } }, '×')) : null);
+    box.addEventListener('click', () => { nextState(it); row.classList.toggle('done', !!it.done); row.classList.toggle('cut', !!it.cut); save(); refreshCount(); });
     return row;
   };
-  const cols = h('div', { class: 'cols', style: `grid-template-columns: repeat(${n.cols.length}, minmax(0,1fr))` });
-  n.cols.forEach(c => {
-    const full = (S.subjects.find(s => s.name === c.name) || {}).full;
-    cols.append(h('div', { class: 'col' },
-      h('div', { class: 'aim' }, ed(() => c.aim, v => { c.aim = v; }, '目標：〜を完璧にする')),
-      h('div', { class: 'subj' }, c.name, h('span', { class: 'score' }, '（', ed(() => c.score, v => { c.score = v; }, full ? String(full) : ''), '）')),
+  // 教科の列：「各目標：」の行 → 色分けした教科名（目標点）→ 番号つきの □
+  const cols = `9mm repeat(${n.cols.length}, minmax(0, 1fr))`;
+  root.append(h('div', { class: 'nb-grid', style: `grid-template-columns:${cols}` },
+    h('div', { class: 'lab' }, '各目標：'),
+    n.cols.map(c => h('div', { class: 'nb-aim' }, ed(() => c.aim, v => { c.aim = v; }, 'とにかく覚える'))),
+    h('div'),
+    n.cols.map((c, i) => h('div', { class: 'nb-subj', style: `color:${subjColor(c.name, i)}` }, c.name, '（', ed(() => c.score, v => { c.score = v; }, ''), '）')),
+    h('div'),
+    n.cols.map(c => h('div', { class: 'nb-col' },
       c.items.map((it, i) => item(it, String(++no), c.items, i)),
-      h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { c.items.push({ t: '', done: false }); save(); render(); } }, '＋ 足す'))));
-  });
-  root.append(cols);
-  root.append(h('div', { class: 'section' }, h('h3', {}, '追加でやること ↓'),
-    h('div', { class: 'extra' }, n.extra.map((it, i) => item(it, String(++no), n.extra, i))),
-    h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.extra.push({ t: '', done: false }); save(); render(); } }, '＋ 足す'))));
-  root.append(h('div', { class: 'section' }, h('h3', {}, '総仕上げ α（当日にむけて・気持ちの面も）'),
-    h('div', { class: 'alpha' }, n.alpha.map((it, i) => item(it, 'α' + (i + 1), n.alpha, i)),
-      h('div', { class: 'item final' }, h('span', { class: 'no' }, 'α' + (n.alpha.length + 1)), h('span', { class: 'box' }),
-        h('div', { class: 'ed', style: 'font-weight:800' }, `${n.target || '○○'}に合格`))),
-    h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.alpha.push({ t: '', done: false }); save(); render(); } }, '＋ 足す'))));
-  root.append(h('div', { class: 'section' }, h('h3', {}, 'やること（番号で書く）', h('span', { class: 'meta' }, '黒＝やる予定・オレンジ＝やった')),
-    h('table', { class: 'log' },
-      h('thead', {}, h('tr', {}, h('th', { style: 'width:14%' }, '日付'), h('th', { style: 'width:43%' }, 'やる番号（予定）'), h('th', { style: 'width:43%' }, 'やった番号'))),
-      h('tbody', {}, n.log.map((l, i) => h('tr', {},
-        h('td', {}, ed(() => l.date, v => { l.date = v; }, i ? '' : '例：2/9（月）')),
-        h('td', {}, ed(() => l.plan, v => { l.plan = v; }, i ? '' : '例：1, 5, 11, 17')),
-        h('td', { class: 'got' }, ed(() => l.got, v => { l.got = v; }, i ? '' : '例：1, 5, 11'))))),
-    ),
-    h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.log.push({ date: '', plan: '', got: '' }); save(); render(); } }, '＋ 行を足す'))));
+      h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { c.items.push({ t: '', done: false }); save(); render(); } }, '＋'))))));
+  // 追加でやること ↓（番号は続き）
+  root.append(h('div', { class: 'nb-extra-h' }, '追加でやること ↓'));
+  root.append(h('div', { class: 'nb-extra' }, n.extra.map((it, i) => item(it, String(++no), n.extra, i))));
+  root.append(h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { for (let k = 0; k < 5; k++) n.extra.push({ t: '', done: false }); save(); render(); } }, '＋ 追加の行を足す')));
+  // 大きな波かっこ → 全教科共通の α
+  root.append(braceSvg());
+  root.append(h('div', { class: 'nb-common' },
+    h('div', { class: 'head' }, ed(() => n.common, v => { n.common = v; }, '全教科共通')),
+    n.alpha.map((it, i) => item(it, 'α' + (i + 1), n.alpha, i)),
+    (() => { const fin = n.alphaFinalItem ??= { t: '', done: false };
+      const row = item({ get t() { return n.alphaFinal; }, set t(v) { n.alphaFinal = v; }, get done() { return fin.done; }, set done(v) { fin.done = v; }, get cut() { return fin.cut; }, set cut(v) { fin.cut = v; } }, 'α' + (n.alpha.length + 1), null, 0, ' final');
+      row.querySelector('.ed').setAttribute('data-ph', '湘南高校合格'); return row; })(),
+    h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.alpha.push({ t: '', done: false }); save(); render(); } }, '＋ α を足す'))));
+  // やること（その日にやる番号）／やったこと（オレンジ）
+  root.append(h('div', { class: 'nb-log' },
+    h('div', { class: 'nb-loghead' }, h('span', {}, 'やること'), h('span'), h('span', { class: 'got' }, 'やったこと')),
+    n.log.map((l, i) => h('div', { class: 'nb-logrow' },
+      h('div', { class: 'd' }, ed(() => l.date, v => { l.date = v; }, i ? '' : '2/9(月)')),
+      h('div', {}, ed(() => l.plan, v => { l.plan = v; }, i ? '' : '5, 6, 15, 16, 17, 21, 22 …')),
+      h('div', { class: 'g' }, ed(() => l.got, v => { l.got = v; }, i ? '' : '5, 15, 16, 21')))),
+    h('div', { class: 'add noprint' }, h('button', { class: 'btn small', onclick: () => { n.log.push({ date: '', plan: '', got: '' }); save(); render(); } }, '＋ 日を足す'))));
 }
 
 // ── 設定（印刷しない） ──
@@ -388,7 +437,6 @@ function renderSettings() {
   } else {
     const n = S.nset;
     box.append(
-      field('締め切り（入試の日など）', inp('date', () => n.due, v => { n.due = v; })),
       field('教科ごとの行の数（新しい教科）', inp('number', () => n.perCol, v => { n.perCol = Math.max(1, Math.min(40, v || 8)); })),
       subj);
   }
@@ -401,7 +449,7 @@ function renameSubject(old, now) {
 
 const HINTS = {
   daily: '日付は「はじめの日〜おわりの日」で自動で入り、「残り」は目標の日までの日数です。右はしの丸はタップで ○ → ◎ → △ → × と変わります（見出しの「毎日マッピ」は書きかえられます）。書いた内容はこの端末に自動で保存されます。',
-  nset: '教科の列は上の「教科」でそろいます。番号は左の列から通し番号でつき、□をタップするとチェックがつきます。n は書いた項目の数です。下の「やること」には、その日にやる番号（黒）とやった番号（オレンジ）を書きます。',
+  nset: 'ルーズリーフに書く形そのままです。教科の列は上の「教科」でそろい（特色検査なども足せます）、番号は左の列から通しでつきます。□をタップすると ✓（できた）→ 取り消し線（やめた）→ 空 と変わり、n は書いた項目の数、オレンジの n はやめた分を引いた数です。下の「やること」にはその日にやる番号、「やったこと」にはやった番号を書きます。',
 };
 function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
