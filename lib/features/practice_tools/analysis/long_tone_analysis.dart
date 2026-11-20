@@ -57,9 +57,7 @@ class LongToneStats {
 
   String get levelComment {
     if (mean.abs() <= 2) return 'この音は平均的にほぼ正確です';
-    return mean > 0
-        ? 'この音は平均的に高めです（+${mean.toStringAsFixed(1)}¢）'
-        : 'この音は平均的に低めです（${mean.toStringAsFixed(1)}¢）';
+    return mean > 0 ? 'この音は平均的に高めです（+${mean.toStringAsFixed(1)}¢）' : 'この音は平均的に低めです（${mean.toStringAsFixed(1)}¢）';
   }
 
   String get stabilityComment {

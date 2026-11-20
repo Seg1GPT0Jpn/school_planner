@@ -79,9 +79,7 @@ PitchCandidate? _autocorrelate(
   }
   if (bestLag <= 0) return null;
   final energy = sumSq / n;
-  final clarity = energy > 0
-      ? (bestCorr / energy).clamp(0.0, 1.0).toDouble()
-      : 0.0;
+  final clarity = energy > 0 ? (bestCorr / energy).clamp(0.0, 1.0).toDouble() : 0.0;
   return PitchCandidate(
     frequency: sampleRate / bestLag,
     confidence: clarity,
@@ -241,9 +239,7 @@ PitchCandidate _guardOctave(
   }
   corr /= count;
   energy /= count;
-  final halfClarity = energy > 0
-      ? (corr / energy).clamp(0.0, 1.0).toDouble()
-      : 0.0;
+  final halfClarity = energy > 0 ? (corr / energy).clamp(0.0, 1.0).toDouble() : 0.0;
 
   // 半分の周波数でも、元の検出と同じくらいはっきりした周期性があれば、
   // （金管の2倍音誤検出の典型パターンなので）低いほうを信じる

@@ -72,10 +72,9 @@ class WeatherService {
       _lastAtLat = latitude;
       _lastAtLng = longitude;
     }
-    return _loadingAt ??= _fetch(
-      latitude: latitude,
-      longitude: longitude,
-    ).then((b) => _lastAt = b).whenComplete(() => _loadingAt = null);
+    return _loadingAt ??= _fetch(latitude: latitude, longitude: longitude)
+        .then((b) => _lastAt = b)
+        .whenComplete(() => _loadingAt = null);
   }
 
   /// いま持っているもの（まだ一度も取っていなければ null）

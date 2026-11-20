@@ -190,17 +190,13 @@ class _AnalysisTabState extends State<AnalysisTab> {
                     const Spacer(),
                     IconButton(
                       onPressed: () => setState(
-                        () => _referenceHz = (_referenceHz - 1)
-                            .clamp(415, 466)
-                            .toDouble(),
+                        () => _referenceHz = (_referenceHz - 1).clamp(415, 466).toDouble(),
                       ),
                       icon: const Icon(Icons.remove_circle_outline),
                     ),
                     IconButton(
                       onPressed: () => setState(
-                        () => _referenceHz = (_referenceHz + 1)
-                            .clamp(415, 466)
-                            .toDouble(),
+                        () => _referenceHz = (_referenceHz + 1).clamp(415, 466).toDouble(),
                       ),
                       icon: const Icon(Icons.add_circle_outline),
                     ),
@@ -314,9 +310,7 @@ class _CentsGraphPainter extends CustomPainter {
   static const _rangeCents = 50.0; // 上下50セントまで表示
 
   double _yFor(double cents, Size size) {
-    final t =
-        (cents.clamp(-_rangeCents, _rangeCents) + _rangeCents) /
-        (2 * _rangeCents);
+    final t = (cents.clamp(-_rangeCents, _rangeCents) + _rangeCents) / (2 * _rangeCents);
     return size.height * (1 - t);
   }
 
@@ -328,9 +322,7 @@ class _CentsGraphPainter extends CustomPainter {
       final isMajor = c % 25 == 0;
       final isCenter = c == 0;
       final paint = Paint()
-        ..color = isCenter
-            ? centerColor
-            : gridColor.withValues(alpha: isMajor ? 0.9 : 0.4)
+        ..color = isCenter ? centerColor : gridColor.withValues(alpha: isMajor ? 0.9 : 0.4)
         ..strokeWidth = isCenter ? 2 : 1;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
       if (isMajor) {

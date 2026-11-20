@@ -382,7 +382,10 @@ class _TravelCardState extends State<TravelCard> with _Lookup<TravelCard> {
                   if (walk == null) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Text('実際の道なりでは：約$walk分', style: note),
+                    child: Text(
+                      '実際の道なりでは：約$walk分',
+                      style: note,
+                    ),
                   );
                 },
               )
@@ -433,7 +436,10 @@ class _TravelCardState extends State<TravelCard> with _Lookup<TravelCard> {
                       if (road == null) return const SizedBox.shrink();
                       return Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text('実際の道なりでは：約$road分（渋滞は含みません）', style: note),
+                        child: Text(
+                          '実際の道なりでは：約$road分（渋滞は含みません）',
+                          style: note,
+                        ),
                       );
                     },
                   );

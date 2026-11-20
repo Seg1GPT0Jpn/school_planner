@@ -43,8 +43,7 @@ class _MoneyPageState extends State<MoneyPage> {
       context: context,
       builder: (_) => _AddTransactionDialog(
         repository: _repository,
-        initialDate:
-            _month.month == DateTime.now().month &&
+        initialDate: _month.month == DateTime.now().month &&
                 _month.year == DateTime.now().year
             ? DateTime.now()
             : _month,
@@ -68,7 +67,8 @@ class _MoneyPageState extends State<MoneyPage> {
   Future<void> _editBalance(MoneyBalanceBase? current) async {
     await showDialog<void>(
       context: context,
-      builder: (_) => _BalanceDialog(repository: _repository, initial: current),
+      builder: (_) =>
+          _BalanceDialog(repository: _repository, initial: current),
     );
   }
 
@@ -136,10 +136,8 @@ class _MoneyPageState extends State<MoneyPage> {
                           IconButton(
                             icon: const Icon(Icons.chevron_left),
                             onPressed: () => setState(
-                              () => _month = DateTime(
-                                _month.year,
-                                _month.month - 1,
-                              ),
+                              () => _month =
+                                  DateTime(_month.year, _month.month - 1),
                             ),
                           ),
                           Text(
@@ -149,10 +147,8 @@ class _MoneyPageState extends State<MoneyPage> {
                           IconButton(
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () => setState(
-                              () => _month = DateTime(
-                                _month.year,
-                                _month.month + 1,
-                              ),
+                              () => _month =
+                                  DateTime(_month.year, _month.month + 1),
                             ),
                           ),
                         ],
@@ -261,10 +257,7 @@ class _MoneyPageState extends State<MoneyPage> {
                                 onPressed: () => _editTransaction(t),
                               ),
                               IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 18,
-                                ),
+                                icon: const Icon(Icons.delete_outline, size: 18),
                                 onPressed: () => _confirmDelete(t),
                               ),
                             ],
@@ -526,9 +519,9 @@ class _CategoryBarChart extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: maxV == 0 ? 0 : e.value / maxV,
                       minHeight: 14,
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                 ),
@@ -589,9 +582,9 @@ class _BudgetBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio.clamp(0, 1).toDouble(),
               minHeight: 8,
-              backgroundColor: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               color: over ? Colors.red : null,
             ),
           ),
@@ -714,10 +707,7 @@ class _AddTransactionDialogState extends State<_AddTransactionDialog> {
               controller: _amountController,
               autofocus: true,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '金額',
-                suffixText: '円',
-              ),
+              decoration: const InputDecoration(labelText: '金額', suffixText: '円'),
             ),
             const SizedBox(height: 12),
             ListTile(

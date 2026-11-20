@@ -32,12 +32,7 @@ void openRainRadar(
 }
 
 class RainRadarPage extends StatefulWidget {
-  const RainRadarPage({
-    super.key,
-    this.latitude,
-    this.longitude,
-    this.placeName,
-  });
+  const RainRadarPage({super.key, this.latitude, this.longitude, this.placeName});
 
   final double? latitude;
   final double? longitude;
@@ -137,9 +132,7 @@ class _RainRadarPageState extends State<RainRadarPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '雨雲レーダー${widget.placeName != null ? '（${widget.placeName}）' : ''}',
-        ),
+        title: Text('雨雲レーダー${widget.placeName != null ? '（${widget.placeName}）' : ''}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -181,7 +174,11 @@ class _RainRadarPageState extends State<RainRadarPage> {
                   const Positioned.fill(
                     child: Center(child: CircularProgressIndicator()),
                   ),
-                Positioned(left: 8, top: 8, child: _Legend(cs: cs)),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: _Legend(cs: cs),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,

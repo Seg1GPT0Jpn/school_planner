@@ -48,7 +48,9 @@ class AutoSplitCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('合計の見積もりを、締切までの日に振り分けました（忙しい日は少なめにしています）。'),
+                const Text(
+                  '合計の見積もりを、締切までの日に振り分けました（忙しい日は少なめにしています）。',
+                ),
                 const SizedBox(height: 12),
                 for (final d in plan)
                   if (d.minutes > 0)
@@ -101,11 +103,7 @@ class AutoSplitCard extends StatelessWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
-                title: Text(
-                  t.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                title: Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: TextButton(
                   onPressed: () => _showPlan(context, t),
                   child: const Text('分割プランを見る'),

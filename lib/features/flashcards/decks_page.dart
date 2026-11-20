@@ -118,8 +118,8 @@ class _DecksPageState extends State<DecksPage> {
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _confirmDelete(d),
                       ),
-                      onTap: () =>
-                          Navigator.of(context, rootNavigator: true).push(
+                      onTap: () => Navigator.of(context, rootNavigator: true)
+                          .push(
                             MaterialPageRoute<void>(
                               builder: (_) => DeckDetailPage(
                                 repository: _repository,

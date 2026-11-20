@@ -208,7 +208,10 @@ class _StatCard extends StatelessWidget {
                   '${_diffText(current.studyMinutes, previous.studyMinutes)}',
             ),
             _StatLine('部活時間', formatMinutes(current.clubMinutes)),
-            _StatLine('提出物・課題', '${current.todoDone}/${current.todoTotal} 件完了'),
+            _StatLine(
+              '提出物・課題',
+              '${current.todoDone}/${current.todoTotal} 件完了',
+            ),
             _StatLine('予定なしの日', '${current.noPlanDays}日'),
             _StatLine(
               '1日の平均予定数',
@@ -249,7 +252,10 @@ class _WeekdayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxCount = stats.weekdayCounts.fold<int>(0, (m, c) => c > m ? c : m);
+    final maxCount = stats.weekdayCounts.fold<int>(
+      0,
+      (m, c) => c > m ? c : m,
+    );
     final cs = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
@@ -275,10 +281,7 @@ class _WeekdayCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    SizedBox(
-                      width: 24,
-                      child: Text('${stats.weekdayCounts[i]}'),
-                    ),
+                    SizedBox(width: 24, child: Text('${stats.weekdayCounts[i]}')),
                   ],
                 ),
               ),

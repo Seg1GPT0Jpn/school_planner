@@ -78,9 +78,7 @@ class PracticeHistoryRepository {
         .map((snapshot) => [for (final doc in snapshot.docs) _fromDoc(doc)]);
   }
 
-  LongToneSessionRecord _fromDoc(
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
+  LongToneSessionRecord _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data();
     return LongToneSessionRecord(
       id: doc.id,

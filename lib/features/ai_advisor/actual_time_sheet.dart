@@ -35,7 +35,10 @@ Future<void> promptActualTime(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('「${todo.title}」実際どれくらいかかりましたか？', style: tt.titleSmall),
+              Text(
+                '「${todo.title}」実際どれくらいかかりましたか？',
+                style: tt.titleSmall,
+              ),
               const SizedBox(height: 4),
               Text(
                 '次回からの見積もりの参考にします（任意です）',

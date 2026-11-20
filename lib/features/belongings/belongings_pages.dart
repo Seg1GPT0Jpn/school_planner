@@ -124,15 +124,20 @@ class _BelongingsSettingsPageState extends State<BelongingsSettingsPage> {
                 void save(BelongingSettings n) => _repo().saveSettings(n);
 
                 // 今の時間割にある科目（＋持ち物が登録されている科目）
-                final subjects = {
-                  for (final x in ts.data!.slotsForDate(DateTime.now()))
-                    x.subject,
-                  ...s.bySubject.keys,
-                }.toList()..sort();
+                final subjects =
+                    {
+                      for (final x in ts.data!.slotsForDate(DateTime.now()))
+                        x.subject,
+                      ...s.bySubject.keys,
+                    }.toList()
+                    ..sort();
 
                 Widget header(String t) => Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                  child: Text(t, style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(
+                    t,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 );
 
                 return ListView(

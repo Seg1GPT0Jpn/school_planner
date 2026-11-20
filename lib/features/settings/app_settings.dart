@@ -500,21 +500,30 @@ class AppSettings {
         max: 120,
       ),
       departFromSchool: flag('departFromSchool', d.departFromSchool),
-      autoAddTravelEvents: flag('autoAddTravelEvents', d.autoAddTravelEvents),
+      autoAddTravelEvents: flag(
+        'autoAddTravelEvents',
+        d.autoAddTravelEvents,
+      ),
       favoriteLineIds: [
         for (final x in (m['favoriteLineIds'] as List<dynamic>? ?? const []))
           if (x is String) x,
       ],
       customLineNames: {
-        for (final e
-            in (m['customLineNames'] as Map<String, dynamic>? ?? const {})
-                .entries)
+        for (final e in (m['customLineNames'] as Map<String, dynamic>? ??
+                const {})
+            .entries)
           if (e.value is String) e.key: e.value as String,
       },
       gamificationEnabled: flag('gamificationEnabled', d.gamificationEnabled),
-      moodTrackingEnabled: flag('moodTrackingEnabled', d.moodTrackingEnabled),
+      moodTrackingEnabled: flag(
+        'moodTrackingEnabled',
+        d.moodTrackingEnabled,
+      ),
       aiAdvisorEnabled: flag('aiAdvisorEnabled', d.aiAdvisorEnabled),
-      generativeAiEnabled: flag('generativeAiEnabled', d.generativeAiEnabled),
+      generativeAiEnabled: flag(
+        'generativeAiEnabled',
+        d.generativeAiEnabled,
+      ),
       dismissedPatternKeys: [
         for (final x
             in (m['dismissedPatternKeys'] as List<dynamic>? ?? const []))

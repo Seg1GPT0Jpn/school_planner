@@ -98,8 +98,7 @@ class _StrobeMeterState extends State<StrobeMeter>
         child: CustomPaint(
           painter: _StrobePainter(
             phase: _phase,
-            stripeWidth:
-                10 / widget.resolution.centsPerStripe.clamp(0.1, 5) * 2,
+            stripeWidth: 10 / widget.resolution.centsPerStripe.clamp(0.1, 5) * 2,
             color: widget.color,
             background: cs.surfaceContainerHighest,
           ),
@@ -175,9 +174,7 @@ class TunerBarMeter extends StatelessWidget {
                 ),
               ),
             Positioned(
-              left: (t * box.maxWidth - 5)
-                  .clamp(0, box.maxWidth - 10)
-                  .toDouble(),
+              left: (t * box.maxWidth - 5).clamp(0, box.maxWidth - 10).toDouble(),
               top: 4,
               bottom: 4,
               child: Container(
@@ -185,12 +182,7 @@ class TunerBarMeter extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.5),
-                      blurRadius: 6,
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
                 ),
               ),
             ),
@@ -214,22 +206,14 @@ class TunerNeedleMeter extends StatelessWidget {
     return SizedBox(
       height: 100,
       child: CustomPaint(
-        painter: _NeedlePainter(
-          angle: angle,
-          color: color,
-          baseColor: cs.outlineVariant,
-        ),
+        painter: _NeedlePainter(angle: angle, color: color, baseColor: cs.outlineVariant),
       ),
     );
   }
 }
 
 class _NeedlePainter extends CustomPainter {
-  _NeedlePainter({
-    required this.angle,
-    required this.color,
-    required this.baseColor,
-  });
+  _NeedlePainter({required this.angle, required this.color, required this.baseColor});
   final double angle;
   final Color color;
   final Color baseColor;
@@ -265,6 +249,5 @@ class _NeedlePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _NeedlePainter oldDelegate) =>
-      oldDelegate.angle != angle;
+  bool shouldRepaint(covariant _NeedlePainter oldDelegate) => oldDelegate.angle != angle;
 }

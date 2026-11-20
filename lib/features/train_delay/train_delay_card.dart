@@ -91,11 +91,7 @@ class _TrainDelayCardState extends State<TrainDelayCard> {
           for (final id in widget.settings.favoriteLineIds)
             findTrainLine(id) ??
                 (customNames[id] != null
-                    ? TrainLine(
-                        id: id,
-                        name: customNames[id]!,
-                        operatorName: '',
-                      )
+                    ? TrainLine(id: id, name: customNames[id]!, operatorName: '')
                     : null),
         ].whereType<TrainLine>().toList();
         final anyTrouble = lines.any(
@@ -178,7 +174,9 @@ class _TrainDelayCardState extends State<TrainDelayCard> {
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                            ),
                           ),
                           onPressed: () =>
                               _openExternal(context, _lineSearchUri(l.name)),
@@ -190,7 +188,8 @@ class _TrainDelayCardState extends State<TrainDelayCard> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
-                      onPressed: () => _openExternal(context, _yahooTransitUri),
+                      onPressed: () =>
+                          _openExternal(context, _yahooTransitUri),
                       icon: const Icon(Icons.travel_explore, size: 18),
                       label: const Text('Yahoo!路線情報で確認する'),
                     ),

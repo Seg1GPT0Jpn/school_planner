@@ -197,77 +197,74 @@ class _CategoryEditDialogState extends State<_CategoryEditDialog> {
       title: Text(widget.isNew ? 'カテゴリを追加' : 'カテゴリを編集'),
       content: SingleChildScrollView(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: '名前',
-                errorText: _errorMessage,
-              ),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: '名前',
+              errorText: _errorMessage,
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text('色'),
-                const Spacer(),
-                InkWell(
-                  onTap: _pickColor,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '色を選ぶ',
-                      style: TextStyle(color: readableTextColor(color)),
-                    ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text('色'),
+              const Spacer(),
+              InkWell(
+                onTap: _pickColor,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '色を選ぶ',
+                    style: TextStyle(color: readableTextColor(color)),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '負荷（忙しさ）',
-                style: Theme.of(context).textTheme.labelLarge,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'このカテゴリの予定1件あたりの重さです。軽い予定を多く入れても'
-              '「詰め込みすぎ」と判定されにくくなります。',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final level in CategoryLoadLevel.values)
-                  ChoiceChip(
-                    label: Text(level.label),
-                    selected: _loadLevel == level,
-                    onSelected: (_) => setState(() => _loadLevel = level),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('成長ログを使う'),
-              subtitle: const Text('部活・練習・趣味など。予定を記録として残せます'),
-              value: _growthLogEnabled,
-              onChanged: (v) => setState(() => _growthLogEnabled = v),
-            ),
-          ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('負荷（忙しさ）', style: Theme.of(context).textTheme.labelLarge),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'このカテゴリの予定1件あたりの重さです。軽い予定を多く入れても'
+            '「詰め込みすぎ」と判定されにくくなります。',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final level in CategoryLoadLevel.values)
+                ChoiceChip(
+                  label: Text(level.label),
+                  selected: _loadLevel == level,
+                  onSelected: (_) => setState(() => _loadLevel = level),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('成長ログを使う'),
+            subtitle: const Text('部活・練習・趣味など。予定を記録として残せます'),
+            value: _growthLogEnabled,
+            onChanged: (v) => setState(() => _growthLogEnabled = v),
+          ),
+        ],
         ),
       ),
       actions: [

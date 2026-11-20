@@ -54,10 +54,7 @@ class _StopwatchTabState extends State<StopwatchTab> {
   String _fmt(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    final cs = (d.inMilliseconds.remainder(1000) ~/ 10).toString().padLeft(
-      2,
-      '0',
-    );
+    final cs = (d.inMilliseconds.remainder(1000) ~/ 10).toString().padLeft(2, '0');
     return '$m:$s.$cs';
   }
 
@@ -66,28 +63,20 @@ class _StopwatchTabState extends State<StopwatchTab> {
     return Column(
       children: [
         const SizedBox(height: 24),
-        Text(
-          _fmt(_sw.elapsed),
-          style: Theme.of(context).textTheme.displayLarge,
-        ),
+        Text(_fmt(_sw.elapsed), style: Theme.of(context).textTheme.displayLarge),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             OutlinedButton(
-              onPressed: _sw.elapsed == Duration.zero && !_sw.isRunning
-                  ? null
-                  : _reset,
+              onPressed: _sw.elapsed == Duration.zero && !_sw.isRunning ? null : _reset,
               child: const Text('リセット'),
             ),
             const SizedBox(width: 16),
             FilledButton(
               onPressed: _startPause,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 child: Text(_sw.isRunning ? '一時停止' : '開始'),
               ),
             ),

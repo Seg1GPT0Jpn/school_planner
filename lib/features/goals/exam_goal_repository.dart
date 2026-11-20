@@ -51,7 +51,8 @@ class ExamGoalRepository {
     id: id,
     title: m['title'] as String? ?? '',
     kind:
-        ExamGoalKind.values.asNameMap()[m['kind']] ?? ExamGoalKind.regularExam,
+        ExamGoalKind.values.asNameMap()[m['kind']] ??
+        ExamGoalKind.regularExam,
     examDate: _date(m['examDate']),
     examEndDate: _date(m['examEndDate']),
     subjects: [

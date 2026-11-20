@@ -77,7 +77,12 @@ class EventCategory {
 
 /// 最初に用意するカテゴリ
 const List<EventCategory> defaultEventCategories = [
-  EventCategory(id: 'school', name: '学校', colorValue: 0xFF5C6BC0, order: 0),
+  EventCategory(
+    id: 'school',
+    name: '学校',
+    colorValue: 0xFF5C6BC0,
+    order: 0,
+  ),
   EventCategory(
     id: 'club',
     name: '部活',
@@ -85,7 +90,12 @@ const List<EventCategory> defaultEventCategories = [
     order: 1,
     loadLevel: CategoryLoadLevel.high,
   ),
-  EventCategory(id: 'study', name: '勉強', colorValue: 0xFF43A047, order: 2),
+  EventCategory(
+    id: 'study',
+    name: '勉強',
+    colorValue: 0xFF43A047,
+    order: 2,
+  ),
   EventCategory(
     id: 'personal',
     name: '個人',

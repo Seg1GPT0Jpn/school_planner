@@ -38,16 +38,24 @@ class KeySignature {
 
   /// 長調の日本語名（例：ト長調）
   String get majorLabel {
-    const sharpMajors = ['ハ', 'ト', 'ニ', 'イ', 'ホ', 'ロ', '嬰ヘ', '嬰ハ'];
-    const flatMajors = ['ハ', 'ヘ', '変ロ', '変ホ', '変イ', '変ニ', '変ト', '変ハ'];
+    const sharpMajors = [
+      'ハ', 'ト', 'ニ', 'イ', 'ホ', 'ロ', '嬰ヘ', '嬰ハ',
+    ];
+    const flatMajors = [
+      'ハ', 'ヘ', '変ロ', '変ホ', '変イ', '変ニ', '変ト', '変ハ',
+    ];
     final label = fifths >= 0 ? sharpMajors[fifths] : flatMajors[-fifths];
     return '$label長調';
   }
 
   /// 短調の日本語名（例：ホ短調）
   String get minorLabel {
-    const sharpMinors = ['イ', 'ホ', 'ロ', '嬰ヘ', '嬰ハ', '嬰ト', '嬰ニ', '嬰イ'];
-    const flatMinors = ['イ', 'ニ', 'ト', 'ハ', 'ヘ', '変ロ', '変ホ', '変イ'];
+    const sharpMinors = [
+      'イ', 'ホ', 'ロ', '嬰ヘ', '嬰ハ', '嬰ト', '嬰ニ', '嬰イ',
+    ];
+    const flatMinors = [
+      'イ', 'ニ', 'ト', 'ハ', 'ヘ', '変ロ', '変ホ', '変イ',
+    ];
     final label = fifths >= 0 ? sharpMinors[fifths] : flatMinors[-fifths];
     return '$label短調';
   }

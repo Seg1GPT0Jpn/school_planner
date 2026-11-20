@@ -27,19 +27,15 @@ class MetronomePresetRepository {
   Future<void> delete(String id) => _col.doc(id).delete();
 
   Stream<List<MetronomePreset>> watchAll() {
-    return _col
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => [
-            for (final doc in snapshot.docs)
-              MetronomePreset.fromMap(
-                doc.id,
-                doc.data(),
-                (doc.data()['updatedAt'] as Timestamp?)?.toDate() ??
-                    DateTime.now(),
-              ),
-          ],
-        );
+    return _col.orderBy('updatedAt', descending: true).snapshots().map(
+      (snapshot) => [
+        for (final doc in snapshot.docs)
+          MetronomePreset.fromMap(
+            doc.id,
+            doc.data(),
+            (doc.data()['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          ),
+      ],
+    );
   }
 }

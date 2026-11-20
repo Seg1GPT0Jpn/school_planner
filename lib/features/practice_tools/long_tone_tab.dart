@@ -144,9 +144,7 @@ class _LongToneTabState extends State<LongToneTab> {
       if (stats != null && note == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              '音の高さを判定できなかったため記録できませんでした。もう一度、音を安定して伸ばしてから止めてください。',
-            ),
+            content: Text('音の高さを判定できなかったため記録できませんでした。もう一度、音を安定して伸ばしてから止めてください。'),
           ),
         );
       }
@@ -175,8 +173,9 @@ class _LongToneTabState extends State<LongToneTab> {
       if (mounted) setState(() => _saved = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('保存できませんでした（$e）')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存できませんでした（$e）')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -217,7 +216,10 @@ class _LongToneTabState extends State<LongToneTab> {
         if (!_listening && r == null) ...[
           const SizedBox(height: 40),
           Center(
-            child: Text('準備ができたら開始', style: TextStyle(color: cs.outline)),
+            child: Text(
+              '準備ができたら開始',
+              style: TextStyle(color: cs.outline),
+            ),
           ),
           const SizedBox(height: 40),
         ],
@@ -225,8 +227,9 @@ class _LongToneTabState extends State<LongToneTab> {
           Center(
             child: Text(
               _liveNote?.label(NotationSystem.english) ?? '（音を待っています…）',
-              style: Theme.of(context).textTheme.displayMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           if (_liveNote != null)
@@ -258,37 +261,16 @@ class _LongToneTabState extends State<LongToneTab> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  _statRow(
-                    '平均',
-                    '${r.mean >= 0 ? '+' : ''}${r.mean.toStringAsFixed(1)}¢',
-                  ),
-                  _statRow(
-                    '最低',
-                    '${r.min >= 0 ? '+' : ''}${r.min.toStringAsFixed(1)}¢',
-                  ),
-                  _statRow(
-                    '最高',
-                    '${r.max >= 0 ? '+' : ''}${r.max.toStringAsFixed(1)}¢',
-                  ),
+                  _statRow('平均', '${r.mean >= 0 ? '+' : ''}${r.mean.toStringAsFixed(1)}¢'),
+                  _statRow('最低', '${r.min >= 0 ? '+' : ''}${r.min.toStringAsFixed(1)}¢'),
+                  _statRow('最高', '${r.max >= 0 ? '+' : ''}${r.max.toStringAsFixed(1)}¢'),
                   _statRow('標準偏差', '${r.stdDev.toStringAsFixed(1)}¢'),
                   _statRow('安定時間', '${r.holdSeconds.toStringAsFixed(1)}秒'),
-                  _statRow(
-                    '安定度',
-                    '${r.stabilityPercent.round()}%（${r.stabilityComment}）',
-                  ),
+                  _statRow('安定度', '${r.stabilityPercent.round()}%（${r.stabilityComment}）'),
                   const Divider(height: 24),
-                  _statRow(
-                    '開始時',
-                    '${r.startCents >= 0 ? '+' : ''}${r.startCents.toStringAsFixed(1)}¢',
-                  ),
-                  _statRow(
-                    '中央',
-                    '${r.midCents >= 0 ? '+' : ''}${r.midCents.toStringAsFixed(1)}¢',
-                  ),
-                  _statRow(
-                    '終了時',
-                    '${r.endCents >= 0 ? '+' : ''}${r.endCents.toStringAsFixed(1)}¢',
-                  ),
+                  _statRow('開始時', '${r.startCents >= 0 ? '+' : ''}${r.startCents.toStringAsFixed(1)}¢'),
+                  _statRow('中央', '${r.midCents >= 0 ? '+' : ''}${r.midCents.toStringAsFixed(1)}¢'),
+                  _statRow('終了時', '${r.endCents >= 0 ? '+' : ''}${r.endCents.toStringAsFixed(1)}¢'),
                   const SizedBox(height: 8),
                   Text(r.levelComment, style: TextStyle(color: cs.primary)),
                   Text(r.trend, style: TextStyle(color: cs.primary)),
@@ -318,14 +300,13 @@ class _LongToneTabState extends State<LongToneTab> {
             Text('この音の練習履歴', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 6),
             StreamBuilder<List<LongToneSessionRecord>>(
-              stream:
-                  PracticeHistoryRepository(
-                    uid: FirebaseAuth.instance.currentUser!.uid,
-                  ).watchFor(
-                    instrumentId: _instrument.id,
-                    pitchClass: _sessionNote!.pitchClass,
-                    octave: _sessionNote!.octave,
-                  ),
+              stream: PracticeHistoryRepository(
+                uid: FirebaseAuth.instance.currentUser!.uid,
+              ).watchFor(
+                instrumentId: _instrument.id,
+                pitchClass: _sessionNote!.pitchClass,
+                octave: _sessionNote!.octave,
+              ),
               builder: (context, snapshot) {
                 final records = snapshot.data ?? const [];
                 if (records.isEmpty) {
@@ -342,10 +323,7 @@ class _LongToneTabState extends State<LongToneTab> {
                               width: 96,
                               child: Text(
                                 '${rec.date.year}/${rec.date.month}/${rec.date.day}',
-                                style: TextStyle(
-                                  color: cs.outline,
-                                  fontSize: 12,
-                                ),
+                                style: TextStyle(color: cs.outline, fontSize: 12),
                               ),
                             ),
                             Text(

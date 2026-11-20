@@ -75,7 +75,8 @@ class FreeDelayService {
   }
 
   /// 「線」「ライン」を取って、ゆるく比べるための正規化
-  static String _norm(String s) => s.trim().replaceAll(RegExp(r'(線|ライン)$'), '');
+  static String _norm(String s) =>
+      s.trim().replaceAll(RegExp(r'(線|ライン)$'), '');
 
   /// 路線名に一致する遅延情報を探す（表記ゆれをゆるく吸収する）
   static FreeDelayInfo? findFor(List<FreeDelayInfo> list, String lineName) {

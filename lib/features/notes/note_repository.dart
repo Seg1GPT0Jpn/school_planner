@@ -27,14 +27,14 @@ class NoteRepository {
       folderId: m['folderId'] as String?,
       tags: [for (final t in (m['tags'] as List<dynamic>? ?? const [])) '$t'],
       favorite: m['favorite'] as bool? ?? false,
-      updatedAt: (m['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt:
+          (m['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Stream<List<Note>> watchNotes() => _notes.snapshots().map(
-    (s) =>
-        [for (final d in s.docs) _fromDoc(d)]
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
+    (s) => [for (final d in s.docs) _fromDoc(d)]
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
   );
 
   Stream<List<NoteFolder>> watchFolders() => _folders.snapshots().map(

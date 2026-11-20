@@ -56,10 +56,7 @@ Uint8List _syntheticPcm16(
     final t = i / sampleRate;
     var v = amplitude * math.sin(2 * math.pi * freq * t);
     for (var h = 0; h < harmonicAmps.length; h++) {
-      v +=
-          harmonicAmps[h] *
-          amplitude *
-          math.sin(2 * math.pi * freq * (h + 2) * t);
+      v += harmonicAmps[h] * amplitude * math.sin(2 * math.pi * freq * (h + 2) * t);
     }
     final s = (v.clamp(-1.0, 1.0) * 32000).round();
     buf.setInt16(i * 2, s, Endian.little);
@@ -166,9 +163,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
     _sub = stream.listen((chunk) {
       _pending.addAll(chunk);
       if (_pending.length < _windowBytes) return;
-      final window = Uint8List.fromList(
-        _pending.sublist(_pending.length - _windowBytes),
-      );
+      final window = Uint8List.fromList(_pending.sublist(_pending.length - _windowBytes));
       _pending.clear();
       final sw = Stopwatch()..start();
       final candidate = detectPitchCandidate(
@@ -195,11 +190,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
     setState(() => _timingTestRunning = true);
     final engine = MetronomeEngine(onBeat: (_) {}, onSample: _timingSamples.add)
       ..startBpm = _timingTestBpm
-      ..timeSignature = const TimeSignature(
-        beats: 4,
-        denominator: 4,
-        grouping: [4],
-      )
+      ..timeSignature = const TimeSignature(beats: 4, denominator: 4, grouping: [4])
       ..pattern = RhythmPattern(beats: 4, subdivision: 1)
       ..collectAccuracySamples = true;
     _timingEngine = engine;
@@ -225,9 +216,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
     final bufferLatencyMs = _windowBytes / 2 / _sampleRate * 1000;
     final avgProcessMs = _processMicrosHistory.isEmpty
         ? null
-        : _processMicrosHistory.reduce((a, b) => a + b) /
-              _processMicrosHistory.length /
-              1000;
+        : _processMicrosHistory.reduce((a, b) => a + b) / _processMicrosHistory.length / 1000;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -251,10 +240,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
           ],
         ),
         const SizedBox(height: 20),
-        Text(
-          '① 精度テスト（既知の周波数との比較）',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('① 精度テスト（既知の周波数との比較）', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: _running ? null : _runAccuracyTests,
@@ -270,7 +256,13 @@ class _DevToolsTabState extends State<DevToolsTab> {
               2: FlexColumnWidth(1),
             },
             children: [
-              TableRow(children: [_th('テストケース'), _th('誤差(¢)'), _th('処理時間')]),
+              TableRow(
+                children: [
+                  _th('テストケース'),
+                  _th('誤差(¢)'),
+                  _th('処理時間'),
+                ],
+              ),
               for (final r in _results)
                 TableRow(
                   children: [
@@ -289,10 +281,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
             ],
           ),
         const SizedBox(height: 28),
-        Text(
-          '② スペクトラム（マイク入力・基音の確認）',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('② スペクトラム（マイク入力・基音の確認）', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _toggleSpectrum,
@@ -302,9 +291,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
         const SizedBox(height: 8),
         if (_spectrum != null) ...[
           Text(
-            _detectedFreq == null
-                ? '検出：なし'
-                : '検出した基音：${_detectedFreq!.toStringAsFixed(1)} Hz',
+            _detectedFreq == null ? '検出：なし' : '検出した基音：${_detectedFreq!.toStringAsFixed(1)} Hz',
           ),
           const SizedBox(height: 4),
           SizedBox(
@@ -327,9 +314,7 @@ class _DevToolsTabState extends State<DevToolsTab> {
         _statLine('バッファ遅延（理論値）', '${bufferLatencyMs.toStringAsFixed(1)} ms'),
         _statLine(
           '検出処理の平均時間（実測・スペクトラム表示中）',
-          avgProcessMs == null
-              ? '（②を実行すると計測されます）'
-              : '${avgProcessMs.toStringAsFixed(2)} ms',
+          avgProcessMs == null ? '（②を実行すると計測されます）' : '${avgProcessMs.toStringAsFixed(2)} ms',
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -383,7 +368,10 @@ class _DevToolsTabState extends State<DevToolsTab> {
         const SizedBox(height: 12),
         if (_timingSamples.isNotEmpty) ..._timingResultRows(cs),
         const SizedBox(height: 12),
-        Text('対象楽器一覧（実用音域の目安）', style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          '対象楽器一覧（実用音域の目安）',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         for (final p in instrumentProfiles)
           Text(
             '${p.name}：${p.minFreq.toStringAsFixed(0)}〜${p.maxFreq.toStringAsFixed(0)}Hz'
@@ -459,10 +447,7 @@ class _SpectrumPainter extends CustomPainter {
     // 0〜2000Hzくらいを表示範囲にする（楽器の基音〜低次倍音が見える範囲）
     const maxDisplayFreq = 2000.0;
     final binHz = sampleRate / (spectrum.length * 2);
-    final maxBin = (maxDisplayFreq / binHz)
-        .round()
-        .clamp(1, spectrum.length - 1)
-        .toInt();
+    final maxBin = (maxDisplayFreq / binHz).round().clamp(1, spectrum.length - 1).toInt();
     final maxMag = spectrum.take(maxBin).fold<double>(1, math.max);
 
     final barPaint = Paint()..color = barColor;

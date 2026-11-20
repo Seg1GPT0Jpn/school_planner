@@ -278,7 +278,10 @@ class _HomePageState extends State<HomePage> {
     // クエストにも、これからのテストを渡す（変わったときだけ書く）
     unawaited(
       _questLink
-          .exportUpcoming(upcoming, lessons: questLessons(resolver, today0))
+          .exportUpcoming(
+            upcoming,
+            lessons: questLessons(resolver, today0),
+          )
           .catchError((Object _) {}),
     );
     final events = [
@@ -561,7 +564,11 @@ class _HomePageState extends State<HomePage> {
       _StudyCard(today: studyToday, week: studyWeek),
       if (settings.showHomeCard('quest')) ...[
         gap,
-        QuestLinkCard(results: _questResults, now: now, upcoming: upcoming),
+        QuestLinkCard(
+          results: _questResults,
+          now: now,
+          upcoming: upcoming,
+        ),
       ],
       if (settings.gamificationEnabled) ...[
         gap,

@@ -84,7 +84,9 @@ class _IntensityMapState extends State<IntensityMap> {
       Marker(
         markerId: const MarkerId('epicenter'),
         position: LatLng(lat, lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueViolet,
+        ),
         infoWindow: const InfoWindow(title: '震源'),
         zIndexInt: 2,
       ),

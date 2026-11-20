@@ -18,7 +18,8 @@ class OnboardingScheduleFlow extends StatefulWidget {
   final ValueChanged<ScheduleConfig> onDone;
 
   @override
-  State<OnboardingScheduleFlow> createState() => _OnboardingScheduleFlowState();
+  State<OnboardingScheduleFlow> createState() =>
+      _OnboardingScheduleFlowState();
 }
 
 class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
@@ -57,7 +58,8 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
     for (final w in _periodCounts.keys)
       if ((_periodCounts[w] ?? 0) > 0)
         (_periodCounts[w]!).clamp(0, _periods.length),
-  }..removeWhere((n) => n == 0)).toList()..sort();
+  }..removeWhere((n) => n == 0)).toList()
+    ..sort();
 
   void _regeneratePeriods() {
     final withLunch = _lunchAfterPeriod > 0;
@@ -129,7 +131,10 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
       appBar: AppBar(
         leading: _step == 0
             ? null
-            : IconButton(onPressed: _back, icon: const Icon(Icons.arrow_back)),
+            : IconButton(
+                onPressed: _back,
+                icon: const Icon(Icons.arrow_back),
+              ),
         title: Text('学校の時程を設定（${_step + 1}/$_stepCount）'),
       ),
       body: Column(
@@ -180,7 +185,10 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
             const SizedBox(height: 20),
             child,
             const SizedBox(height: 28),
-            FilledButton(onPressed: onNext ?? _next, child: Text(nextLabel)),
+            FilledButton(
+              onPressed: onNext ?? _next,
+              child: Text(nextLabel),
+            ),
           ],
         ),
       ),
@@ -197,8 +205,14 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
         onChanged: (v) => setState(() => _useWeekCycle = v ?? _useWeekCycle),
         child: const Column(
           children: [
-            RadioListTile<bool>(value: true, title: Text('分ける（Ⅰ週・Ⅱ週がある）')),
-            RadioListTile<bool>(value: false, title: Text('分けない（毎週同じ時間割）')),
+            RadioListTile<bool>(
+              value: true,
+              title: Text('分ける（Ⅰ週・Ⅱ週がある）'),
+            ),
+            RadioListTile<bool>(
+              value: false,
+              title: Text('分けない（毎週同じ時間割）'),
+            ),
           ],
         ),
       ),
@@ -270,7 +284,9 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
                       ),
                     );
                     if (t != null) {
-                      setState(() => _firstStart = ClockTime(t.hour, t.minute));
+                      setState(
+                        () => _firstStart = ClockTime(t.hour, t.minute),
+                      );
                       _regeneratePeriods();
                     }
                   },
@@ -322,7 +338,10 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
               for (final p in _periods)
                 ListTile(
                   dense: true,
-                  leading: CircleAvatar(radius: 13, child: Text('${p.number}')),
+                  leading: CircleAvatar(
+                    radius: 13,
+                    child: Text('${p.number}'),
+                  ),
                   title: Text('${p.start} 〜 ${p.end}'),
                   trailing: Text('${p.durationMinutes}分'),
                 ),
@@ -398,12 +417,14 @@ class _OnboardingScheduleFlowState extends State<OnboardingScheduleFlow> {
       nextLabel: '完了',
       child: Column(
         children: [
-          if (counts.isEmpty) const Text('曜日ごとのコマ数から、作る必要のある短縮日課はありませんでした。'),
+          if (counts.isEmpty)
+            const Text('曜日ごとのコマ数から、作る必要のある短縮日課はありませんでした。'),
           for (final n in counts) ...[
             _ShortenedGenerator(
               count: n,
               initial: _shortened[n],
-              onGenerated: (list) => setState(() => _shortened[n] = list),
+              onGenerated: (list) =>
+                  setState(() => _shortened[n] = list),
             ),
             const SizedBox(height: 12),
           ],
@@ -440,7 +461,10 @@ class _NumberField extends StatelessWidget {
           onPressed: value > min ? () => onChanged(value - 1) : null,
           icon: const Icon(Icons.remove_circle_outline),
         ),
-        SizedBox(width: 32, child: Text('$value', textAlign: TextAlign.center)),
+        SizedBox(
+          width: 32,
+          child: Text('$value', textAlign: TextAlign.center),
+        ),
         IconButton(
           onPressed: value < max ? () => onChanged(value + 1) : null,
           icon: const Icon(Icons.add_circle_outline),

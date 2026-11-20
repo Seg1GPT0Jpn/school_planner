@@ -46,9 +46,7 @@ class Flashcard {
   /// 「できた」ときの次の状態
   Flashcard graded(bool correct, {DateTime? now}) {
     final today = now ?? DateTime.now();
-    final newBox = correct
-        ? (box + 1).clamp(1, flashcardBoxIntervalDays.length)
-        : 1;
+    final newBox = correct ? (box + 1).clamp(1, flashcardBoxIntervalDays.length) : 1;
     final interval = flashcardBoxIntervalDays[newBox - 1];
     return Flashcard(
       id: id,

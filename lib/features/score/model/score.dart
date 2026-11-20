@@ -63,8 +63,7 @@ class ScorePart {
 
   ScorePart withMeasureRemovedAt(int index) => copyWith(
     measures: [
-      for (var i = 0; i < measures.length; i++)
-        if (i != index) measures[i],
+      for (var i = 0; i < measures.length; i++) if (i != index) measures[i],
     ],
   );
 
@@ -138,18 +137,14 @@ class Score {
 
   Score withPartReplacedAt(int index, ScorePart part) => copyWith(
     parts: [
-      for (var i = 0; i < parts.length; i++)
-        if (i == index) part else parts[i],
+      for (var i = 0; i < parts.length; i++) if (i == index) part else parts[i],
     ],
   );
 
   Score withPartAdded(ScorePart part) => copyWith(parts: [...parts, part]);
 
   Score withPartRemovedAt(int index) => copyWith(
-    parts: [
-      for (var i = 0; i < parts.length; i++)
-        if (i != index) parts[i],
-    ],
+    parts: [for (var i = 0; i < parts.length; i++) if (i != index) parts[i]],
   );
 
   Map<String, dynamic> toMap() => {
@@ -159,27 +154,28 @@ class Score {
     'parts': [for (final p in parts) p.toMap()],
   };
 
-  static Score fromMap(
-    String id,
-    Map<String, dynamic> m, {
-    DateTime? updatedAt,
-  }) => Score(
-    id: id,
-    title: m['title'] as String? ?? '無題の曲',
-    composer: m['composer'] as String? ?? '',
-    tempoBpm: (m['tempoBpm'] as num?)?.toInt() ?? 120,
-    parts: [
-      for (final p in (m['parts'] as List<dynamic>? ?? const []))
-        ScorePart.fromMap(Map<String, dynamic>.from(p as Map)),
-    ],
-    updatedAt: updatedAt,
-  );
+  static Score fromMap(String id, Map<String, dynamic> m, {DateTime? updatedAt}) =>
+      Score(
+        id: id,
+        title: m['title'] as String? ?? '無題の曲',
+        composer: m['composer'] as String? ?? '',
+        tempoBpm: (m['tempoBpm'] as num?)?.toInt() ?? 120,
+        parts: [
+          for (final p in (m['parts'] as List<dynamic>? ?? const []))
+            ScorePart.fromMap(Map<String, dynamic>.from(p as Map)),
+        ],
+        updatedAt: updatedAt,
+      );
 
   /// 新規作成用：1パート・1小節だけの空の曲
   factory Score.blank({String title = '無題の曲'}) => Score(
     title: title,
     parts: [
-      ScorePart(id: 'part1', name: 'パート1', measures: const [Measure()]),
+      ScorePart(
+        id: 'part1',
+        name: 'パート1',
+        measures: const [Measure()],
+      ),
     ],
   );
 }

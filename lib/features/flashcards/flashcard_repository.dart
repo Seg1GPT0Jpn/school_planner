@@ -46,9 +46,9 @@ class FlashcardRepository {
   }
 
   Stream<List<Flashcard>> watchCards(String deckId) {
-    return _cards(deckId)
-        .snapshots()
-        .map((s) => [for (final d in s.docs) _fromMap(d.id, d.data())]);
+    return _cards(deckId).snapshots().map(
+      (s) => [for (final d in s.docs) _fromMap(d.id, d.data())],
+    );
   }
 
   Future<void> saveCard(String deckId, Flashcard card) async {

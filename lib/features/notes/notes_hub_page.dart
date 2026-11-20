@@ -59,20 +59,11 @@ class _NotesHubPageState extends State<NotesHubPage> {
               }
               var notes = noteSnap.data!;
               if (_folderId == _favFilter) {
-                notes = [
-                  for (final n in notes)
-                    if (n.favorite) n,
-                ];
+                notes = [for (final n in notes) if (n.favorite) n];
               } else if (_folderId != null) {
-                notes = [
-                  for (final n in notes)
-                    if (n.folderId == _folderId) n,
-                ];
+                notes = [for (final n in notes) if (n.folderId == _folderId) n];
               }
-              notes = [
-                for (final n in notes)
-                  if (noteMatches(n, _query)) n,
-              ];
+              notes = [for (final n in notes) if (noteMatches(n, _query)) n];
 
               return Column(
                 children: [
@@ -94,11 +85,7 @@ class _NotesHubPageState extends State<NotesHubPage> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       children: [
-                        _chip(
-                          'すべて',
-                          _folderId == null,
-                          () => setState(() => _folderId = null),
-                        ),
+                        _chip('すべて', _folderId == null, () => setState(() => _folderId = null)),
                         const SizedBox(width: 6),
                         _chip(
                           '★ お気に入り',
@@ -107,18 +94,11 @@ class _NotesHubPageState extends State<NotesHubPage> {
                         ),
                         for (final f in folders) ...[
                           const SizedBox(width: 6),
-                          _chip(
-                            f.name,
-                            _folderId == f.id,
-                            () => setState(() => _folderId = f.id),
-                          ),
+                          _chip(f.name, _folderId == f.id, () => setState(() => _folderId = f.id)),
                         ],
                         const SizedBox(width: 6),
                         ActionChip(
-                          avatar: const Icon(
-                            Icons.create_new_folder_outlined,
-                            size: 16,
-                          ),
+                          avatar: const Icon(Icons.create_new_folder_outlined, size: 16),
                           label: const Text('フォルダ'),
                           onPressed: () => _addFolder(context),
                         ),
@@ -129,10 +109,7 @@ class _NotesHubPageState extends State<NotesHubPage> {
                   Expanded(
                     child: notes.isEmpty
                         ? Center(
-                            child: Text(
-                              'メモはまだありません',
-                              style: TextStyle(color: cs.outline),
-                            ),
+                            child: Text('メモはまだありません', style: TextStyle(color: cs.outline)),
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(8, 4, 8, 80),
@@ -151,11 +128,7 @@ class _NotesHubPageState extends State<NotesHubPage> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 trailing: n.favorite
-                                    ? Icon(
-                                        Icons.star,
-                                        color: cs.primary,
-                                        size: 20,
-                                      )
+                                    ? Icon(Icons.star, color: cs.primary, size: 20)
                                     : null,
                                 onTap: () => _openNote(n),
                               );
@@ -189,10 +162,7 @@ class _NotesHubPageState extends State<NotesHubPage> {
           decoration: const InputDecoration(hintText: 'フォルダ名'),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('やめる'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('やめる')),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
             child: const Text('作る'),

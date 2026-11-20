@@ -38,12 +38,14 @@ class TravelRealtimeService {
   }) async {
     final key = _key(from, to, mode, arriveBy);
     final cached = _cache[key];
-    if (cached != null && DateTime.now().difference(cached.fetchedAt) < _keep) {
+    if (cached != null &&
+        DateTime.now().difference(cached.fetchedAt) < _keep) {
       return cached.minutes;
     }
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'asia-northeast1')
-          .httpsCallable('getTravelEstimate');
+      final callable = FirebaseFunctions.instanceFor(
+        region: 'asia-northeast1',
+      ).httpsCallable('getTravelEstimate');
       final res = await callable.call<Map<String, dynamic>>({
         'originLat': from.lat,
         'originLng': from.lng,

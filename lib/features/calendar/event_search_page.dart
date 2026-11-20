@@ -170,7 +170,12 @@ class _EventSearchPageState extends State<EventSearchPage> {
                               final categories =
                                   catSnap.data ?? const <EventCategory>[];
                               return ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
+                                padding: const EdgeInsets.fromLTRB(
+                                  8,
+                                  4,
+                                  8,
+                                  24,
+                                ),
                                 itemCount: results.length,
                                 itemBuilder: (context, i) {
                                   final e = results[i];
@@ -180,7 +185,9 @@ class _EventSearchPageState extends State<EventSearchPage> {
                                         : categories,
                                     e.categoryId,
                                   );
-                                  final isPast = e.end.isBefore(DateTime.now());
+                                  final isPast = e.end.isBefore(
+                                    DateTime.now(),
+                                  );
                                   return ListTile(
                                     leading: CircleAvatar(
                                       radius: 6,
@@ -195,35 +202,31 @@ class _EventSearchPageState extends State<EventSearchPage> {
                                             )
                                           : null,
                                     ),
-                                    subtitle: Text(
-                                      [
-                                        '${e.start.year}/${e.start.month}/${e.start.day}'
-                                            '${e.isAllDay ? '' : ' ${e.start.hour.toString().padLeft(2, '0')}:${e.start.minute.toString().padLeft(2, '0')}'}',
-                                        if (e.location != null &&
-                                            e.location!.isNotEmpty)
-                                          e.location!,
-                                        if (e.tags.isNotEmpty)
-                                          e.tags.map((t) => '#$t').join(' '),
-                                      ].join(' ・ '),
-                                    ),
+                                    subtitle: Text([
+                                      '${e.start.year}/${e.start.month}/${e.start.day}'
+                                          '${e.isAllDay ? '' : ' ${e.start.hour.toString().padLeft(2, '0')}:${e.start.minute.toString().padLeft(2, '0')}'}',
+                                      if (e.location != null &&
+                                          e.location!.isNotEmpty)
+                                        e.location!,
+                                      if (e.tags.isNotEmpty)
+                                        e.tags.map((t) => '#$t').join(' '),
+                                    ].join(' ・ ')),
                                     onTap: e.isTravelEvent
                                         ? null
-                                        : () =>
-                                              Navigator.of(
-                                                context,
-                                                rootNavigator: true,
-                                              ).push(
-                                                MaterialPageRoute<void>(
-                                                  fullscreenDialog: true,
-                                                  builder: (_) => EventEditPage(
-                                                    repository:
-                                                        widget.repository,
-                                                    categoryRepository: widget
-                                                        .categoryRepository,
-                                                    event: e,
-                                                  ),
-                                                ),
+                                        : () => Navigator.of(
+                                            context,
+                                            rootNavigator: true,
+                                          ).push(
+                                            MaterialPageRoute<void>(
+                                              fullscreenDialog: true,
+                                              builder: (_) => EventEditPage(
+                                                repository: widget.repository,
+                                                categoryRepository:
+                                                    widget.categoryRepository,
+                                                event: e,
                                               ),
+                                            ),
+                                          ),
                                   );
                                 },
                               );

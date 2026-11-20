@@ -160,13 +160,7 @@ class Alarm {
       );
       return d.isAfter(from) ? d : null;
     }
-    final today = DateTime(
-      from.year,
-      from.month,
-      from.day,
-      time.hour,
-      time.minute,
-    );
+    final today = DateTime(from.year, from.month, from.day, time.hour, time.minute);
     return today.isAfter(from) ? today : today.add(const Duration(days: 1));
   }
 
@@ -196,9 +190,7 @@ class Alarm {
     enabled: enabled ?? this.enabled,
     kind: kind ?? this.kind,
     weekdays: weekdays ?? this.weekdays,
-    specificDate: clearSpecificDate
-        ? null
-        : (specificDate ?? this.specificDate),
+    specificDate: clearSpecificDate ? null : (specificDate ?? this.specificDate),
     soundPath: clearSound ? null : (soundPath ?? this.soundPath),
     soundName: clearSound ? null : (soundName ?? this.soundName),
     volume: volume ?? this.volume,
@@ -276,12 +268,8 @@ class BedtimeSchedule {
     bedTime: bedTime ?? this.bedTime,
     wakeTime: wakeTime ?? this.wakeTime,
     days: days ?? this.days,
-    sleepSoundPath: clearSleepSound
-        ? null
-        : (sleepSoundPath ?? this.sleepSoundPath),
-    sleepSoundName: clearSleepSound
-        ? null
-        : (sleepSoundName ?? this.sleepSoundName),
+    sleepSoundPath: clearSleepSound ? null : (sleepSoundPath ?? this.sleepSoundPath),
+    sleepSoundName: clearSleepSound ? null : (sleepSoundName ?? this.sleepSoundName),
     sleepSoundStartsMinutesBefore:
         sleepSoundStartsMinutesBefore ?? this.sleepSoundStartsMinutesBefore,
   );
@@ -334,12 +322,8 @@ class ClockSettings {
     bool clearDefaultAlarmSound = false,
     BedtimeSchedule? bedtime,
   }) => ClockSettings(
-    timerSoundPath: clearTimerSound
-        ? null
-        : (timerSoundPath ?? this.timerSoundPath),
-    timerSoundName: clearTimerSound
-        ? null
-        : (timerSoundName ?? this.timerSoundName),
+    timerSoundPath: clearTimerSound ? null : (timerSoundPath ?? this.timerSoundPath),
+    timerSoundName: clearTimerSound ? null : (timerSoundName ?? this.timerSoundName),
     timerGradualVolume: timerGradualVolume ?? this.timerGradualVolume,
     timerVibrate: timerVibrate ?? this.timerVibrate,
     defaultAlarmSoundPath: clearDefaultAlarmSound
@@ -369,8 +353,7 @@ class ClockSettings {
       bedTime: ClockTime.tryParse(m['bedTime']) ?? const ClockTime(23, 0),
       wakeTime: ClockTime.tryParse(m['wakeTime']) ?? const ClockTime(6, 30),
       days: {
-        for (final d
-            in (m['days'] as List<dynamic>? ?? const [1, 2, 3, 4, 5, 6, 7]))
+        for (final d in (m['days'] as List<dynamic>? ?? const [1, 2, 3, 4, 5, 6, 7]))
           (d as num).toInt(),
       },
       sleepSoundPath: m['sleepSoundPath'] as String?,

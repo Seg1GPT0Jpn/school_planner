@@ -16,8 +16,7 @@ import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/services.dart'
-    show SystemChrome, SystemUiMode, DeviceOrientation;
+import 'package:flutter/services.dart' show SystemChrome, SystemUiMode, DeviceOrientation;
 import 'package:material_ui/material_ui.dart';
 
 import '../review/review_widgets.dart';
@@ -105,9 +104,7 @@ class _MetronomeTabState extends State<MetronomeTab>
       unawaited(p.dispose());
     }
     if (_stageMode) {
-      unawaited(
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values),
-      );
+      unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
       unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     }
     super.dispose();
@@ -168,10 +165,9 @@ class _MetronomeTabState extends State<MetronomeTab>
   void _flashScreen({required bool isDownbeat}) {
     final cs = Theme.of(context).colorScheme;
     _flashColor = isDownbeat ? cs.error : cs.primary;
-    _flashOpacity = Tween<double>(
-      begin: isDownbeat ? 0.55 : 0.3,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _flash, curve: Curves.easeOut));
+    _flashOpacity = Tween<double>(begin: isDownbeat ? 0.55 : 0.3, end: 0.0).animate(
+      CurvedAnimation(parent: _flash, curve: Curves.easeOut),
+    );
     _flash.forward(from: 0);
   }
 
@@ -278,12 +274,8 @@ class _MetronomeTabState extends State<MetronomeTab>
                   selectedTileColor: cs.primaryContainer,
                   dense: true,
                   title: Text('${m.name}（${m.reading}）'),
-                  subtitle: Text(
-                    '${m.description}　${m.minBpm}〜${m.maxBpm} BPM',
-                  ),
-                  trailing: m == current
-                      ? Icon(Icons.check, color: cs.primary)
-                      : null,
+                  subtitle: Text('${m.description}　${m.minBpm}〜${m.maxBpm} BPM'),
+                  trailing: m == current ? Icon(Icons.check, color: cs.primary) : null,
                   onTap: () {
                     Navigator.pop(context);
                     _setBpm(((m.minBpm + m.maxBpm) / 2).round());
@@ -322,19 +314,13 @@ class _MetronomeTabState extends State<MetronomeTab>
   void _toggleStageMode(bool on) {
     setState(() => _stageMode = on);
     if (on) {
-      unawaited(
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]),
-      );
-      unawaited(
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
-      );
+      unawaited(SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]));
+      unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky));
     } else {
-      unawaited(
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values),
-      );
+      unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
       unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     }
   }
@@ -367,10 +353,7 @@ class _MetronomeTabState extends State<MetronomeTab>
           decoration: const InputDecoration(labelText: '曲名・メモ'),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('キャンセル'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('キャンセル')),
           FilledButton(
             onPressed: () => Navigator.pop(c, controller.text.trim()),
             child: const Text('保存'),
@@ -445,7 +428,12 @@ class _MetronomeTabState extends State<MetronomeTab>
       );
     }
     final cs = Theme.of(context).colorScheme;
-    return Stack(children: [_mainContent(cs), _flashOverlay()]);
+    return Stack(
+      children: [
+        _mainContent(cs),
+        _flashOverlay(),
+      ],
+    );
   }
 
   Widget _mainContent(ColorScheme cs) {
@@ -462,17 +450,16 @@ class _MetronomeTabState extends State<MetronomeTab>
               Text(
                 '$_bpm',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.displayLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              Text(
-                'BPM',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: cs.outline),
-              ),
+              Text('BPM', textAlign: TextAlign.center, style: TextStyle(color: cs.outline)),
               const SizedBox(height: 4),
               Faint(
-                _running ? 'タップで停止・上下スワイプで±5・左右スワイプで±1' : 'タップで開始・スワイプでBPM調整',
+                _running
+                    ? 'タップで停止・上下スワイプで±5・左右スワイプで±1'
+                    : 'タップで開始・スワイプでBPM調整',
               ),
             ],
           ),
@@ -489,10 +476,7 @@ class _MetronomeTabState extends State<MetronomeTab>
                 children: [
                   Text(
                     '${tempoMarkingFor(_bpm).name}（${tempoMarkingFor(_bpm).description}）',
-                    style: TextStyle(
-                      color: cs.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 4),
                   Icon(Icons.info_outline, size: 16, color: cs.primary),
@@ -518,10 +502,7 @@ class _MetronomeTabState extends State<MetronomeTab>
             const SizedBox(width: 8),
             OutlinedButton(
               onPressed: _tapTempo,
-              child: const Text(
-                'TAP',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: const Text('TAP', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 8),
             IconButton.filledTonal(
@@ -644,16 +625,10 @@ class _MetronomeTabState extends State<MetronomeTab>
             height: 16,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color:
-                  (e != null &&
-                      !e.isCountIn &&
-                      i == e.beatIndex &&
-                      e.slotIndex == 0)
+              color: (e != null && !e.isCountIn && i == e.beatIndex && e.slotIndex == 0)
                   ? (i == 0
                         ? cs.error
-                        : (_timeSignature.isGroupStart(i)
-                              ? cs.tertiary
-                              : cs.primary))
+                        : (_timeSignature.isGroupStart(i) ? cs.tertiary : cs.primary))
                   : cs.outlineVariant,
             ),
           ),
@@ -663,11 +638,7 @@ class _MetronomeTabState extends State<MetronomeTab>
 }
 
 class _PendulumPainter extends CustomPainter {
-  _PendulumPainter({
-    required this.angle,
-    required this.color,
-    required this.baseColor,
-  });
+  _PendulumPainter({required this.angle, required this.color, required this.baseColor});
   final double angle;
   final Color color;
   final Color baseColor;
@@ -693,11 +664,7 @@ class _PendulumPainter extends CustomPainter {
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(Offset.zero, Offset(0, -needleLength), needlePaint);
-    canvas.drawCircle(
-      Offset(0, -needleLength * 0.7),
-      6,
-      Paint()..color = color,
-    );
+    canvas.drawCircle(Offset(0, -needleLength * 0.7), 6, Paint()..color = color);
     canvas.restore();
     canvas.drawCircle(pivot, 5, Paint()..color = color);
   }
@@ -804,10 +771,7 @@ class _SettingsSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    '裏打ち（1拍の分割）',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  Text('裏打ち（1拍の分割）', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
@@ -826,27 +790,18 @@ class _SettingsSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'リズムパターン（タップでON/OFF）',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  Text('リズムパターン（タップでON/OFF）', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
                   _RhythmGrid(pattern: pattern, onChanged: onPatternChanged),
                   const SizedBox(height: 16),
-                  Text(
-                    '強弱プリセット',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  Text('強弱プリセット', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       for (final p in accentPresets)
-                        ActionChip(
-                          label: Text(p.name),
-                          onPressed: () => onAccentPreset(p),
-                        ),
+                        ActionChip(label: Text(p.name), onPressed: () => onAccentPreset(p)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -927,10 +882,7 @@ class _SettingsSection extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(
-                    '自動テンポ変化',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  Text('自動テンポ変化', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
@@ -940,8 +892,7 @@ class _SettingsSection extends StatelessWidget {
                         ChoiceChip(
                           label: Text(m.label),
                           selected: tempoRamp.mode == m,
-                          onSelected: (_) =>
-                              onTempoRampChanged(tempoRamp.copyWith(mode: m)),
+                          onSelected: (_) => onTempoRampChanged(tempoRamp.copyWith(mode: m)),
                         ),
                     ],
                   ),
@@ -957,9 +908,8 @@ class _SettingsSection extends StatelessWidget {
                             max: 20,
                             divisions: 19,
                             label: '${tempoRamp.stepBpm} BPM',
-                            onChanged: (v) => onTempoRampChanged(
-                              tempoRamp.copyWith(stepBpm: v.round()),
-                            ),
+                            onChanged: (v) =>
+                                onTempoRampChanged(tempoRamp.copyWith(stepBpm: v.round())),
                           ),
                         ),
                       ],
@@ -974,9 +924,8 @@ class _SettingsSection extends StatelessWidget {
                             max: 16,
                             divisions: 15,
                             label: '${tempoRamp.everyBars}小節ごと',
-                            onChanged: (v) => onTempoRampChanged(
-                              tempoRamp.copyWith(everyBars: v.round()),
-                            ),
+                            onChanged: (v) =>
+                                onTempoRampChanged(tempoRamp.copyWith(everyBars: v.round())),
                           ),
                         ),
                       ],
@@ -992,10 +941,7 @@ class _SettingsSection extends StatelessWidget {
                             ),
                             min: 30,
                             max: 300,
-                            labels: RangeLabels(
-                              '${tempoRamp.minBpm}',
-                              '${tempoRamp.maxBpm}',
-                            ),
+                            labels: RangeLabels('${tempoRamp.minBpm}', '${tempoRamp.maxBpm}'),
                             onChanged: (v) => onTempoRampChanged(
                               tempoRamp.copyWith(
                                 minBpm: v.start.round(),
@@ -1008,10 +954,7 @@ class _SettingsSection extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text(
-                    'ループ（練習範囲）',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  Text('ループ（練習範囲）', style: Theme.of(context).textTheme.labelLarge),
                   const SizedBox(height: 6),
                   _LoopEditor(
                     startBar: loopStartBar,
@@ -1063,11 +1006,7 @@ class _RhythmGrid extends StatelessWidget {
                       onTap: () {
                         final slot = pattern.slotAt(b, s);
                         onChanged(
-                          pattern.withSlot(
-                            b,
-                            s,
-                            slot.copyWith(active: !slot.active),
-                          ),
+                          pattern.withSlot(b, s, slot.copyWith(active: !slot.active)),
                         );
                       },
                       onLongPress: () {
@@ -1075,9 +1014,7 @@ class _RhythmGrid extends StatelessWidget {
                         final next = slot.level == DynamicLevel.f
                             ? DynamicLevel.p
                             : slot.level.louder;
-                        onChanged(
-                          pattern.withSlot(b, s, slot.copyWith(level: next)),
-                        );
+                        onChanged(pattern.withSlot(b, s, slot.copyWith(level: next)));
                       },
                       child: Container(
                         width: 26,
@@ -1085,9 +1022,7 @@ class _RhythmGrid extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: pattern.slotAt(b, s).active
                               ? cs.primary.withValues(
-                                  alpha:
-                                      0.3 +
-                                      pattern.slotAt(b, s).level.gain * 0.7,
+                                  alpha: 0.3 + pattern.slotAt(b, s).level.gain * 0.7,
                                 )
                               : cs.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(6),
@@ -1138,11 +1073,7 @@ class _LoopEditorState extends State<_LoopEditor> {
     }
     final start = (int.tryParse(_startController.text) ?? 1) - 1;
     final end = (int.tryParse(_endController.text) ?? 16) - 1;
-    widget.onChanged(
-      start.clamp(0, 9999).toInt(),
-      end.clamp(start, 9999).toInt(),
-      widget.repeat,
-    );
+    widget.onChanged(start.clamp(0, 9999).toInt(), end.clamp(start, 9999).toInt(), widget.repeat);
   }
 
   @override
@@ -1222,8 +1153,7 @@ class _PresetList extends StatelessWidget {
                 subtitle: Text('${p.bpm} BPM・${p.timeSignature.display}'),
                 trailing: IconButton(
                   icon: Icon(Icons.delete_outline, color: cs.outline),
-                  onPressed: () =>
-                      MetronomePresetRepository(uid: uid).delete(p.id),
+                  onPressed: () => MetronomePresetRepository(uid: uid).delete(p.id),
                 ),
                 onTap: () => onLoad(p),
               ),

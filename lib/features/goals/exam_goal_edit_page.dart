@@ -144,9 +144,7 @@ class _ExamGoalEditPageState extends State<ExamGoalEditPage> {
       return setState(() => _error = '教科を1つ以上入力してください');
     }
     final nav = Navigator.of(context);
-    final repo = ExamGoalRepository(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-    );
+    final repo = ExamGoalRepository(uid: FirebaseAuth.instance.currentUser!.uid);
     await repo.save(
       ExamGoal(
         id: _g?.id,
@@ -163,8 +161,9 @@ class _ExamGoalEditPageState extends State<ExamGoalEditPage> {
 
   Future<void> _delete() async {
     final nav = Navigator.of(context);
-    await ExamGoalRepository(uid: FirebaseAuth.instance.currentUser!.uid)
-        .delete(_g!.id!);
+    await ExamGoalRepository(
+      uid: FirebaseAuth.instance.currentUser!.uid,
+    ).delete(_g!.id!);
     nav.pop();
   }
 
@@ -222,9 +221,7 @@ class _ExamGoalEditPageState extends State<ExamGoalEditPage> {
                   );
                   if (d != null) setState(() => _examDate = d);
                 },
-                child: Text(
-                  _examDate == null ? 'なし' : formatDateJa(_examDate!),
-                ),
+                child: Text(_examDate == null ? 'なし' : formatDateJa(_examDate!)),
               ),
               if (_examDate != null)
                 IconButton(
@@ -252,9 +249,7 @@ class _ExamGoalEditPageState extends State<ExamGoalEditPage> {
                     if (d != null) setState(() => _examEndDate = d);
                   },
                   child: Text(
-                    _examEndDate == null
-                        ? 'なし（1日だけ）'
-                        : formatDateJa(_examEndDate!),
+                    _examEndDate == null ? 'なし（1日だけ）' : formatDateJa(_examEndDate!),
                   ),
                 ),
                 if (_examEndDate != null)
@@ -424,10 +419,7 @@ class _SubjectCard extends StatelessWidget {
                     onSubmitted: (_) => onAddMaterial(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: onAddMaterial,
-                ),
+                IconButton(icon: const Icon(Icons.add), onPressed: onAddMaterial),
               ],
             ),
           ],

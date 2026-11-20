@@ -156,10 +156,7 @@ class _SpectrumTabState extends State<SpectrumTab> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  '表示する周波数の範囲',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
+                Text('表示する周波数の範囲', style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
@@ -192,15 +189,14 @@ class _SpectrumTabState extends State<SpectrumTab> {
                 : (candidateButUncertain
                       ? '検出不確実…'
                       : (_listening ? '（音を聞いています…）' : '—')),
-            style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         Center(
           child: Text(
-            _tracked == null
-                ? ' '
-                : '${_tracked!.frequency.toStringAsFixed(1)} Hz',
+            _tracked == null ? ' ' : '${_tracked!.frequency.toStringAsFixed(1)} Hz',
             style: TextStyle(color: cs.outline),
           ),
         ),
@@ -275,10 +271,7 @@ class _SpectrumPainter extends CustomPainter {
 
   void _label(Canvas canvas, String text, Offset at) {
     final tp = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(color: textColor, fontSize: 10),
-      ),
+      text: TextSpan(text: text, style: TextStyle(color: textColor, fontSize: 10)),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, at);
@@ -289,9 +282,7 @@ class _SpectrumPainter extends CustomPainter {
     // 横軸（Hz）の目盛り。範囲に応じて、きりのいい間隔にする。
     final step = maxDisplayFreq <= 500
         ? 100.0
-        : (maxDisplayFreq <= 1000
-              ? 200.0
-              : (maxDisplayFreq <= 2000 ? 500.0 : 1000.0));
+        : (maxDisplayFreq <= 1000 ? 200.0 : (maxDisplayFreq <= 2000 ? 500.0 : 1000.0));
     for (var f = 0.0; f <= maxDisplayFreq; f += step) {
       final x = size.width * f / maxDisplayFreq;
       canvas.drawLine(
@@ -308,10 +299,7 @@ class _SpectrumPainter extends CustomPainter {
     if (spec == null || spec.isEmpty) return;
 
     final binHz = sampleRate / (spec.length * 2);
-    final maxBin = (maxDisplayFreq / binHz)
-        .round()
-        .clamp(1, spec.length - 1)
-        .toInt();
+    final maxBin = (maxDisplayFreq / binHz).round().clamp(1, spec.length - 1).toInt();
     final maxMag = spec.take(maxBin).fold<double>(1, math.max);
 
     final barPaint = Paint()..color = barColor;
@@ -347,11 +335,7 @@ class _SpectrumPainter extends CustomPainter {
         ..color = color
         ..strokeWidth = 2;
       while (y < size.height - 18) {
-        canvas.drawLine(
-          Offset(x, y),
-          Offset(x, math.min(y + dashHeight, size.height - 18)),
-          paint,
-        );
+        canvas.drawLine(Offset(x, y), Offset(x, math.min(y + dashHeight, size.height - 18)), paint);
         y += dashHeight + gapHeight;
       }
       _label(canvas, label, Offset(x + 3, 2));

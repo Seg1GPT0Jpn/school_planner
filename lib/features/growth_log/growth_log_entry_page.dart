@@ -74,7 +74,9 @@ class _GrowthLogEntryPageState extends State<GrowthLogEntryPage> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _title = TextEditingController(text: e?.title ?? widget.initialTitle ?? '');
+    _title = TextEditingController(
+      text: e?.title ?? widget.initialTitle ?? '',
+    );
     _date = e?.date ?? widget.initialDate ?? DateTime.now();
     _minutes = TextEditingController(
       text: '${e?.minutes ?? widget.initialMinutes ?? 0}',
@@ -254,8 +256,9 @@ class _GrowthLogEntryPageState extends State<GrowthLogEntryPage> {
                         (_rating ?? 0) >= i ? Icons.star : Icons.star_border,
                         color: cs.primary,
                       ),
-                      onPressed: () =>
-                          setState(() => _rating = _rating == i ? null : i),
+                      onPressed: () => setState(
+                        () => _rating = _rating == i ? null : i,
+                      ),
                     ),
                 ],
               ),

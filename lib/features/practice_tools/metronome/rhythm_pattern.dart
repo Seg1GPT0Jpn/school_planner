@@ -19,11 +19,8 @@ class RhythmSlot {
 
 /// 1小節ぶんのリズムパターン。[beats] × [subdivision] のマス目。
 class RhythmPattern {
-  RhythmPattern({
-    required this.beats,
-    required this.subdivision,
-    List<List<RhythmSlot>>? grid,
-  }) : grid = grid ?? _defaultGrid(beats, subdivision);
+  RhythmPattern({required this.beats, required this.subdivision, List<List<RhythmSlot>>? grid})
+    : grid = grid ?? _defaultGrid(beats, subdivision);
 
   final int beats;
 
@@ -57,17 +54,12 @@ class RhythmPattern {
 
   /// 拍ごとの強弱プリセットを適用した、新しいパターンを作る
   /// （メインの拍＝スロット0だけに、[preset] の強弱を反映する）
-  RhythmPattern withAccentPreset(
-    AccentPreset preset, {
-    required bool Function(int) isGroupStart,
-  }) {
+  RhythmPattern withAccentPreset(AccentPreset preset, {required bool Function(int) isGroupStart}) {
     final newGrid = [
       for (var b = 0; b < grid.length; b++)
         [
           for (var s = 0; s < grid[b].length; s++)
-            s == 0
-                ? grid[b][s].copyWith(level: preset.levelFor(b))
-                : grid[b][s],
+            s == 0 ? grid[b][s].copyWith(level: preset.levelFor(b)) : grid[b][s],
         ],
     ];
     return RhythmPattern(beats: beats, subdivision: subdivision, grid: newGrid);
@@ -84,11 +76,7 @@ class RhythmPattern {
                 : RhythmSlot(active: false, level: DynamicLevel.p),
         ],
     ];
-    return RhythmPattern(
-      beats: beats,
-      subdivision: newSubdivision,
-      grid: newGrid,
-    );
+    return RhythmPattern(beats: beats, subdivision: newSubdivision, grid: newGrid);
   }
 
   /// [newBeats] に合わせて、新しいパターンを作り直す
@@ -97,10 +85,6 @@ class RhythmPattern {
       for (var b = 0; b < newBeats; b++)
         b < grid.length ? grid[b] : _defaultGrid(1, subdivision).first,
     ];
-    return RhythmPattern(
-      beats: newBeats,
-      subdivision: subdivision,
-      grid: newGrid,
-    );
+    return RhythmPattern(beats: newBeats, subdivision: subdivision, grid: newGrid);
   }
 }

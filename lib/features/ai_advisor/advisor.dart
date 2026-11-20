@@ -10,15 +10,7 @@ import '../todo/todo.dart';
 import '../workload/workload.dart';
 
 /// アドバイスの種類（アイコン・色を出しわけるのに使う）
-enum AdvisorKind {
-  workload,
-  examSoon,
-  todoOverdue,
-  streak,
-  streakBroken,
-  mood,
-  allGood,
-}
+enum AdvisorKind { workload, examSoon, todoOverdue, streak, streakBroken, mood, allGood }
 
 /// アドバイスの調子（前向き・注意・ふつう）
 enum AdvisorTone { praise, notice, tip }
@@ -117,7 +109,9 @@ List<AdvisorTip> computeAdvisorTips({
   }
 
   // ⑤ 気分の記録（つらそうな日が続いていないか）
-  final negativeMoods = recentMoods.where((m) => m == '😣' || m == '😫').length;
+  final negativeMoods = recentMoods
+      .where((m) => m == '😣' || m == '😫')
+      .length;
   if (negativeMoods >= 3) {
     tips.add(
       const AdvisorTip(

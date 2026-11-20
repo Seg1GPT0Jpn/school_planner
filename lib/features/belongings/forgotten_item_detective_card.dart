@@ -121,7 +121,9 @@ class _ForgottenItemDetectiveCardState
                         subtitle: Text(
                           _agoLabel(last[x]),
                           style: TextStyle(
-                            color: warnings.contains(x) ? cs.error : cs.outline,
+                            color: warnings.contains(x)
+                                ? cs.error
+                                : cs.outline,
                             fontSize: 12,
                           ),
                         ),

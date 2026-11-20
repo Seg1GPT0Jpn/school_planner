@@ -126,8 +126,7 @@ class GrowthLogHistoryPage extends StatelessWidget {
                                           horizontal: 2,
                                         ),
                                         child: Tooltip(
-                                          message:
-                                              '${hm(e.minutes)}'
+                                          message: '${hm(e.minutes)}'
                                               '（${s.date(e.date)}）',
                                           child: FractionallySizedBox(
                                             heightFactor:

@@ -86,7 +86,10 @@ class _IntroPageState extends State<IntroPage>
                 animation: _button,
                 builder: (context, _) => Opacity(
                   opacity: _button.value,
-                  child: TextButton(onPressed: _go, child: const Text('スキップ')),
+                  child: TextButton(
+                    onPressed: _go,
+                    child: const Text('スキップ'),
+                  ),
                 ),
               ),
             ),
@@ -189,30 +192,14 @@ class _BackgroundCards extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => Stack(
         children: [
-          bar(
-            constraints.maxWidth * 0.55,
-            constraints.maxHeight * 0.14,
-            -constraints.maxWidth * 0.15,
-            0.08,
-          ),
-          bar(
-            constraints.maxWidth * 0.45,
-            constraints.maxHeight * 0.24,
-            constraints.maxWidth * 0.6,
-            0.06,
-          ),
-          bar(
-            constraints.maxWidth * 0.5,
-            constraints.maxHeight * 0.78,
-            constraints.maxWidth * 0.55,
-            0.07,
-          ),
-          bar(
-            constraints.maxWidth * 0.4,
-            constraints.maxHeight * 0.86,
-            -constraints.maxWidth * 0.1,
-            0.05,
-          ),
+          bar(constraints.maxWidth * 0.55, constraints.maxHeight * 0.14,
+              -constraints.maxWidth * 0.15, 0.08),
+          bar(constraints.maxWidth * 0.45, constraints.maxHeight * 0.24,
+              constraints.maxWidth * 0.6, 0.06),
+          bar(constraints.maxWidth * 0.5, constraints.maxHeight * 0.78,
+              constraints.maxWidth * 0.55, 0.07),
+          bar(constraints.maxWidth * 0.4, constraints.maxHeight * 0.86,
+              -constraints.maxWidth * 0.1, 0.05),
         ],
       ),
     );

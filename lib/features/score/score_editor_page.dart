@@ -152,8 +152,9 @@ class _ScoreEditorPageState extends State<ScoreEditorPage> {
         _score = _score.copyWith(id: id);
         _dirty = false;
       });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('保存しました')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('保存しました')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -248,23 +249,20 @@ class _ScoreEditorPageState extends State<ScoreEditorPage> {
 
   void _onPitchTap(int step) {
     setState(() => _pendingStep = step);
-    _applyToSelected(
-      (old) => old.isRest ? old : old.copyWith(pitches: [_pendingPitch]),
-    );
+    _applyToSelected((old) =>
+        old.isRest ? old : old.copyWith(pitches: [_pendingPitch]));
   }
 
   void _shiftOctave(int delta) {
     setState(() => _pendingOctave = (_pendingOctave + delta).clamp(0, 8));
-    _applyToSelected(
-      (old) => old.isRest ? old : old.copyWith(pitches: [_pendingPitch]),
-    );
+    _applyToSelected((old) =>
+        old.isRest ? old : old.copyWith(pitches: [_pendingPitch]));
   }
 
   void _setAlter(int alter) {
     setState(() => _pendingAlter = alter);
-    _applyToSelected(
-      (old) => old.isRest ? old : old.copyWith(pitches: [_pendingPitch]),
-    );
+    _applyToSelected((old) =>
+        old.isRest ? old : old.copyWith(pitches: [_pendingPitch]));
   }
 
   void _onDurationTap(NoteDurationBase base) {
@@ -288,10 +286,8 @@ class _ScoreEditorPageState extends State<ScoreEditorPage> {
     if (sel.$2 >= measure.notes.length) return;
     final updated = f(measure.notes[sel.$2]);
     _updatePart(
-      (p) => p.withMeasureReplacedAt(
-        sel.$1,
-        measure.withNoteReplacedAt(sel.$2, updated),
-      ),
+      (p) =>
+          p.withMeasureReplacedAt(sel.$1, measure.withNoteReplacedAt(sel.$2, updated)),
     );
   }
 
@@ -670,9 +666,7 @@ class _ScoreEditorPageState extends State<ScoreEditorPage> {
                     ? Icons.stop
                     : Icons.play_arrow,
               ),
-              tooltip: (_player.isPlaying && !_playingAll)
-                  ? '止める'
-                  : '再生（このパート）',
+              tooltip: (_player.isPlaying && !_playingAll) ? '止める' : '再生（このパート）',
               onPressed: _togglePlay,
             ),
             IconButton(

@@ -7,7 +7,11 @@ import '../settings/app_settings.dart';
 import 'workload.dart';
 
 class WorkloadCard extends StatelessWidget {
-  const WorkloadCard({super.key, required this.week, required this.settings});
+  const WorkloadCard({
+    super.key,
+    required this.week,
+    required this.settings,
+  });
 
   final List<DayLoad> week;
   final AppSettings settings;
@@ -55,10 +59,7 @@ class WorkloadCard extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               if (d.testCount > 0)
-                                const Text(
-                                  '📝',
-                                  style: TextStyle(fontSize: 11),
-                                ),
+                                const Text('📝', style: TextStyle(fontSize: 11)),
                               Expanded(
                                 child: FractionallySizedBox(
                                   heightFactor: d.busyMinutes == 0

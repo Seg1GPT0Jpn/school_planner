@@ -92,7 +92,9 @@ class _PianoTabState extends State<PianoTab> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text('鍵盤をタップすると音が鳴ります。音取りやピッチ確認、和音の響きの確認に使えます。'),
+              const Text(
+                '鍵盤をタップすると音が鳴ります。音取りやピッチ確認、和音の響きの確認に使えます。',
+              ),
               const SizedBox(height: 12),
               Card(
                 margin: EdgeInsets.zero,
@@ -116,28 +118,21 @@ class _PianoTabState extends State<PianoTab> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        '表示する音域',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
+                      Text('表示する音域', style: Theme.of(context).textTheme.labelLarge),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           const Text('低音側　'),
                           IconButton(
                             onPressed: () => setState(
-                              () => _octaveStart = (_octaveStart - 1)
-                                  .clamp(0, 7)
-                                  .toInt(),
+                              () => _octaveStart = (_octaveStart - 1).clamp(0, 7).toInt(),
                             ),
                             icon: const Icon(Icons.remove_circle_outline),
                           ),
                           Text('C$_octaveStart〜'),
                           IconButton(
                             onPressed: () => setState(
-                              () => _octaveStart = (_octaveStart + 1)
-                                  .clamp(0, 7)
-                                  .toInt(),
+                              () => _octaveStart = (_octaveStart + 1).clamp(0, 7).toInt(),
                             ),
                             icon: const Icon(Icons.add_circle_outline),
                           ),
@@ -149,8 +144,7 @@ class _PianoTabState extends State<PianoTab> {
                                 ChoiceChip(
                                   label: Text('$n オクターブ'),
                                   selected: _octaveCount == n,
-                                  onSelected: (_) =>
-                                      setState(() => _octaveCount = n),
+                                  onSelected: (_) => setState(() => _octaveCount = n),
                                 ),
                             ],
                           ),
@@ -165,25 +159,18 @@ class _PianoTabState extends State<PianoTab> {
                       ),
                       Row(
                         children: [
-                          Text(
-                            '基準音　',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
+                          Text('基準音　', style: Theme.of(context).textTheme.labelLarge),
                           Text('${_referenceHz.toStringAsFixed(0)} Hz'),
                           const Spacer(),
                           IconButton(
                             onPressed: () => setState(
-                              () => _referenceHz = (_referenceHz - 1)
-                                  .clamp(415, 466)
-                                  .toDouble(),
+                              () => _referenceHz = (_referenceHz - 1).clamp(415, 466).toDouble(),
                             ),
                             icon: const Icon(Icons.remove_circle_outline),
                           ),
                           IconButton(
                             onPressed: () => setState(
-                              () => _referenceHz = (_referenceHz + 1)
-                                  .clamp(415, 466)
-                                  .toDouble(),
+                              () => _referenceHz = (_referenceHz + 1).clamp(415, 466).toDouble(),
                             ),
                             icon: const Icon(Icons.add_circle_outline),
                           ),
@@ -239,9 +226,7 @@ class _PianoTabState extends State<PianoTab> {
             decoration: BoxDecoration(
               color: isPressed ? cs.primaryContainer : Colors.white,
               border: Border.all(color: cs.outlineVariant),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(4),
-              ),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
             ),
             alignment: Alignment.bottomCenter,
             padding: const EdgeInsets.only(bottom: 6),
@@ -280,9 +265,7 @@ class _PianoTabState extends State<PianoTab> {
           child: Container(
             decoration: BoxDecoration(
               color: isPressed ? cs.primary : Colors.black87,
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(3),
-              ),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
             ),
             alignment: Alignment.bottomCenter,
             padding: const EdgeInsets.only(bottom: 4),

@@ -7,14 +7,9 @@ import '../review/review_widgets.dart';
 import 'birthday.dart';
 import 'birthday_repository.dart';
 
-void openBirthdays(
-  BuildContext context, {
-  required BirthdayRepository repository,
-}) {
+void openBirthdays(BuildContext context, {required BirthdayRepository repository}) {
   Navigator.of(context, rootNavigator: true).push(
-    MaterialPageRoute<void>(
-      builder: (_) => BirthdaysPage(repository: repository),
-    ),
+    MaterialPageRoute<void>(builder: (_) => BirthdaysPage(repository: repository)),
   );
 }
 
@@ -31,10 +26,8 @@ class _BirthdaysPageState extends State<BirthdaysPage> {
   Future<void> _openEditor([Birthday? existing]) async {
     await showDialog<void>(
       context: context,
-      builder: (_) => _BirthdayEditDialog(
-        repository: widget.repository,
-        existing: existing,
-      ),
+      builder: (_) =>
+          _BirthdayEditDialog(repository: widget.repository, existing: existing),
     );
   }
 
@@ -74,9 +67,7 @@ class _BirthdaysPageState extends State<BirthdaysPage> {
         stream: widget.repository.watch(),
         builder: (context, snapshot) {
           final items = [...?snapshot.data]
-            ..sort(
-              (a, b) => a.daysUntilNext(now).compareTo(b.daysUntilNext(now)),
-            );
+            ..sort((a, b) => a.daysUntilNext(now).compareTo(b.daysUntilNext(now)));
           if (items.isEmpty) {
             return const Center(child: Faint('まだ誕生日が登録されていません'));
           }

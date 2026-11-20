@@ -56,7 +56,11 @@ class TimingSample {
 }
 
 class MetronomeEngine {
-  MetronomeEngine({required this.onBeat, this.onStop, this.onSample});
+  MetronomeEngine({
+    required this.onBeat,
+    this.onStop,
+    this.onSample,
+  });
 
   final void Function(BeatEvent event) onBeat;
   final void Function()? onStop;
@@ -148,11 +152,7 @@ class MetronomeEngine {
 
   int _bpmForBar(int barIndex) {
     if (tempoRamp.mode == TempoRampMode.off) return startBpm;
-    return tempoRamp.bpmAfter(
-      startBpm,
-      barIndex + _barOffset,
-      bounceDirectionUp: _bounceUp,
-    );
+    return tempoRamp.bpmAfter(startBpm, barIndex + _barOffset, bounceDirectionUp: _bounceUp);
   }
 
   void _tick() {
@@ -188,11 +188,8 @@ class MetronomeEngine {
     final bpmNow = isCountIn ? startBpm : _bpmForBar(barIndexFromCountIn);
 
     // 往復モードの折り返し判定（1小節ごとに一度だけ更新）
-    if (!isCountIn &&
-        beatIndex == 0 &&
-        slotIndex == 0 &&
-        tempoRamp.mode == TempoRampMode.bounce &&
-        tempoRamp.everyBars > 0) {
+    if (!isCountIn && beatIndex == 0 && slotIndex == 0 &&
+        tempoRamp.mode == TempoRampMode.bounce && tempoRamp.everyBars > 0) {
       final cycle = (trueBar ~/ tempoRamp.everyBars);
       _bounceUp = cycle.isEven;
     }
@@ -217,10 +214,7 @@ class MetronomeEngine {
 
     final slot = isCountIn
         ? const RhythmSlot(active: true, level: DynamicLevel.mp)
-        : pattern.slotAt(
-            beatIndex,
-            slotIndex.clamp(0, pattern.subdivision - 1).toInt(),
-          );
+        : pattern.slotAt(beatIndex, slotIndex.clamp(0, pattern.subdivision - 1).toInt());
 
     if (!slot.active) return;
 

@@ -651,9 +651,7 @@ class _NowCard extends StatelessWidget {
                   Icons.blur_on,
                   '大気質',
                   c?.usAqi == null ? '—' : '${c!.usAqi}',
-                  usAqiOf(c?.usAqi).label == '—'
-                      ? null
-                      : usAqiOf(c?.usAqi).label,
+                  usAqiOf(c?.usAqi).label == '—' ? null : usAqiOf(c?.usAqi).label,
                 ),
               ],
             ),
