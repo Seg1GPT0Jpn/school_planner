@@ -107,17 +107,17 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
                       ),
                       onPressed: due.isEmpty
                           ? null
-                          : () => Navigator.of(context, rootNavigator: true)
-                              .push(
-                                MaterialPageRoute<void>(
-                                  fullscreenDialog: true,
-                                  builder: (_) => StudySessionPage(
-                                    repository: widget.repository,
-                                    deckId: widget.deck.id!,
-                                    cards: due,
+                          : () =>
+                                Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute<void>(
+                                    fullscreenDialog: true,
+                                    builder: (_) => StudySessionPage(
+                                      repository: widget.repository,
+                                      deckId: widget.deck.id!,
+                                      cards: due,
+                                    ),
                                   ),
                                 ),
-                              ),
                     ),
                   ),
                   Expanded(

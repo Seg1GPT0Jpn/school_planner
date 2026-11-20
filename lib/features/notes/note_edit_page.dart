@@ -54,7 +54,9 @@ class _NoteEditPageState extends State<NoteEditPage> {
     final titleEmpty = _titleCtrl.text.trim().isEmpty;
     if (_id == null && bodyEmpty && titleEmpty) return; // 空メモは作らない
 
-    final title = titleEmpty ? titleFromBody(_bodyCtrl.text) : _titleCtrl.text.trim();
+    final title = titleEmpty
+        ? titleFromBody(_bodyCtrl.text)
+        : _titleCtrl.text.trim();
     if (_id == null) {
       _id = await widget.repository.add(
         title: title,
@@ -95,7 +97,9 @@ class _NoteEditPageState extends State<NoteEditPage> {
     final newText = text.replaceRange(start, end, '$before$selected$after');
     _bodyCtrl.value = TextEditingValue(
       text: newText,
-      selection: TextSelection.collapsed(offset: start + before.length + selected.length),
+      selection: TextSelection.collapsed(
+        offset: start + before.length + selected.length,
+      ),
     );
     _scheduleSave();
   }
@@ -105,7 +109,8 @@ class _NoteEditPageState extends State<NoteEditPage> {
     final sel = _bodyCtrl.selection;
     final pos = (sel.start < 0 ? text.length : sel.start).clamp(0, text.length);
     final lineStart = text.lastIndexOf('\n', pos - 1) + 1;
-    final newText = text.substring(0, lineStart) + prefix + text.substring(lineStart);
+    final newText =
+        text.substring(0, lineStart) + prefix + text.substring(lineStart);
     _bodyCtrl.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: pos + prefix.length),
@@ -130,8 +135,14 @@ class _NoteEditPageState extends State<NoteEditPage> {
       builder: (c) => AlertDialog(
         title: const Text('このメモを削除しますか？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('やめる')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('削除')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('やめる'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('削除'),
+          ),
         ],
       ),
     );
@@ -175,7 +186,10 @@ class _NoteEditPageState extends State<NoteEditPage> {
         title: const Text('タグを追加'),
         content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('やめる')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('やめる'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
             child: const Text('追加'),
@@ -205,7 +219,9 @@ class _NoteEditPageState extends State<NoteEditPage> {
             },
           ),
           IconButton(
-            icon: Icon(_preview ? Icons.edit_outlined : Icons.visibility_outlined),
+            icon: Icon(
+              _preview ? Icons.edit_outlined : Icons.visibility_outlined,
+            ),
             tooltip: _preview ? '編集する' : 'プレビュー',
             onPressed: () => setState(() => _preview = !_preview),
           ),
@@ -228,7 +244,10 @@ class _NoteEditPageState extends State<NoteEditPage> {
           children: [
             TextField(
               controller: _titleCtrl,
-              decoration: const InputDecoration(hintText: 'タイトル', border: InputBorder.none),
+              decoration: const InputDecoration(
+                hintText: 'タイトル',
+                border: InputBorder.none,
+              ),
               style: Theme.of(context).textTheme.titleLarge,
               onChanged: (_) => _scheduleSave(),
             ),
@@ -242,7 +261,12 @@ class _NoteEditPageState extends State<NoteEditPage> {
                     label: Text(t, style: const TextStyle(fontSize: 12)),
                     visualDensity: VisualDensity.compact,
                     onDeleted: () {
-                      setState(() => _tags = [for (final x in _tags) if (x != t) x]);
+                      setState(
+                        () => _tags = [
+                          for (final x in _tags)
+                            if (x != t) x,
+                        ],
+                      );
                       _scheduleSave();
                     },
                   ),
@@ -283,7 +307,10 @@ class _NoteEditPageState extends State<NoteEditPage> {
             Expanded(
               child: _preview
                   ? SingleChildScrollView(
-                      child: MiniMarkdownView(text: _bodyCtrl.text, onToggleCheck: _toggleCheck),
+                      child: MiniMarkdownView(
+                        text: _bodyCtrl.text,
+                        onToggleCheck: _toggleCheck,
+                      ),
                     )
                   : TextField(
                       controller: _bodyCtrl,

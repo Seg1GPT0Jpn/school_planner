@@ -73,7 +73,9 @@ List<PatternSuggestion> detectPatternSuggestions({
   final suggestions = <PatternSuggestion>[];
   for (final list in groups.values) {
     // 同じ週に何度あっても1回として数える（毎週かどうかを見たいので）
-    final weeks = <int>{for (final e in list) _day(e.start).difference(since).inDays ~/ 7};
+    final weeks = <int>{
+      for (final e in list) _day(e.start).difference(since).inDays ~/ 7,
+    };
     if (weeks.length < minOccurrences) continue;
 
     list.sort((a, b) => a.start.compareTo(b.start));

@@ -85,9 +85,8 @@ class _GroupsHubPageState extends State<GroupsHubPage> {
     final group = await _repository.joinByCode(code);
     if (!mounted) return;
     if (group == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('そのコードのグループは見つかりませんでした')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('そのコードのグループは見つかりませんでした')));
       return;
     }
     openGroupDetail(context, groupId: group.id);

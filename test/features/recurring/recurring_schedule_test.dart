@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:school_planner/features/recurring/recurring_repository.dart';
 import 'package:school_planner/features/recurring/recurring_schedule.dart';
 import 'package:school_planner/features/timetable/school_periods.dart';
 
@@ -55,5 +56,26 @@ void main() {
       end: ClockTime(20, 0),
     );
     expect(s.validate(), isNotNull);
+  });
+
+  test('ミニテストなしの日は保存して読みなおしても残る', () {
+    final s = RecurringSchedule(
+      id: 'e',
+      title: '塾 英語',
+      weekday: DateTime.friday,
+      start: ClockTime(19, 40),
+      end: ClockTime(21, 40),
+      testSkippedDates: const {'2026-10-09', '2026-10-02'},
+      test: const RecurringTestConfig(title: 'EEVI'),
+    );
+    final m = RecurringRepository.toMap(s);
+    expect(m['testSkippedDates'], ['2026-10-02', '2026-10-09']);
+    final back = RecurringRepository.fromMap('e', m);
+    expect(back.testSkippedDates, {'2026-10-02', '2026-10-09'});
+    expect(back.testOn(DateTime(2026, 10, 2)), isFalse);
+    expect(back.testOn(DateTime(2026, 10, 16)), isTrue);
+    // 古いデータ（項目がない）は、なしの日なし
+    m.remove('testSkippedDates');
+    expect(RecurringRepository.fromMap('e', m).testSkippedDates, isEmpty);
   });
 }

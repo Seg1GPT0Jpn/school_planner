@@ -53,15 +53,14 @@ class _WhatIfPageState extends State<WhatIfPage> {
           final all = snap.data!;
           final today = DateTime(_day.year, _day.month, _day.day);
 
-          final dayEvents =
-              [
-                for (final e in all)
-                  if (!e.isAllDay &&
-                      !e.isTravelEvent &&
-                      e.id != null &&
-                      e.occursOn(today))
-                    e,
-              ]..sort((a, b) => a.start.compareTo(b.start));
+          final dayEvents = [
+            for (final e in all)
+              if (!e.isAllDay &&
+                  !e.isTravelEvent &&
+                  e.id != null &&
+                  e.occursOn(today))
+                e,
+          ]..sort((a, b) => a.start.compareTo(b.start));
 
           CalendarEvent? selected;
           for (final e in dayEvents) {
@@ -120,9 +119,7 @@ class _WhatIfPageState extends State<WhatIfPage> {
                           contentPadding: EdgeInsets.zero,
                           value: e.id!,
                           title: Text(e.title),
-                          subtitle: Text(
-                            '${_time(e.start)}〜${_time(e.end)}',
-                          ),
+                          subtitle: Text('${_time(e.start)}〜${_time(e.end)}'),
                         ),
                     ],
                   ),

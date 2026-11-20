@@ -71,8 +71,10 @@ class _RecoveryModePageState extends State<RecoveryModePage> {
   }
 
   /// 組みなおしの対象（基準の時刻より後に始まる予定）
-  List<CalendarEvent> get _targets =>
-      [for (final e in _dayEvents) if (!e.start.isBefore(_after)) e];
+  List<CalendarEvent> get _targets => [
+    for (final e in _dayEvents)
+      if (!e.start.isBefore(_after)) e,
+  ];
 
   /// もとの予定に自動でついている「移動」の予定（あれば）
   CalendarEvent? _travelFor(CalendarEvent e) {
@@ -119,15 +121,13 @@ class _RecoveryModePageState extends State<RecoveryModePage> {
       }
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$count件の予定を組みなおしました')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$count件の予定を組みなおしました')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('うまくいきませんでした：$e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('うまくいきませんでした：$e')));
       }
     } finally {
       if (mounted) setState(() => _applying = false);
@@ -203,8 +203,7 @@ class _RecoveryModePageState extends State<RecoveryModePage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: () =>
-                              setState(() => _shiftMinutes -= 5),
+                          onPressed: () => setState(() => _shiftMinutes -= 5),
                         ),
                         Text(
                           _shiftMinutes == 0
@@ -216,16 +215,12 @@ class _RecoveryModePageState extends State<RecoveryModePage> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline),
-                          onPressed: () =>
-                              setState(() => _shiftMinutes += 5),
+                          onPressed: () => setState(() => _shiftMinutes += 5),
                         ),
                       ],
                     ),
                     const Divider(height: 24),
-                    Text(
-                      '対象の予定（${targets.length}件）',
-                      style: tt.labelLarge,
-                    ),
+                    Text('対象の予定（${targets.length}件）', style: tt.labelLarge),
                     const SizedBox(height: 4),
                     if (targets.isEmpty)
                       Padding(

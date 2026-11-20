@@ -58,12 +58,15 @@ class NoteDuration {
     tupletRatio: (m['tupletRatio'] as num?)?.toDouble() ?? 1.0,
   );
 
-  NoteDuration copyWith({NoteDurationBase? base, int? dots, double? tupletRatio}) =>
-      NoteDuration(
-        base ?? this.base,
-        dots: dots ?? this.dots,
-        tupletRatio: tupletRatio ?? this.tupletRatio,
-      );
+  NoteDuration copyWith({
+    NoteDurationBase? base,
+    int? dots,
+    double? tupletRatio,
+  }) => NoteDuration(
+    base ?? this.base,
+    dots: dots ?? this.dots,
+    tupletRatio: tupletRatio ?? this.tupletRatio,
+  );
 
   @override
   bool operator ==(Object other) =>

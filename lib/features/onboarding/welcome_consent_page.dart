@@ -48,8 +48,7 @@ class _WelcomeConsentPageState extends State<WelcomeConsentPage> {
                 Card(
                   child: CheckboxListTile(
                     value: _agreedTerms,
-                    onChanged: (v) =>
-                        setState(() => _agreedTerms = v ?? false),
+                    onChanged: (v) => setState(() => _agreedTerms = v ?? false),
                     title: const Text('利用規約に同意する'),
                     subtitle: InkWell(
                       onTap: () => launchUrl(

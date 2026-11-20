@@ -14,7 +14,20 @@ import 'package:material_ui/material_ui.dart';
 import 'music_theory.dart';
 import 'tone_synth.dart';
 
-const _notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const _notes = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+];
 
 const _intervalNames = [
   '主音',
@@ -181,11 +194,15 @@ class _DroneTabState extends State<DroneTab> {
     Center(
       child: Text(
         '$_note$_octave',
-        style: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.displayMedium
+            ?.copyWith(fontWeight: FontWeight.bold),
       ),
     ),
     Center(
-      child: Text('${_freq.toStringAsFixed(1)} Hz', style: TextStyle(color: cs.outline)),
+      child: Text(
+        '${_freq.toStringAsFixed(1)} Hz',
+        style: TextStyle(color: cs.outline),
+      ),
     ),
     const SizedBox(height: 20),
     Wrap(
@@ -352,8 +369,10 @@ class _DroneTabState extends State<DroneTab> {
       ),
       const SizedBox(height: 16),
       if (sorted.length >= 2) ...[
-        Text('和音チューニング比較（主音：${noteNameFor(rootPc, NotationSystem.english)}）',
-            style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          '和音チューニング比較（主音：${noteNameFor(rootPc, NotationSystem.english)}）',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         const SizedBox(height: 6),
         Card(
           margin: EdgeInsets.zero,
@@ -388,9 +407,14 @@ class _DroneTabState extends State<DroneTab> {
       child: Row(
         children: [
           SizedBox(width: 90, child: Text(_intervalNames[idx])),
-          SizedBox(width: 40, child: Text(noteNameFor(pc, NotationSystem.english))),
+          SizedBox(
+            width: 40,
+            child: Text(noteNameFor(pc, NotationSystem.english)),
+          ),
           Text(
-            idx == 0 ? '±0¢' : '${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(1)}¢',
+            idx == 0
+                ? '±0¢'
+                : '${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(1)}¢',
             style: TextStyle(
               color: idx == 0 ? cs.outline : cs.primary,
               fontWeight: FontWeight.bold,

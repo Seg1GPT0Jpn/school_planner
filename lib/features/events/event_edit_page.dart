@@ -91,9 +91,7 @@ class _EventEditPageState extends State<EventEditPage> {
     _tags = List<String>.from(e?.tags ?? const []);
     _mood = e?.mood;
     _categoryStream = widget.categoryRepository.watch();
-    _growthLogRepository = GrowthLogRepository(
-      uid: widget.repository.uid,
-    );
+    _growthLogRepository = GrowthLogRepository(uid: widget.repository.uid);
     _categorySub = _categoryStream.listen((v) {
       if (mounted) setState(() => _categories = v);
     });
@@ -564,31 +562,30 @@ class _EventEditPageState extends State<EventEditPage> {
 
               // 気分（任意・選ぶだけ。設定でOFFにできる）
               if (_settings.moodTrackingEnabled) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text('気分', style: Theme.of(context).textTheme.labelLarge),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      for (final m in eventMoods)
-                        IconButton(
-                          isSelected: _mood == m,
-                          style: IconButton.styleFrom(
-                            backgroundColor: _mood == m
-                                ? colorScheme.secondaryContainer
-                                : null,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text('気分', style: Theme.of(context).textTheme.labelLarge),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        for (final m in eventMoods)
+                          IconButton(
+                            isSelected: _mood == m,
+                            style: IconButton.styleFrom(
+                              backgroundColor: _mood == m
+                                  ? colorScheme.secondaryContainer
+                                  : null,
+                            ),
+                            onPressed: () =>
+                                setState(() => _mood = _mood == m ? null : m),
+                            icon: Text(m, style: const TextStyle(fontSize: 18)),
                           ),
-                          onPressed: () => setState(
-                            () => _mood = _mood == m ? null : m,
-                          ),
-                          icon: Text(m, style: const TextStyle(fontSize: 18)),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-              const Divider(),
+                      ],
+                    ),
+                  ],
+                ),
+                const Divider(),
               ],
 
               // 場所（右のボタンで Google マップを開く）

@@ -192,9 +192,7 @@ class _AlarmEditPageState extends State<AlarmEditPage> {
       bedtimeLinked: widget.alarm?.bedtimeLinked ?? false,
     );
     final nav = Navigator.of(context);
-    await AlarmRepository(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-    ).save(a);
+    await AlarmRepository(uid: FirebaseAuth.instance.currentUser!.uid).save(a);
     await rescheduleAlarms();
     nav.pop();
   }
@@ -202,7 +200,8 @@ class _AlarmEditPageState extends State<AlarmEditPage> {
   Future<void> _delete() async {
     final nav = Navigator.of(context);
     final id = widget.alarm!.id!;
-    await AlarmRepository(uid: FirebaseAuth.instance.currentUser!.uid).delete(id);
+    await AlarmRepository(uid: FirebaseAuth.instance.currentUser!.uid)
+        .delete(id);
     await NotificationService.instance.cancelAlarm(id);
     nav.pop();
   }
@@ -299,7 +298,10 @@ class _AlarmEditPageState extends State<AlarmEditPage> {
             leading: const Icon(Icons.music_note_outlined),
             title: Text(_soundName ?? '音が選ばれていません'),
             subtitle: const Text('デバイスの音楽・音声ファイルから選べます'),
-            trailing: TextButton(onPressed: _pickSound, child: const Text('選ぶ')),
+            trailing: TextButton(
+              onPressed: _pickSound,
+              child: const Text('選ぶ'),
+            ),
           ),
           Row(
             children: [

@@ -114,9 +114,8 @@ class _QuickAddSchedulePageState extends State<QuickAddSchedulePage> {
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('タイトルを入力してください')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('タイトルを入力してください')));
       return;
     }
 
@@ -133,8 +132,7 @@ class _QuickAddSchedulePageState extends State<QuickAddSchedulePage> {
         _start!.hour,
         _start!.minute,
       );
-      final e =
-          _end ?? TimeOfDayValue((_start!.hour + 1) % 24, _start!.minute);
+      final e = _end ?? TimeOfDayValue((_start!.hour + 1) % 24, _start!.minute);
       end = DateTime(_date.year, _date.month, _date.day, e.hour, e.minute);
       if (!end.isAfter(start)) {
         end = start.add(const Duration(hours: 1));
@@ -149,9 +147,8 @@ class _QuickAddSchedulePageState extends State<QuickAddSchedulePage> {
     );
     final problem = event.validate();
     if (problem != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(problem)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
 
@@ -162,9 +159,8 @@ class _QuickAddSchedulePageState extends State<QuickAddSchedulePage> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
       }
     }
   }

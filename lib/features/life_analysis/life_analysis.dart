@@ -65,7 +65,8 @@ class MonthlyStats {
   int? get busiestWeekday {
     var best = -1;
     for (var i = 0; i < weekdayCounts.length; i++) {
-      if (weekdayCounts[i] > 0 && (best == -1 || weekdayCounts[i] > weekdayCounts[best])) {
+      if (weekdayCounts[i] > 0 &&
+          (best == -1 || weekdayCounts[i] > weekdayCounts[best])) {
         best = i;
       }
     }
@@ -112,7 +113,11 @@ MonthlyStats computeMonthlyStats({
   final weekdayCounts = List<int>.filled(7, 0);
   final weekTotals = <int>[];
 
-  for (var d = first; d.isBefore(effectiveEnd); d = d.add(const Duration(days: 1))) {
+  for (
+    var d = first;
+    d.isBefore(effectiveEnd);
+    d = d.add(const Duration(days: 1))
+  ) {
     var dayMinutes = 0;
     var dayEvents = 0;
     for (final e in regularEvents) {
@@ -182,9 +187,7 @@ String buildFallbackSummary(MonthlyStats stats, MonthlyStats? previous) {
     final diff = percentDiff(stats.studyMinutes, previous.studyMinutes);
     if (diff != null && diff != 0) {
       buf.write(
-        diff > 0
-            ? '勉強時間は先月より$diff%増えています。'
-            : '勉強時間は先月より${-diff}%減っています。',
+        diff > 0 ? '勉強時間は先月より$diff%増えています。' : '勉強時間は先月より${-diff}%減っています。',
       );
     }
   }

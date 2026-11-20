@@ -54,7 +54,10 @@ class _IntonationMapTabState extends State<IntonationMapTab> {
                   children: [
                     Text(
                       noteNameFor(pc, NotationSystem.english),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     if (map[pc] != null)
                       Text(
@@ -75,7 +78,10 @@ class _IntonationMapTabState extends State<IntonationMapTab> {
             _legendDot(const Color(0xFF1E88E5), '低め'),
             _legendDot(cs.surfaceContainerHighest, 'ぴったり付近'),
             _legendDot(const Color(0xFFE53935), '高め'),
-            Text('枠あり＝記録3回未満（参考値）', style: TextStyle(color: cs.outline, fontSize: 11)),
+            Text(
+              '枠あり＝記録3回未満（参考値）',
+              style: TextStyle(color: cs.outline, fontSize: 11),
+            ),
           ],
         ),
       ],
@@ -88,7 +94,10 @@ class _IntonationMapTabState extends State<IntonationMapTab> {
       Container(
         width: 12,
         height: 12,
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
       ),
       const SizedBox(width: 4),
       Text(label, style: const TextStyle(fontSize: 11)),
@@ -143,12 +152,18 @@ class _IntonationMapTabState extends State<IntonationMapTab> {
               children: [
                 _heatmapGrid(cs, map),
                 const SizedBox(height: 20),
-                Text('内訳（音ごとの詳細）', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  '内訳（音ごとの詳細）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 8),
                 for (var pc = 0; pc < 12; pc++)
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 3),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: map[pc] == null
                           ? cs.surfaceContainerHighest.withValues(alpha: 0.4)

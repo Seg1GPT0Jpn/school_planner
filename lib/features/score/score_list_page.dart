@@ -45,7 +45,10 @@ class _ScoreListPageState extends State<ScoreListPage> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '曲名', hintText: '例：暁の空からマーチ'),
+          decoration: const InputDecoration(
+            labelText: '曲名',
+            hintText: '例：暁の空からマーチ',
+          ),
         ),
         actions: [
           TextButton(

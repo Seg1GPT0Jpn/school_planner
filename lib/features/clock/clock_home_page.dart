@@ -42,13 +42,19 @@ class _ClockHomePageState extends State<ClockHomePage> {
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.alarm), label: 'アラーム'),
-          NavigationDestination(icon: Icon(Icons.timer_outlined), label: 'タイマー'),
+          NavigationDestination(
+            icon: Icon(Icons.timer_outlined),
+            label: 'タイマー',
+          ),
           NavigationDestination(
             icon: Icon(Icons.timer_outlined),
             selectedIcon: Icon(Icons.av_timer),
             label: 'ストップウォッチ',
           ),
-          NavigationDestination(icon: Icon(Icons.nights_stay_outlined), label: 'お休み時間'),
+          NavigationDestination(
+            icon: Icon(Icons.nights_stay_outlined),
+            label: 'お休み時間',
+          ),
         ],
       ),
     );

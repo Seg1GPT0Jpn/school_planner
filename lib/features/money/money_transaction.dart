@@ -75,7 +75,11 @@ class MonthlySummary {
         byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount;
       }
     }
-    return MonthlySummary(income: income, expense: expense, byCategory: byCategory);
+    return MonthlySummary(
+      income: income,
+      expense: expense,
+      byCategory: byCategory,
+    );
   }
 }
 

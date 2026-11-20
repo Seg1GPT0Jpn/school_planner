@@ -64,5 +64,7 @@ List<double> magnitudeSpectrum(Uint8List pcm16LEBytes, {int fftSize = 4096}) {
     re[i] = v * window;
   }
   fft(re, im);
-  return [for (var i = 0; i < n ~/ 2; i++) math.sqrt(re[i] * re[i] + im[i] * im[i])];
+  return [
+    for (var i = 0; i < n ~/ 2; i++) math.sqrt(re[i] * re[i] + im[i] * im[i]),
+  ];
 }

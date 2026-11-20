@@ -30,9 +30,7 @@ class MoneyRepository {
         .where('date', isLessThan: Timestamp.fromDate(end))
         .snapshots()
         .map((s) {
-          final list = [
-            for (final d in s.docs) _fromMap(d.id, d.data()),
-          ];
+          final list = [for (final d in s.docs) _fromMap(d.id, d.data())];
           list.sort((a, b) => b.date.compareTo(a.date));
           return list;
         });

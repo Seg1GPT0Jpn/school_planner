@@ -117,9 +117,8 @@ class _TodoPageState extends State<TodoPage> {
                                 child: ListTile(
                                   leading: Checkbox(
                                     value: t.done,
-                                    onChanged: (v) => _repo().save(
-                                      t.toggled(v ?? false),
-                                    ),
+                                    onChanged: (v) =>
+                                        _repo().save(t.toggled(v ?? false)),
                                   ),
                                   title: Text(
                                     t.title,
@@ -184,8 +183,7 @@ class _TodoEditPageState extends State<TodoEditPage> {
   late DateTime? _due = _t?.dueDate;
   late String? _subject = _t?.subject;
   late final List<Subtask> _subs = [...?_t?.subtasks];
-  late CategoryLoadLevel _loadLevel =
-      _t?.loadLevel ?? CategoryLoadLevel.medium;
+  late CategoryLoadLevel _loadLevel = _t?.loadLevel ?? CategoryLoadLevel.medium;
   String? _error;
 
   void _addSub() {

@@ -52,6 +52,17 @@ void showRecurringInstanceSheet(BuildContext context, CalendarEvent event) {
               icon: const Icon(Icons.event_busy),
               label: const Text('この日だけ休みにする'),
             ),
+            // ミニテストがある回（名前に「｜テスト名」が付いている）は、テストだけなしにできる
+            if (event.title.contains('｜'))
+              TextButton.icon(
+                key: const ValueKey('recurring-test-skip'),
+                onPressed: () {
+                  Navigator.of(c).pop();
+                  _repo().setTestSkipped(id, date, true);
+                },
+                icon: const Icon(Icons.assignment_late_outlined),
+                label: const Text('この日はミニテストなし（予定はそのまま）'),
+              ),
             TextButton.icon(
               onPressed: () {
                 Navigator.of(c).pop();
@@ -236,6 +247,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
       subject: _subject,
       location: _location.text,
       skippedDates: widget.schedule?.skippedDates ?? const {},
+      testSkippedDates: widget.schedule?.testSkippedDates ?? const {},
       test: _buildTest(),
     );
     final error = s.validate();
@@ -254,6 +266,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
   @override
   Widget build(BuildContext context) {
     final skipped = [...?widget.schedule?.skippedDates]..sort();
+    final testSkipped = [...?widget.schedule?.testSkippedDates]..sort();
     final label = Theme.of(context).textTheme.labelLarge;
 
     return Scaffold(
@@ -319,7 +332,7 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
             subtitle: Text(
               _useAfterSchool
                   ? 'その日の授業が終わる時刻の$_afterSchoolMinutes分後から始まります'
-                      '（長さは上の時刻の差のまま）。授業のない日はお休みになります。'
+                        '（長さは上の時刻の差のまま）。授業のない日はお休みになります。'
                   : 'ONにすると、上の開始時刻の代わりに使います（下校時刻を基準に自動で決まります）',
             ),
             value: _useAfterSchool,
@@ -331,16 +344,18 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
                 const Text('放課後　'),
                 IconButton(
                   onPressed: () => setState(
-                    () => _afterSchoolMinutes =
-                        (_afterSchoolMinutes - 5).clamp(0, 240).toInt(),
+                    () => _afterSchoolMinutes = (_afterSchoolMinutes - 5)
+                        .clamp(0, 240)
+                        .toInt(),
                   ),
                   icon: const Icon(Icons.remove_circle_outline),
                 ),
                 Text('$_afterSchoolMinutes 分後から'),
                 IconButton(
                   onPressed: () => setState(
-                    () => _afterSchoolMinutes =
-                        (_afterSchoolMinutes + 5).clamp(0, 240).toInt(),
+                    () => _afterSchoolMinutes = (_afterSchoolMinutes + 5)
+                        .clamp(0, 240)
+                        .toInt(),
                   ),
                   icon: const Icon(Icons.add_circle_outline),
                 ),
@@ -397,7 +412,10 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
           StreamBuilder<TimetableData>(
             stream: _timetable,
             builder: (context, snap) {
-              final names = [for (final s in snap.data?.subjects ?? const <Subject>[]) s.name];
+              final names = [
+                for (final s in snap.data?.subjects ?? const <Subject>[])
+                  s.name,
+              ];
               if (_subject != null && !names.contains(_subject)) {
                 names.add(_subject!);
               }
@@ -522,6 +540,29 @@ class _RecurringEditPageState extends State<RecurringEditPage> {
                       final nav = Navigator.of(context);
                       final p = k.split('-').map(int.parse).toList();
                       await _repo().setSkipped(
+                        widget.schedule!.id!,
+                        DateTime(p[0], p[1], p[2]),
+                        false,
+                      );
+                      nav.pop();
+                    },
+                  ),
+              ],
+            ),
+          ],
+          if (testSkipped.isNotEmpty) ...[
+            const Divider(height: 32),
+            Text('ミニテストなしにした日（× で戻す）', style: label),
+            Wrap(
+              spacing: 6,
+              children: [
+                for (final k in testSkipped)
+                  InputChip(
+                    label: Text(k),
+                    onDeleted: () async {
+                      final nav = Navigator.of(context);
+                      final p = k.split('-').map(int.parse).toList();
+                      await _repo().setTestSkipped(
                         widget.schedule!.id!,
                         DateTime(p[0], p[1], p[2]),
                         false,

@@ -95,8 +95,14 @@ class IntonationMapRepository {
       final newMean = (prevMean * count + meanCents) / newCount;
       tx.update(docRef, {
         'meanCents': newMean,
-        'maxCents': math.max((d['maxCents'] as num?)?.toDouble() ?? meanCents, meanCents),
-        'minCents': math.min((d['minCents'] as num?)?.toDouble() ?? meanCents, meanCents),
+        'maxCents': math.max(
+          (d['maxCents'] as num?)?.toDouble() ?? meanCents,
+          meanCents,
+        ),
+        'minCents': math.min(
+          (d['minCents'] as num?)?.toDouble() ?? meanCents,
+          meanCents,
+        ),
         'sampleCount': newCount,
         'lastUpdated': now,
       });

@@ -114,11 +114,7 @@ class SchoolTestRepository {
 
   /// その週を「2回行った」にする／戻す（時間が無くて同じ週にもう1回行ったとき。
   /// これ以降の週の範囲の数字が、2回ぶん進んだものとして計算される）
-  Future<void> setWeekExtra(
-    String ruleId,
-    DateTime anyDateInWeek,
-    bool extra,
-  ) {
+  Future<void> setWeekExtra(String ruleId, DateTime anyDateInWeek, bool extra) {
     final key = dateKey(mondayOf(anyDateInWeek));
     return _rules.doc(ruleId).set({
       'extraWeeks': extra

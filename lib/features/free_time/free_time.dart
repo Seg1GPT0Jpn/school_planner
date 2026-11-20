@@ -43,7 +43,8 @@ List<FreeSlot> findFreeSlots({
 
   if (timetable != null && timetable.status == DayStatus.school) {
     for (final l in timetable.lessons) {
-      if (l.status == LessonStatus.empty || l.status == LessonStatus.cancelled) {
+      if (l.status == LessonStatus.empty ||
+          l.status == LessonStatus.cancelled) {
         continue;
       }
       busy.add((at(l.start), at(l.end)));

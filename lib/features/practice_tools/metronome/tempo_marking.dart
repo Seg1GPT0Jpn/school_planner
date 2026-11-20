@@ -108,5 +108,7 @@ TempoMarking tempoMarkingFor(int bpm) {
   for (final m in tempoMarkings) {
     if (m.contains(bpm)) return m;
   }
-  return bpm < tempoMarkings.first.minBpm ? tempoMarkings.first : tempoMarkings.last;
+  return bpm < tempoMarkings.first.minBpm
+      ? tempoMarkings.first
+      : tempoMarkings.last;
 }

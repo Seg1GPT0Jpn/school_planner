@@ -223,7 +223,9 @@ class _AlarmRingPageState extends State<AlarmRingPage> {
                           Text(
                             '音が選ばれていません（設定から選べます）',
                             style: tt.bodySmall?.copyWith(
-                              color: cs.onPrimaryContainer.withValues(alpha: 0.7),
+                              color: cs.onPrimaryContainer.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ),
                         ],
@@ -238,9 +240,13 @@ class _AlarmRingPageState extends State<AlarmRingPage> {
                               child: OutlinedButton(
                                 onPressed: _snooze,
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                  ),
                                   foregroundColor: cs.onPrimaryContainer,
-                                  side: BorderSide(color: cs.onPrimaryContainer),
+                                  side: BorderSide(
+                                    color: cs.onPrimaryContainer,
+                                  ),
                                 ),
                                 child: Text('スヌーズ（${a?.snoozeMinutes ?? 5}分）'),
                               ),
@@ -250,7 +256,9 @@ class _AlarmRingPageState extends State<AlarmRingPage> {
                               child: FilledButton(
                                 onPressed: _dismiss,
                                 style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                  ),
                                 ),
                                 child: const Text('止める'),
                               ),

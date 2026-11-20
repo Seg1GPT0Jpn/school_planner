@@ -107,7 +107,9 @@ class _AiChatPageState extends State<AiChatPage> {
       debugPrint('AIチャットの呼び出しに失敗しました: $e');
       final msg = e.toString();
       final isRateLimited =
-          msg.contains('quota') || msg.contains('429') || msg.contains('RESOURCE_EXHAUSTED');
+          msg.contains('quota') ||
+          msg.contains('429') ||
+          msg.contains('RESOURCE_EXHAUSTED');
       setState(() {
         modelMessage.text = isRateLimited
             ? 'いま混み合っていて、一時的に利用できません（無料枠のリクエスト上限に達しました）。'
@@ -172,9 +174,7 @@ class _AiChatPageState extends State<AiChatPage> {
             children: [
               Expanded(
                 child: _messages.isEmpty
-                    ? const Center(
-                        child: Faint('要約・添削・翻訳・勉強の質問など、なんでも聞いてください'),
-                      )
+                    ? const Center(child: Faint('要約・添削・翻訳・勉強の質問など、なんでも聞いてください'))
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(12),
@@ -197,17 +197,15 @@ class _AiChatPageState extends State<AiChatPage> {
                               ),
                               decoration: BoxDecoration(
                                 color: m.isUser
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
+                                    ? Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: Text(
-                                m.text.isEmpty ? '…' : m.text,
-                              ),
+                              child: Text(m.text.isEmpty ? '…' : m.text),
                             ),
                           );
                         },
@@ -254,9 +252,7 @@ class _AiChatPageState extends State<AiChatPage> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.send),
                       onPressed: _sending ? null : () => _send(),

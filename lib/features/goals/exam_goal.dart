@@ -117,16 +117,12 @@ class ExamGoal {
   int get subjectCount => subjects.length;
 
   /// 目標点が入っている教科の、目標点の合計（合計点の目安に使う）
-  num get totalTargetScore => subjects.fold<num>(
-    0,
-    (sum, s) => sum + (s.targetScore ?? 0),
-  );
+  num get totalTargetScore =>
+      subjects.fold<num>(0, (sum, s) => sum + (s.targetScore ?? 0));
 
   /// 実際の点数が入っている教科の合計
-  num get totalCurrentScore => subjects.fold<num>(
-    0,
-    (sum, s) => sum + (s.currentScore ?? 0),
-  );
+  num get totalCurrentScore =>
+      subjects.fold<num>(0, (sum, s) => sum + (s.currentScore ?? 0));
 
   /// 実際の点数が全教科入っているか（合計点を表示してよいか）
   bool get allScoresIn =>
@@ -168,14 +164,12 @@ class ExamGoal {
 }
 
 /// 実施日が近い順（実施日なしは最後）
-List<ExamGoal> sortExamGoals(List<ExamGoal> goals) => [...goals]..sort((
-  a,
-  b,
-) {
-  if (a.examDate == null && b.examDate == null) {
-    return a.title.compareTo(b.title);
-  }
-  if (a.examDate == null) return 1;
-  if (b.examDate == null) return -1;
-  return a.examDate!.compareTo(b.examDate!);
-});
+List<ExamGoal> sortExamGoals(List<ExamGoal> goals) => [...goals]
+  ..sort((a, b) {
+    if (a.examDate == null && b.examDate == null) {
+      return a.title.compareTo(b.title);
+    }
+    if (a.examDate == null) return 1;
+    if (b.examDate == null) return -1;
+    return a.examDate!.compareTo(b.examDate!);
+  });

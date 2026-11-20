@@ -17,8 +17,9 @@ class AlarmRepository {
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection('users').doc(uid).collection('alarms');
 
-  Stream<List<Alarm>> watch() =>
-      _col.snapshots().map((s) => [for (final d in s.docs) fromMap(d.id, d.data())]);
+  Stream<List<Alarm>> watch() => _col.snapshots().map(
+    (s) => [for (final d in s.docs) fromMap(d.id, d.data())],
+  );
 
   Future<String> save(Alarm a) async {
     final data = toMap(a);
@@ -67,7 +68,8 @@ class AlarmRepository {
     enabled: m['enabled'] as bool? ?? true,
     kind: AlarmKind.values.asNameMap()[m['kind']] ?? AlarmKind.normal,
     weekdays: {
-      for (final w in (m['weekdays'] as List<dynamic>? ?? const [])) (w as num).toInt(),
+      for (final w in (m['weekdays'] as List<dynamic>? ?? const []))
+        (w as num).toInt(),
     },
     specificDate: _date(m['specificDate']),
     soundPath: m['soundPath'] as String?,

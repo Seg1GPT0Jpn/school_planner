@@ -46,17 +46,61 @@ extension NotationSystemX on NotationSystem {
 }
 
 const List<String> _englishNames = [
-  'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
 ];
 // ドイツ式：H = ロ（英語のB）、B = 変ロ（英語のB♭）
 const List<String> _germanNames = [
-  'C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'B', 'H',
+  'C',
+  'Cis',
+  'D',
+  'Dis',
+  'E',
+  'F',
+  'Fis',
+  'G',
+  'Gis',
+  'A',
+  'B',
+  'H',
 ];
 const List<String> _japaneseNames = [
-  'ハ', '嬰ハ', 'ニ', '嬰ニ', 'ホ', 'ヘ', '嬰ヘ', 'ト', '嬰ト', 'イ', '嬰イ', 'ロ',
+  'ハ',
+  '嬰ハ',
+  'ニ',
+  '嬰ニ',
+  'ホ',
+  'ヘ',
+  '嬰ヘ',
+  'ト',
+  '嬰ト',
+  'イ',
+  '嬰イ',
+  'ロ',
 ];
 const List<String> _solfegeNames = [
-  'ド', 'ド#', 'レ', 'レ#', 'ミ', 'ファ', 'ファ#', 'ソ', 'ソ#', 'ラ', 'ラ#', 'シ',
+  'ド',
+  'ド#',
+  'レ',
+  'レ#',
+  'ミ',
+  'ファ',
+  'ファ#',
+  'ソ',
+  'ソ#',
+  'ラ',
+  'ラ#',
+  'シ',
 ];
 
 /// 0〜11（C=0）の音名を、指定した表記方法の文字列にする
@@ -142,7 +186,10 @@ class CustomTemperament {
   final List<double> centsOffsetByPitchClass;
 
   factory CustomTemperament.equalBased({String name = 'マイ音律'}) =>
-      CustomTemperament(name: name, centsOffsetByPitchClass: List.filled(12, 0));
+      CustomTemperament(
+        name: name,
+        centsOffsetByPitchClass: List.filled(12, 0),
+      );
 
   double offsetFor(int pitchClass) =>
       centsOffsetByPitchClass[((pitchClass % 12) + 12) % 12];
@@ -197,7 +244,9 @@ double frequencyForMidi(
   if (temperament == Temperament.custom) {
     final rounded = midi.round();
     final pc = ((rounded % 12) + 12) % 12;
-    final offsetCents = (custom ?? CustomTemperament.equalBased()).offsetFor(pc);
+    final offsetCents = (custom ?? CustomTemperament.equalBased()).offsetFor(
+      pc,
+    );
     final base = referenceHz * math.pow(2, (midi - 69) / 12);
     return base * math.pow(2, offsetCents / 1200);
   }

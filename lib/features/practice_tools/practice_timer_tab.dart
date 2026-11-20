@@ -22,10 +22,12 @@ class _DayQuality {
   final List<LongToneSessionRecord> records = [];
 
   double get avgStability =>
-      records.map((r) => r.stabilityPercent).reduce((a, b) => a + b) / records.length;
+      records.map((r) => r.stabilityPercent).reduce((a, b) => a + b) /
+      records.length;
 
   double get avgAbsCents =>
-      records.map((r) => r.meanCents.abs()).reduce((a, b) => a + b) / records.length;
+      records.map((r) => r.meanCents.abs()).reduce((a, b) => a + b) /
+      records.length;
 }
 
 List<_DayQuality> _groupByDay(List<LongToneSessionRecord> records) {
@@ -79,7 +81,8 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
       stream: _repo.watchTimer(),
       builder: (context, timerSnap) {
         final running = timerSnap.data;
-        final isPractice = running != null && _practiceKinds.contains(running.subject);
+        final isPractice =
+            running != null && _practiceKinds.contains(running.subject);
 
         return StreamBuilder<List<StudySession>>(
           stream: _repo.watchSessions(),
@@ -146,7 +149,10 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
                     ),
                   ),
                 const SizedBox(height: 28),
-                Text('練習ログ（最近20件）', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  '練習ログ（最近20件）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 8),
                 if (practiceLog.isEmpty)
                   Text('まだ記録がありません', style: TextStyle(color: cs.outline))
@@ -158,7 +164,9 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                           leading: const Icon(Icons.music_note, size: 20),
-                          title: Text('${s.subject}　${formatMinutes(s.minutes)}'),
+                          title: Text(
+                            '${s.subject}　${formatMinutes(s.minutes)}',
+                          ),
                           subtitle: Text(
                             '${s.start.month}/${s.start.day} '
                             '${s.start.hour.toString().padLeft(2, '0')}:'
@@ -168,7 +176,10 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
                     ],
                   ),
                 const SizedBox(height: 28),
-                Text('練習の質（ロングトーンの記録より）', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  '練習の質（ロングトーンの記録より）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   '「ロングトーン分析」タブで記録した結果を、日ごとにまとめたものです。'
@@ -177,11 +188,15 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
                 ),
                 const SizedBox(height: 8),
                 StreamBuilder<List<LongToneSessionRecord>>(
-                  stream: PracticeHistoryRepository(uid: _uid).watchRecent(limit: 100),
+                  stream: PracticeHistoryRepository(uid: _uid)
+                      .watchRecent(limit: 100),
                   builder: (context, ltSnap) {
                     final byDay = _groupByDay(ltSnap.data ?? const []);
                     if (byDay.isEmpty) {
-                      return Text('まだ記録がありません', style: TextStyle(color: cs.outline));
+                      return Text(
+                        'まだ記録がありません',
+                        style: TextStyle(color: cs.outline),
+                      );
                     }
                     return Column(
                       children: [
@@ -194,7 +209,10 @@ class _PracticeTimerTabState extends State<PracticeTimerTab> {
                                   width: 72,
                                   child: Text(
                                     '${d.day.month}/${d.day.day}',
-                                    style: TextStyle(color: cs.outline, fontSize: 12),
+                                    style: TextStyle(
+                                      color: cs.outline,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                                 Expanded(

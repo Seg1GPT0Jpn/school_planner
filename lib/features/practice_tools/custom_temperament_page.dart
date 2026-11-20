@@ -54,7 +54,10 @@ class _CustomTemperamentPageState extends State<_CustomTemperamentPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          SizedBox(width: 36, child: Text(noteNameFor(pc, NotationSystem.english))),
+          SizedBox(
+            width: 36,
+            child: Text(noteNameFor(pc, NotationSystem.english)),
+          ),
           Expanded(
             child: Slider(
               value: v.clamp(-50, 50).toDouble(),

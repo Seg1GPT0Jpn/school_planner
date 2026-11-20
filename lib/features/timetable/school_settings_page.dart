@@ -131,9 +131,8 @@ class _SchoolSettingsPageState extends State<SchoolSettingsPage> {
       if (range == null || !mounted) return;
       targetDates = _weekdaysInRange(range.start, range.end);
       if (targetDates.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('選んだ期間に平日がありません')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('選んだ期間に平日がありません')));
         return;
       }
     } else {
@@ -151,10 +150,9 @@ class _SchoolSettingsPageState extends State<SchoolSettingsPage> {
     final noteController = TextEditingController();
 
     // 特殊日課用の入力値
-    var customStart =
-        SchoolPeriods.all.isNotEmpty
-            ? SchoolPeriods.all.first.start
-            : const ClockTime(8, 50);
+    var customStart = SchoolPeriods.all.isNotEmpty
+        ? SchoolPeriods.all.first.start
+        : const ClockTime(8, 50);
     var customCount = SchoolPeriods.periodCountFor(targetDates.first.weekday);
     if (customCount == 0) customCount = 5;
     final minutesController = TextEditingController(text: '65');
@@ -162,7 +160,8 @@ class _SchoolSettingsPageState extends State<SchoolSettingsPage> {
     final countController = TextEditingController(text: '$customCount');
     var customHasLunch = false;
     final lunchAfterController = TextEditingController(
-      text: '${SchoolPeriods.lunchAfterPeriod > 0 ? SchoolPeriods.lunchAfterPeriod : 3}',
+      text:
+          '${SchoolPeriods.lunchAfterPeriod > 0 ? SchoolPeriods.lunchAfterPeriod : 3}',
     );
     final lunchMinutesController = TextEditingController(
       text:

@@ -26,7 +26,11 @@ final OnboardingStateNotifier _onboardingState = OnboardingStateNotifier();
 /// ※ 変更したときは、r ではなく R（または起動し直し）が必要
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
-  refreshListenable: Listenable.merge([_authState, _onboardingState, alarmRingState]),
+  refreshListenable: Listenable.merge([
+    _authState,
+    _onboardingState,
+    alarmRingState,
+  ]),
   redirect: (context, state) {
     final isLoggedIn = _authState.isLoggedIn;
     final loc = state.matchedLocation;
@@ -68,7 +72,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/alarm-ring',
-      builder: (context, state) => AlarmRingPage(alarmId: alarmRingState.alarmId!),
+      builder: (context, state) =>
+          AlarmRingPage(alarmId: alarmRingState.alarmId!),
     ),
 
     // タブのある画面（app_shell.dart の _tabs と同じ順番）

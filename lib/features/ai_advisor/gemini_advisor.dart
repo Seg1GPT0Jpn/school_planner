@@ -47,7 +47,9 @@ class GeminiAdvisorInput {
 String _buildPrompt(GeminiAdvisorInput input, DateTime now) {
   final today = _day(now);
   final undone = input.todos.where((t) => !t.done).length;
-  final overdue = input.todos.where((t) => !t.done && t.isOverdue(today)).length;
+  final overdue = input.todos
+      .where((t) => !t.done && t.isOverdue(today))
+      .length;
   final heavyDays = input.weekLoad.where((d) => d.isHeavy).length;
   final moodSummary = input.recentMoods.isEmpty
       ? '記録なし'

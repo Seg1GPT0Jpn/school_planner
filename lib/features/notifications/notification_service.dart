@@ -168,7 +168,8 @@ class NotificationService {
     final now = DateTime.now();
     for (final a in alarms) {
       if (!a.enabled || a.id == null) continue;
-      final payload = 'alarm:${a.id}|${a.snoozeMinutes}|${a.dismissAfterMinutes}';
+      final payload =
+          'alarm:${a.id}|${a.snoozeMinutes}|${a.dismissAfterMinutes}';
       if (a.repeats) {
         for (final wd in a.weekdays) {
           final fire = _nextWeekday(now, wd, a.time.hour, a.time.minute);

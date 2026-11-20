@@ -26,7 +26,10 @@ class OsrmService {
   String _key(LatLng from, LatLng to) => '${from.text}>${to.text}';
 
   /// 実際の道なりでかかる時間（分）。取れないときは null
-  Future<int?> fetchCarMinutes({required LatLng from, required LatLng to}) async {
+  Future<int?> fetchCarMinutes({
+    required LatLng from,
+    required LatLng to,
+  }) async {
     final key = _key(from, to);
     final cached = _cache[key];
     if (cached != null && DateTime.now().difference(cached.$2) < _keep) {
@@ -55,7 +58,10 @@ class OsrmService {
   }
 
   /// 徒歩の実際の道なりでかかる時間（分）。取れないときは null
-  Future<int?> fetchWalkMinutes({required LatLng from, required LatLng to}) async {
+  Future<int?> fetchWalkMinutes({
+    required LatLng from,
+    required LatLng to,
+  }) async {
     final key = 'walk:${_key(from, to)}';
     final cached = _cache[key];
     if (cached != null && DateTime.now().difference(cached.$2) < _keep) {

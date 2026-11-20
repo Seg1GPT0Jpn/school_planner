@@ -54,6 +54,7 @@ TodayPlan buildTodayPlan({
   required List<Todo> todos,
   DayLoad? todayLoad,
   int maxItems = 5,
+
   /// 見積もり分数の出し方を差し替える（学習した倍率を使うときなど）。
   /// 省略時は [estimateMinutes] をそのまま使う。
   int Function(Todo)? minutesOf,
@@ -73,12 +74,11 @@ TodayPlan buildTodayPlan({
       todos.where((t) => !t.done && t.dueDate != null).where((t) {
         final due = _day(t.dueDate!);
         return !due.isAfter(limit);
-      }).toList()
-        ..sort((a, b) {
-          final pa = priorityOf(a).index, pb = priorityOf(b).index;
-          if (pa != pb) return pa.compareTo(pb);
-          return a.dueDate!.compareTo(b.dueDate!);
-        });
+      }).toList()..sort((a, b) {
+        final pa = priorityOf(a).index, pb = priorityOf(b).index;
+        if (pa != pb) return pa.compareTo(pb);
+        return a.dueDate!.compareTo(b.dueDate!);
+      });
 
   final chosen = candidates.take(maxItems).toList();
   final items = [

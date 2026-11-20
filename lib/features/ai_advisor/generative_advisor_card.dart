@@ -59,7 +59,10 @@ class _GenerativeAdvisorCardState extends State<GenerativeAdvisorCard> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(text, style: TextStyle(color: cs.onPrimaryContainer)),
+                  child: Text(
+                    text,
+                    style: TextStyle(color: cs.onPrimaryContainer),
+                  ),
                 ),
                 IconButton(
                   icon: Icon(

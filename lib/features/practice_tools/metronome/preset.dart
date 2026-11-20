@@ -49,7 +49,9 @@ class MetronomePreset {
     'grid': [
       for (final row in pattern.grid)
         {
-          'slots': [for (final slot in row) {'a': slot.active, 'l': slot.level.name}],
+          'slots': [
+            for (final slot in row) {'a': slot.active, 'l': slot.level.name},
+          ],
         },
     ],
     'timbre': timbre.name,
@@ -64,7 +66,11 @@ class MetronomePreset {
     'rampMaxBpm': tempoRamp.maxBpm,
   };
 
-  static MetronomePreset fromMap(String id, Map<String, dynamic> m, DateTime updatedAt) {
+  static MetronomePreset fromMap(
+    String id,
+    Map<String, dynamic> m,
+    DateTime updatedAt,
+  ) {
     final beats = (m['beats'] as num?)?.toInt() ?? 4;
     final subdivision = (m['subdivision'] as num?)?.toInt() ?? 1;
     final rawGrid = m['grid'] as List<dynamic>?;
@@ -89,7 +95,10 @@ class MetronomePreset {
                 ),
               )
             else
-              RhythmSlot(active: s == 0, level: s == 0 ? DynamicLevel.mf : DynamicLevel.p),
+              RhythmSlot(
+                active: s == 0,
+                level: s == 0 ? DynamicLevel.mf : DynamicLevel.p,
+              ),
         ],
     ];
     return MetronomePreset(
@@ -99,10 +108,17 @@ class MetronomePreset {
       timeSignature: TimeSignature(
         beats: beats,
         denominator: (m['denominator'] as num?)?.toInt() ?? 4,
-        grouping: [for (final g in (m['grouping'] as List? ?? [beats])) (g as num).toInt()],
+        grouping: [
+          for (final g in (m['grouping'] as List? ?? [beats]))
+            (g as num).toInt(),
+        ],
         label: m['timeSignatureLabel'] as String?,
       ),
-      pattern: RhythmPattern(beats: beats, subdivision: subdivision, grid: grid),
+      pattern: RhythmPattern(
+        beats: beats,
+        subdivision: subdivision,
+        grid: grid,
+      ),
       timbre: ClickTimbre.values.firstWhere(
         (t) => t.name == m['timbre'],
         orElse: () => ClickTimbre.classic,

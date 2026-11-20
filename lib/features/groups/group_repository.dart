@@ -29,9 +29,10 @@ class GroupRepository {
   }
 
   Stream<Group?> watchGroup(String groupId) {
-    return _groups.doc(groupId).snapshots().map(
-      (d) => d.exists ? _fromMap(d.id, d.data()!) : null,
-    );
+    return _groups
+        .doc(groupId)
+        .snapshots()
+        .map((d) => d.exists ? _fromMap(d.id, d.data()!) : null);
   }
 
   /// 新しいグループを作る（自分がオーナー兼、最初のメンバー）
@@ -147,17 +148,16 @@ class GroupRepository {
     inviteCode: m['inviteCode'] as String? ?? '',
   );
 
-  static GroupItem _itemFromMap(String id, Map<String, dynamic> m) =>
-      GroupItem(
-        id: id,
-        type: GroupItemType.values.firstWhere(
-          (t) => t.name == m['type'],
-          orElse: () => GroupItemType.announcement,
-        ),
-        text: m['text'] as String? ?? '',
-        authorUid: m['authorUid'] as String? ?? '',
-        authorName: m['authorName'] as String?,
-        done: m['done'] as bool? ?? false,
-        createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
-      );
+  static GroupItem _itemFromMap(String id, Map<String, dynamic> m) => GroupItem(
+    id: id,
+    type: GroupItemType.values.firstWhere(
+      (t) => t.name == m['type'],
+      orElse: () => GroupItemType.announcement,
+    ),
+    text: m['text'] as String? ?? '',
+    authorUid: m['authorUid'] as String? ?? '',
+    authorName: m['authorName'] as String?,
+    done: m['done'] as bool? ?? false,
+    createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
+  );
 }

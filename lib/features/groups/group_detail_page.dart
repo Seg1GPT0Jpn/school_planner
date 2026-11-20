@@ -11,9 +11,7 @@ import 'group_repository.dart';
 
 void openGroupDetail(BuildContext context, {required String groupId}) {
   Navigator.of(context, rootNavigator: true).push(
-    MaterialPageRoute<void>(
-      builder: (_) => GroupDetailPage(groupId: groupId),
-    ),
+    MaterialPageRoute<void>(builder: (_) => GroupDetailPage(groupId: groupId)),
   );
 }
 
@@ -55,9 +53,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   Future<void> _shareInviteCode(Group g) async {
     await Clipboard.setData(ClipboardData(text: g.inviteCode));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('招待コード「${g.inviteCode}」をコピーしました')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('招待コード「${g.inviteCode}」をコピーしました')));
     }
   }
 
@@ -162,8 +160,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 itemCount: items.length,
                                 itemBuilder: (context, i) {
                                   final it = items[i];
-                                  final isTodo =
-                                      it.type == GroupItemType.todo;
+                                  final isTodo = it.type == GroupItemType.todo;
                                   return ListTile(
                                     leading: isTodo
                                         ? Checkbox(
@@ -175,9 +172,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                                   v ?? false,
                                                 ),
                                           )
-                                        : const Icon(
-                                            Icons.campaign_outlined,
-                                          ),
+                                        : const Icon(Icons.campaign_outlined),
                                     title: Text(
                                       it.text,
                                       style: isTodo && it.done
@@ -190,15 +185,14 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                     subtitle: it.authorName == null
                                         ? null
                                         : Text(it.authorName!),
-                                    trailing:
-                                        it.authorUid == _uid
+                                    trailing: it.authorUid == _uid
                                         ? IconButton(
                                             icon: const Icon(
                                               Icons.delete_outline,
                                               size: 18,
                                             ),
-                                            onPressed: () => _repository
-                                                .deleteItem(
+                                            onPressed: () =>
+                                                _repository.deleteItem(
                                                   widget.groupId,
                                                   it.id,
                                                 ),
@@ -241,8 +235,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 child: TextField(
                                   controller: _inputController,
                                   decoration: InputDecoration(
-                                    hintText: _newType ==
-                                            GroupItemType.announcement
+                                    hintText:
+                                        _newType == GroupItemType.announcement
                                         ? 'お知らせを入力'
                                         : '共有ToDoを入力',
                                     border: InputBorder.none,

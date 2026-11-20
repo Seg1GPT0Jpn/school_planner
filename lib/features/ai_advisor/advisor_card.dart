@@ -56,11 +56,7 @@ class AdvisorCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      _iconFor(t.kind),
-                      size: 18,
-                      color: _color(cs, t.tone),
-                    ),
+                    Icon(_iconFor(t.kind), size: 18, color: _color(cs, t.tone)),
                     const SizedBox(width: 8),
                     Expanded(child: Text(t.message)),
                   ],

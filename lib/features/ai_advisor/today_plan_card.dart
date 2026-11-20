@@ -6,7 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import '../todo/todo.dart';
 import 'today_plan.dart';
 
-String _fmt(int m) => m >= 60 ? '${m ~/ 60}時間${m % 60 == 0 ? '' : '${m % 60}分'}' : '$m分';
+String _fmt(int m) =>
+    m >= 60 ? '${m ~/ 60}時間${m % 60 == 0 ? '' : '${m % 60}分'}' : '$m分';
 
 class TodayPlanCard extends StatelessWidget {
   const TodayPlanCard({
@@ -83,10 +84,7 @@ class TodayPlanCard extends StatelessWidget {
             ),
             if (plan.note != null) ...[
               const SizedBox(height: 6),
-              Text(
-                plan.note!,
-                style: tt.bodySmall?.copyWith(color: cs.error),
-              ),
+              Text(plan.note!, style: tt.bodySmall?.copyWith(color: cs.error)),
             ],
           ],
         ),

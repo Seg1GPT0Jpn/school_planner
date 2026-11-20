@@ -12,8 +12,18 @@ import '../review/review_widgets.dart';
 
 const _wd = ['月', '火', '水', '木', '金', '土', '日'];
 const _monthNames = [
-  '1月', '2月', '3月', '4月', '5月', '6月',
-  '7月', '8月', '9月', '10月', '11月', '12月',
+  '1月',
+  '2月',
+  '3月',
+  '4月',
+  '5月',
+  '6月',
+  '7月',
+  '8月',
+  '9月',
+  '10月',
+  '11月',
+  '12月',
 ];
 
 void openYearView(
@@ -295,10 +305,14 @@ class _MiniMonth extends StatelessWidget {
       return const Expanded(child: SizedBox.shrink());
     }
     final day = DateTime(year, month, dayNum);
-    final isToday = day.year == today.year &&
+    final isToday =
+        day.year == today.year &&
         day.month == today.month &&
         day.day == today.day;
-    final dayEvents = [for (final e in events) if (e.occursOn(day)) e];
+    final dayEvents = [
+      for (final e in events)
+        if (e.occursOn(day)) e,
+    ];
     final dotColor = dayEvents.isEmpty
         ? null
         : Color(

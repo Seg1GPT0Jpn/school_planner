@@ -75,16 +75,12 @@ class BelongingsRepository {
         final raw = s.data()?['items'] as Map<String, dynamic>? ?? const {};
         return {
           for (final e in raw.entries)
-            if (e.value is Timestamp)
-              e.key: (e.value as Timestamp).toDate(),
+            if (e.value is Timestamp) e.key: (e.value as Timestamp).toDate(),
         };
       });
 
   /// この持ち物を「今、持っていった」と記録する
-  Future<void> markBrought(String item, {DateTime? when}) => _lastBrought.set(
-    {
-      'items': {item: Timestamp.fromDate(when ?? DateTime.now())},
-    },
-    SetOptions(merge: true),
-  );
+  Future<void> markBrought(String item, {DateTime? when}) => _lastBrought.set({
+    'items': {item: Timestamp.fromDate(when ?? DateTime.now())},
+  }, SetOptions(merge: true));
 }

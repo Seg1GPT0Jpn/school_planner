@@ -72,11 +72,7 @@ class StaffPainter extends CustomPainter {
       ..strokeWidth = 1.2;
     for (var i = 0; i < 5; i++) {
       final y = staffTop + lineSpacing * i;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(layout.contentWidth, y),
-        paint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(layout.contentWidth, y), paint);
     }
   }
 
@@ -298,7 +294,13 @@ class StaffPainter extends CustomPainter {
     }
   }
 
-  void _drawDots(Canvas canvas, NoteSlot slot, double x, double y, Color color) {
+  void _drawDots(
+    Canvas canvas,
+    NoteSlot slot,
+    double x,
+    double y,
+    Color color,
+  ) {
     if (slot.note.duration.dots == 0) return;
     final paint = Paint()..color = color;
     for (var i = 0; i < slot.note.duration.dots; i++) {
@@ -308,7 +310,8 @@ class StaffPainter extends CustomPainter {
 
   void _drawNoteHeadsAndStem(Canvas canvas, NoteSlot slot, Color color) {
     final note = slot.note;
-    final isOpen = note.duration.base == NoteDurationBase.whole ||
+    final isOpen =
+        note.duration.base == NoteDurationBase.whole ||
         note.duration.base == NoteDurationBase.half;
     final headPaint = Paint()
       ..color = color

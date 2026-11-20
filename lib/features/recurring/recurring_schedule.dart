@@ -49,6 +49,7 @@ class RecurringSchedule {
     this.subject,
     this.location,
     this.skippedDates = const {},
+    this.testSkippedDates = const {},
     this.test,
   }) : weekdays = weekdays ?? {weekday ?? DateTime.monday};
 
@@ -73,7 +74,16 @@ class RecurringSchedule {
   final String? subject;
   final String? location;
   final Set<String> skippedDates;
+
+  /// 予定はあるが、ミニテストだけ「なし」にした日（dateKey）。この日は範囲も進まない
+  final Set<String> testSkippedDates;
   final RecurringTestConfig? test;
+
+  /// その日にミニテストを行うか（予定がある日で、「ミニテストなし」にしていない日）
+  bool testOn(DateTime date) =>
+      test != null &&
+      occursOn(date) &&
+      !testSkippedDates.contains(dateKey(_day(date)));
 
   /// 曜日を「月・火」のような文字にする
   String get weekdayText {

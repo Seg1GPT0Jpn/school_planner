@@ -11,7 +11,8 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart' show SystemChrome, SystemUiMode, DeviceOrientation;
+import 'package:flutter/services.dart'
+    show SystemChrome, SystemUiMode, DeviceOrientation;
 import 'package:material_ui/material_ui.dart';
 import 'package:record/record.dart';
 
@@ -145,7 +146,9 @@ class _TunerTabState extends State<TunerTab> {
     _sub?.cancel();
     unawaited(_recorder.dispose());
     if (_stageMode) {
-      unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
+      unawaited(
+        SystemChrome.setPreferredOrientations(DeviceOrientation.values),
+      );
       unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     }
     super.dispose();
@@ -162,7 +165,10 @@ class _TunerTabState extends State<TunerTab> {
   }
 
   int _displayPitchClass(TunedNote note) => _showTransposed
-      ? transposedPitchClass(note.pitchClass, _instrument.transpositionSemitones)
+      ? transposedPitchClass(
+          note.pitchClass,
+          _instrument.transpositionSemitones,
+        )
       : note.pitchClass;
 
   String _displayLabel(TunedNote note) =>
@@ -217,13 +223,17 @@ class _TunerTabState extends State<TunerTab> {
           displayMode: _displayMode,
           onDisplayModeChanged: (v) => setState(() => _displayMode = v),
           strobeResolution: _strobeResolution,
-          onStrobeResolutionChanged: (v) => setState(() => _strobeResolution = v),
+          onStrobeResolutionChanged: (v) =>
+              setState(() => _strobeResolution = v),
           personalEnabled: _personal != null,
           onPersonalEnabledChanged: (v) => setState(
             () => _personal = v ? const PersonalCalibration() : null,
           ),
           onEditCustomTemperament: () async {
-            final result = await openCustomTemperamentEditor(context, _customTemperament);
+            final result = await openCustomTemperamentEditor(
+              context,
+              _customTemperament,
+            );
             if (result != null) setState(() => _customTemperament = result);
           },
           onEnterStageMode: () => _setStageMode(true),
@@ -247,14 +257,19 @@ class _TunerTabState extends State<TunerTab> {
         const SizedBox(height: 4),
         Center(
           child: Text(
-            _tracked == null ? ' ' : '${_tracked!.frequency.toStringAsFixed(1)} Hz',
+            _tracked == null
+                ? ' '
+                : '${_tracked!.frequency.toStringAsFixed(1)} Hz',
             style: TextStyle(color: cs.outline),
           ),
         ),
         const SizedBox(height: 20),
         if (note != null) ...[
           Center(
-            child: Text(_faceFor(note.cents), style: const TextStyle(fontSize: 56)),
+            child: Text(
+              _faceFor(note.cents),
+              style: const TextStyle(fontSize: 56),
+            ),
           ),
           const SizedBox(height: 8),
           _meterFor(note.cents, _centsColor(note.cents, cs)),
@@ -282,7 +297,10 @@ class _TunerTabState extends State<TunerTab> {
         ] else if (isSilence) ...[
           const SizedBox(height: 8),
           Center(
-            child: Text('🔈', style: TextStyle(fontSize: 56, color: cs.outline)),
+            child: Text(
+              '🔈',
+              style: TextStyle(fontSize: 56, color: cs.outline),
+            ),
           ),
           const SizedBox(height: 8),
           _meterFor(0, cs.outlineVariant),
@@ -332,8 +350,9 @@ class _TunerTabState extends State<TunerTab> {
       body: SafeArea(
         child: GestureDetector(
           onTap: () => setState(
-            () => _displayMode = TunerDisplayMode
-                .values[(_displayMode.index + 1) % TunerDisplayMode.values.length],
+            () => _displayMode =
+                TunerDisplayMode.values[(_displayMode.index + 1) %
+                    TunerDisplayMode.values.length],
           ),
           child: Stack(
             children: [
@@ -352,7 +371,11 @@ class _TunerTabState extends State<TunerTab> {
                     if (note != null)
                       Text(
                         '${note.cents >= 0 ? '+' : ''}${note.cents.toStringAsFixed(0)}¢',
-                        style: TextStyle(color: color, fontSize: 40, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -508,7 +531,10 @@ class _SettingsPanel extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  Text('検出アルゴリズム', style: Theme.of(context).textTheme.labelLarge),
+                  Text(
+                    '検出アルゴリズム',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
@@ -516,7 +542,8 @@ class _SettingsPanel extends StatelessWidget {
                       ChoiceChip(
                         label: const Text('YIN法（倍音に強い）'),
                         selected: algorithm == PitchAlgorithm.yin,
-                        onSelected: (_) => onAlgorithmChanged(PitchAlgorithm.yin),
+                        onSelected: (_) =>
+                            onAlgorithmChanged(PitchAlgorithm.yin),
                       ),
                       ChoiceChip(
                         label: const Text('自己相関法'),
@@ -575,8 +602,10 @@ class _SettingsPanel extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  Text('基準音（A=${referenceHz.toStringAsFixed(0)}Hz）',
-                      style: Theme.of(context).textTheme.labelLarge),
+                  Text(
+                    '基準音（A=${referenceHz.toStringAsFixed(0)}Hz）',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -620,8 +649,10 @@ class _SettingsPanel extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text('感度（合っているとみなす範囲）',
-                      style: Theme.of(context).textTheme.labelLarge),
+                  Text(
+                    '感度（合っているとみなす範囲）',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,

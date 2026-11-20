@@ -49,14 +49,20 @@ class MetronomeStageView extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text('BPM', style: TextStyle(color: Colors.white54, fontSize: 20)),
+                    const Text(
+                      'BPM',
+                      style: TextStyle(color: Colors.white54, fontSize: 20),
+                    ),
                     const SizedBox(height: 16),
                     if (e != null)
                       Text(
                         e.isCountIn
                             ? 'カウントイン'
                             : '小節 ${e.barIndex + 1}　拍 ${e.beatIndex + 1}/${timeSignature.beats}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 28),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 28,
+                        ),
                       ),
                     const SizedBox(height: 20),
                     Wrap(
@@ -69,7 +75,11 @@ class MetronomeStageView extends StatelessWidget {
                             height: 26,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: (e != null && !e.isCountIn && i == e.beatIndex && e.slotIndex == 0)
+                              color:
+                                  (e != null &&
+                                      !e.isCountIn &&
+                                      i == e.beatIndex &&
+                                      e.slotIndex == 0)
                                   ? (i == 0
                                         ? Colors.redAccent
                                         : (timeSignature.isGroupStart(i)

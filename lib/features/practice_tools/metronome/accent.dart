@@ -14,9 +14,13 @@ enum DynamicLevel {
   final String label;
 
   DynamicLevel get louder =>
-      DynamicLevel.values[(index + 1).clamp(0, DynamicLevel.values.length - 1).toInt()];
+      DynamicLevel.values[(index + 1)
+          .clamp(0, DynamicLevel.values.length - 1)
+          .toInt()];
   DynamicLevel get softer =>
-      DynamicLevel.values[(index - 1).clamp(0, DynamicLevel.values.length - 1).toInt()];
+      DynamicLevel.values[(index - 1)
+          .clamp(0, DynamicLevel.values.length - 1)
+          .toInt()];
 }
 
 /// 「マーチ（強弱弱弱）」のような、拍ごとの強弱パターン。
@@ -30,28 +34,21 @@ class AccentPreset {
 }
 
 const List<AccentPreset> accentPresets = [
-  AccentPreset(name: 'クラシック（強弱中弱）', levels: [
-    DynamicLevel.f,
-    DynamicLevel.p,
-    DynamicLevel.mf,
-    DynamicLevel.p,
-  ]),
-  AccentPreset(name: 'マーチ（強弱弱弱）', levels: [
-    DynamicLevel.f,
-    DynamicLevel.p,
-    DynamicLevel.p,
-    DynamicLevel.p,
-  ]),
-  AccentPreset(name: 'ワルツ（強弱弱）', levels: [
-    DynamicLevel.f,
-    DynamicLevel.p,
-    DynamicLevel.p,
-  ]),
-  AccentPreset(name: 'スウィング（強弱中弱）', levels: [
-    DynamicLevel.f,
-    DynamicLevel.mp,
-    DynamicLevel.mf,
-    DynamicLevel.mp,
-  ]),
+  AccentPreset(
+    name: 'クラシック（強弱中弱）',
+    levels: [DynamicLevel.f, DynamicLevel.p, DynamicLevel.mf, DynamicLevel.p],
+  ),
+  AccentPreset(
+    name: 'マーチ（強弱弱弱）',
+    levels: [DynamicLevel.f, DynamicLevel.p, DynamicLevel.p, DynamicLevel.p],
+  ),
+  AccentPreset(
+    name: 'ワルツ（強弱弱）',
+    levels: [DynamicLevel.f, DynamicLevel.p, DynamicLevel.p],
+  ),
+  AccentPreset(
+    name: 'スウィング（強弱中弱）',
+    levels: [DynamicLevel.f, DynamicLevel.mp, DynamicLevel.mf, DynamicLevel.mp],
+  ),
   AccentPreset(name: 'すべて均等', levels: [DynamicLevel.mf]),
 ];

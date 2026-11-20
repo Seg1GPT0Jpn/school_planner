@@ -205,11 +205,13 @@ class _MiniMetronomeState extends State<MiniMetronome> {
                       children: [
                         Text(
                           '$_bpm',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        const Text('BPM（タップで入力）', style: TextStyle(fontSize: 10)),
+                        const Text(
+                          'BPM（タップで入力）',
+                          style: TextStyle(fontSize: 10),
+                        ),
                       ],
                     ),
                   ),

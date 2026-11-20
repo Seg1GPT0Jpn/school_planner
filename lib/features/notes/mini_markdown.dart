@@ -46,9 +46,7 @@ class MiniMarkdownView extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Icon(
-                      checked
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
+                      checked ? Icons.check_box : Icons.check_box_outline_blank,
                       size: 20,
                       color: checked ? cs.primary : cs.outline,
                     ),
@@ -99,7 +97,9 @@ class MiniMarkdownView extends StatelessWidget {
                   child: Text('•'),
                 ),
                 Expanded(
-                  child: Text.rich(_inline(bullet.group(2) ?? '', tt.bodyMedium)),
+                  child: Text.rich(
+                    _inline(bullet.group(2) ?? '', tt.bodyMedium),
+                  ),
                 ),
               ],
             ),
@@ -121,12 +121,18 @@ class MiniMarkdownView extends StatelessWidget {
       );
     }
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
   }
 
   Widget _heading(String text, TextStyle? style) => Padding(
     padding: const EdgeInsets.only(top: 10, bottom: 4),
-    child: Text(text.trim(), style: style?.copyWith(fontWeight: FontWeight.bold)),
+    child: Text(
+      text.trim(),
+      style: style?.copyWith(fontWeight: FontWeight.bold),
+    ),
   );
 
   TextSpan _inline(String s, TextStyle? base) {

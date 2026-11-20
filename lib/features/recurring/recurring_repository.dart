@@ -41,6 +41,16 @@ class RecurringRepository {
     });
   }
 
+  /// その日のミニテストだけ「なし」にする（予定はそのまま）
+  Future<void> setTestSkipped(String id, DateTime date, bool skipped) {
+    final key = dateKey(date);
+    return _col.doc(id).update({
+      'testSkippedDates': skipped
+          ? FieldValue.arrayUnion([key])
+          : FieldValue.arrayRemove([key]),
+    });
+  }
+
   static DateTime? _date(Object? v) {
     if (v is! String) return null;
     final p = v.split('-').map(int.parse).toList();
@@ -90,6 +100,7 @@ class RecurringRepository {
         ? null
         : r.location!.trim(),
     'skippedDates': r.skippedDates.toList()..sort(),
+    'testSkippedDates': r.testSkippedDates.toList()..sort(),
     'test': _testToMap(r.test),
   };
 
@@ -111,6 +122,10 @@ class RecurringRepository {
       location: m['location'] as String?,
       skippedDates: {
         for (final s in (m['skippedDates'] as List<dynamic>? ?? const []))
+          s as String,
+      },
+      testSkippedDates: {
+        for (final s in (m['testSkippedDates'] as List<dynamic>? ?? const []))
           s as String,
       },
       test: _testFromMap(m['test']),

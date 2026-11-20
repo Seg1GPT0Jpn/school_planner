@@ -72,13 +72,14 @@ class _BedtimeTabState extends State<BedtimeTab> {
       await rescheduleAlarms();
       return;
     }
-    final next = (linked ?? Alarm(time: b.wakeTime, kind: AlarmKind.wakeUp)).copyWith(
-      time: b.wakeTime,
-      kind: AlarmKind.wakeUp,
-      weekdays: b.days,
-      bedtimeLinked: true,
-      label: 'おはよう',
-    );
+    final next = (linked ?? Alarm(time: b.wakeTime, kind: AlarmKind.wakeUp))
+        .copyWith(
+          time: b.wakeTime,
+          kind: AlarmKind.wakeUp,
+          weekdays: b.days,
+          bedtimeLinked: true,
+          label: 'おはよう',
+        );
     await _alarmRepo.save(next);
     await rescheduleAlarms();
   }
@@ -102,7 +103,9 @@ class _BedtimeTabState extends State<BedtimeTab> {
       allowedExtensions: const ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'],
     );
     if (f == null || f.path == null) return;
-    await _update((b) => b.copyWith(sleepSoundPath: f.path, sleepSoundName: f.name));
+    await _update(
+      (b) => b.copyWith(sleepSoundPath: f.path, sleepSoundName: f.name),
+    );
   }
 
   Future<void> _togglePreview() async {
@@ -124,9 +127,17 @@ class _BedtimeTabState extends State<BedtimeTab> {
   DateTime? get _soundAvailableFrom {
     if (_bedtime.sleepSoundPath == null) return null;
     final now = DateTime.now();
-    final bed = DateTime(now.year, now.month, now.day, _bedtime.bedTime.hour, _bedtime.bedTime.minute);
+    final bed = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      _bedtime.bedTime.hour,
+      _bedtime.bedTime.minute,
+    );
     final target = bed.isBefore(now) ? bed.add(const Duration(days: 1)) : bed;
-    return target.subtract(Duration(minutes: _bedtime.sleepSoundStartsMinutesBefore));
+    return target.subtract(
+      Duration(minutes: _bedtime.sleepSoundStartsMinutesBefore),
+    );
   }
 
   @override
@@ -200,7 +211,11 @@ class _BedtimeTabState extends State<BedtimeTab> {
             children: [
               if (b.sleepSoundPath != null)
                 IconButton(
-                  icon: Icon(_preview ? Icons.stop_circle_outlined : Icons.play_circle_outline),
+                  icon: Icon(
+                    _preview
+                        ? Icons.stop_circle_outlined
+                        : Icons.play_circle_outline,
+                  ),
                   onPressed: _togglePreview,
                 ),
               TextButton(onPressed: _pickSound, child: const Text('選ぶ')),
@@ -217,8 +232,9 @@ class _BedtimeTabState extends State<BedtimeTab> {
                 child: ChoiceChip(
                   label: Text('$m分'),
                   selected: b.sleepSoundStartsMinutesBefore == m,
-                  onSelected: (_) =>
-                      _update((x) => x.copyWith(sleepSoundStartsMinutesBefore: m)),
+                  onSelected: (_) => _update(
+                    (x) => x.copyWith(sleepSoundStartsMinutesBefore: m),
+                  ),
                 ),
               ),
           ],

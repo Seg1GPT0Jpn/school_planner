@@ -58,7 +58,8 @@ VibratoStats? analyzeVibrato(List<TimedCents> samples) {
   if (crossTimes.length < 3) return null; // 往復が少なすぎて判定できない
 
   final periods = [
-    for (var i = 1; i < crossTimes.length; i++) crossTimes[i] - crossTimes[i - 1],
+    for (var i = 1; i < crossTimes.length; i++)
+      crossTimes[i] - crossTimes[i - 1],
   ];
   final meanPeriod = periods.reduce((a, b) => a + b) / periods.length;
   if (meanPeriod <= 0) return null;
@@ -74,5 +75,9 @@ VibratoStats? analyzeVibrato(List<TimedCents> samples) {
 
   final extent = detrended.map((v) => v.abs()).reduce(math.max);
 
-  return VibratoStats(rateHz: rateHz, extentCents: extent, regularity: regularity);
+  return VibratoStats(
+    rateHz: rateHz,
+    extentCents: extent,
+    regularity: regularity,
+  );
 }

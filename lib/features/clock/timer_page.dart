@@ -92,7 +92,8 @@ class _TimerTabState extends State<TimerTab> {
       setState(() => _endAt = _endAt!.add(const Duration(minutes: 1)));
     } else {
       setState(
-        () => _remaining = (_remaining ?? _selected) + const Duration(minutes: 1),
+        () =>
+            _remaining = (_remaining ?? _selected) + const Duration(minutes: 1),
       );
     }
   }
@@ -152,7 +153,10 @@ class _TimerTabState extends State<TimerTab> {
       allowedExtensions: const ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'],
     );
     if (f == null || f.path == null) return;
-    final next = _settings.copyWith(timerSoundPath: f.path, timerSoundName: f.name);
+    final next = _settings.copyWith(
+      timerSoundPath: f.path,
+      timerSoundName: f.name,
+    );
     await _settingsRepo.save(next);
   }
 
@@ -230,7 +234,8 @@ class _TimerTabState extends State<TimerTab> {
                 ChoiceChip(
                   label: Text('$m分'),
                   selected: _selected.inMinutes == m,
-                  onSelected: (_) => setState(() => _selected = Duration(minutes: m)),
+                  onSelected: (_) =>
+                      setState(() => _selected = Duration(minutes: m)),
                 ),
             ],
           ),
@@ -269,8 +274,13 @@ class _TimerTabState extends State<TimerTab> {
             FilledButton(
               onPressed: _running ? _pause : _start,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                child: Text(_running ? '一時停止' : (_remaining != null ? '再開' : '開始')),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                child: Text(
+                  _running ? '一時停止' : (_remaining != null ? '再開' : '開始'),
+                ),
               ),
             ),
           ],
@@ -281,7 +291,10 @@ class _TimerTabState extends State<TimerTab> {
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.music_note_outlined),
           title: Text(_settings.timerSoundName ?? '音が選ばれていません'),
-          trailing: TextButton(onPressed: _configureSound, child: const Text('選ぶ')),
+          trailing: TextButton(
+            onPressed: _configureSound,
+            child: const Text('選ぶ'),
+          ),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -294,7 +307,8 @@ class _TimerTabState extends State<TimerTab> {
           contentPadding: EdgeInsets.zero,
           title: const Text('バイブレーション'),
           value: _settings.timerVibrate,
-          onChanged: (v) => _settingsRepo.save(_settings.copyWith(timerVibrate: v)),
+          onChanged: (v) =>
+              _settingsRepo.save(_settings.copyWith(timerVibrate: v)),
         ),
       ],
     );

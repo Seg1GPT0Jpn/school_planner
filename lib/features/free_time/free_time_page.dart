@@ -69,7 +69,9 @@ class _FreeTimePageState extends State<FreeTimePage> {
   }
 
   void _shiftDay(int deltaDays) {
-    setState(() => _day = DateTime(_day.year, _day.month, _day.day + deltaDays));
+    setState(
+      () => _day = DateTime(_day.year, _day.month, _day.day + deltaDays),
+    );
   }
 
   void _addAt(FreeSlot slot) {

@@ -48,6 +48,30 @@ void main() {
     );
   });
 
+  test('ミニテストだけなしにした日は、予定は残り、テストはなく、範囲も進まない', () {
+    final s = RecurringSchedule(
+      id: 'e',
+      title: '塾 英語',
+      weekday: DateTime.friday,
+      start: ClockTime(19, 40),
+      end: ClockTime(21, 40),
+      testSkippedDates: const {'2026-10-02'},
+      test: _eevi,
+    );
+    expect(s.occursOn(DateTime(2026, 10, 2)), isTrue);
+    expect(recurringTestOn(s, DateTime(2026, 10, 2)), isNull);
+    expect(
+      recurringTestOn(s, DateTime(2026, 10, 9))!.rangeText,
+      '101〜150・前回 51〜100',
+    );
+    final events = expandRecurringWithTests(
+      [s],
+      DateTime(2026, 10, 2),
+      DateTime(2026, 10, 3),
+    );
+    expect(events.single.title, '塾 英語');
+  });
+
   test('範囲なしのテストは名前だけ', () {
     final s = _english(test: const RecurringTestConfig(title: '計算テスト'));
     expect(recurringTestOn(s, DateTime(2026, 9, 25))!.label, '計算テスト');

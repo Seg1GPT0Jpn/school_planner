@@ -37,7 +37,7 @@ class RecurringTestOccurrence {
 RecurringTestOccurrence? recurringTestOn(RecurringSchedule s, DateTime date) {
   final config = s.test;
   final d = _day(date);
-  if (config == null || !s.occursOn(d)) return null;
+  if (config == null || !s.testOn(d)) return null;
   if (!config.hasRange) return RecurringTestOccurrence(config, null);
 
   final base = _day(config.baseDate!);
@@ -45,12 +45,12 @@ RecurringTestOccurrence? recurringTestOn(RecurringSchedule s, DateTime date) {
   int start;
   if (!d.isBefore(base)) {
     for (var x = base; x.isBefore(d); x = _next(x)) {
-      if (s.occursOn(x)) count++;
+      if (s.testOn(x)) count++;
     }
     start = config.baseStart! + config.step * count;
   } else {
     for (var x = d; x.isBefore(base); x = _next(x)) {
-      if (s.occursOn(x)) count++;
+      if (s.testOn(x)) count++;
     }
     start = config.baseStart! - config.step * count;
   }

@@ -163,9 +163,7 @@ ParsedSchedule parseScheduleText(String input, {required DateTime now}) {
   }
 
   // 5) 残った文字列からタイトルを組み立てる
-  var title = text
-      .replaceAll(RegExp(r'[、。,.]'), ' ')
-      .trim();
+  var title = text.replaceAll(RegExp(r'[、。,.]'), ' ').trim();
   title = title.replaceAll(RegExp(r'^(に|の|は|を)\s*'), '');
   title = title.replaceAll(RegExp(r'\s*(に|の|は|を|から|まで)$'), '');
   title = title.replaceAll(RegExp(r'\s{2,}'), ' ').trim();

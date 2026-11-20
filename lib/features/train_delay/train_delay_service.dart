@@ -22,10 +22,7 @@ class TrainDelayService {
   Future<TrainStatusBundle>? _loading;
 
   /// 指定した路線の運行状況（5分以内・同じ路線なら前のものを返す）
-  Future<TrainStatusBundle> load(
-    List<String> lineIds, {
-    bool force = false,
-  }) {
+  Future<TrainStatusBundle> load(List<String> lineIds, {bool force = false}) {
     final last = _last;
     final sameLines =
         _lastLineIds != null &&
@@ -37,9 +34,7 @@ class TrainDelayService {
         DateTime.now().difference(last.fetchedAt) < _keep) {
       return Future.value(last);
     }
-    return _loading ??= _fetch(
-      lineIds,
-    ).whenComplete(() => _loading = null);
+    return _loading ??= _fetch(lineIds).whenComplete(() => _loading = null);
   }
 
   TrainStatusBundle? get cached => _last;
@@ -55,9 +50,8 @@ class TrainDelayService {
       return bundle;
     }
     try {
-      final callable = FirebaseFunctions.instanceFor(
-        region: 'asia-northeast1',
-      ).httpsCallable('getTrainStatus');
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-northeast1')
+          .httpsCallable('getTrainStatus');
       final res = await callable.call<Map<String, dynamic>>({
         'lineIds': lineIds,
       });

@@ -140,7 +140,10 @@ Uint8List generateTimbredClick(
     final envelope = i < attackN
         ? i / attackN
         : (i > decayStartN
-              ? math.max(0.0, 1 - (i - decayStartN) / math.max(1, n - decayStartN))
+              ? math.max(
+                  0.0,
+                  1 - (i - decayStartN) / math.max(1, n - decayStartN),
+                )
               : 1.0);
     final phase = freq * i / _sampleRate;
     final v = _waveSample(timbre.waveform, phase, rand) * envelope;
@@ -185,7 +188,11 @@ enum PianoTone {
 }
 
 /// ピアノ機能の1音ぶんのWAV（指で弾いた感じの速い立ち上がり＋音色ごとの減衰）
-Uint8List generatePianoNoteWav(double freq, PianoTone tone, {double seconds = 2.5}) {
+Uint8List generatePianoNoteWav(
+  double freq,
+  PianoTone tone, {
+  double seconds = 2.5,
+}) {
   final n = (_sampleRate * seconds).round();
   const attackN = 200; // 立ち上がり（約4.5ms）
   final norm = tone.harmonics.fold<double>(0, (a, b) => a + b);

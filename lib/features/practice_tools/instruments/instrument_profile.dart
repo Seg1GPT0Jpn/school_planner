@@ -182,5 +182,7 @@ const List<InstrumentProfile> instrumentProfiles = [
   ),
 ];
 
-InstrumentProfile instrumentById(String id) =>
-    instrumentProfiles.firstWhere((p) => p.id == id, orElse: () => instrumentProfiles.first);
+InstrumentProfile instrumentById(String id) => instrumentProfiles.firstWhere(
+  (p) => p.id == id,
+  orElse: () => instrumentProfiles.first,
+);

@@ -56,7 +56,11 @@ class TempoRamp {
   /// [barsElapsed] 小節ぶん経過した時点でのBPMを、開始BPM [startBpm] から計算する。
   /// [bounceDirectionUp] は往復モードの、現在向かっている方向（true＝上昇中）を
   /// 呼び出し側が保持し、折り返しの判定に使う（呼び出し側で更新すること）。
-  int bpmAfter(int startBpm, int barsElapsed, {required bool bounceDirectionUp}) {
+  int bpmAfter(
+    int startBpm,
+    int barsElapsed, {
+    required bool bounceDirectionUp,
+  }) {
     if (mode == TempoRampMode.off || everyBars <= 0) return startBpm;
     final steps = barsElapsed ~/ everyBars;
     switch (mode) {

@@ -31,19 +31,14 @@ class _StudySessionPageState extends State<StudySessionPage> {
   Future<void> _grade(bool correct) async {
     final card = widget.cards[_index];
     if (correct) _correctCount++;
-    await widget.repository.saveCard(
-      widget.deckId,
-      card.graded(correct),
-    );
+    await widget.repository.saveCard(widget.deckId, card.graded(correct));
     if (!mounted) return;
     if (_index + 1 >= widget.cards.length) {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('復習おつかれさま！'),
-          content: Text(
-            '${widget.cards.length}枚中、$_correctCount枚できました',
-          ),
+          content: Text('${widget.cards.length}枚中、$_correctCount枚できました'),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(ctx),
@@ -65,9 +60,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
   Widget build(BuildContext context) {
     final card = widget.cards[_index];
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${_index + 1} / ${widget.cards.length}'),
-      ),
+      appBar: AppBar(title: Text('${_index + 1} / ${widget.cards.length}')),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -76,9 +69,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                LinearProgressIndicator(
-                  value: _index / widget.cards.length,
-                ),
+                LinearProgressIndicator(value: _index / widget.cards.length),
                 const SizedBox(height: 24),
                 Expanded(
                   child: GestureDetector(
@@ -92,7 +83,9 @@ class _StudySessionPageState extends State<StudySessionPage> {
                             children: [
                               Text(
                                 _showBack ? card.back : card.front,
-                                style: Theme.of(context).textTheme.headlineSmall,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall,
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),

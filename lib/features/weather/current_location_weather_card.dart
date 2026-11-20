@@ -73,9 +73,7 @@ class _CurrentLocationWeatherCardState
               children: [
                 Icon(Icons.my_location, size: 20, color: cs.primary),
                 const SizedBox(width: 6),
-                Expanded(
-                  child: Text('現在地の天気', style: tt.titleMedium),
-                ),
+                Expanded(child: Text('現在地の天気', style: tt.titleMedium)),
                 if (_bundle != null && !_loading)
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 20),
@@ -150,10 +148,7 @@ class _CurrentLocationWeatherCardState
               Text('取得できませんでした', style: TextStyle(color: cs.error)),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: TextStyle(color: cs.error, fontSize: 12),
-              ),
+              Text(_error!, style: TextStyle(color: cs.error, fontSize: 12)),
             ],
           ],
         ),
